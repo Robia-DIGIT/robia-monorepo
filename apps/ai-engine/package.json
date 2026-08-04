@@ -1,0 +1,8 @@
+{
+  "name": "@robia/ai-engine",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+  "dev": ".venv\\Scripts\\python -m uvicorn main:app --reload --port 8005"
+  }
+}

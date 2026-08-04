@@ -1,0 +1,16 @@
+{
+  "name": "robia-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@11.20.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "turbo run format"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.8"
+  }
+}
