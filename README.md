@@ -10,7 +10,7 @@ robia-monorepo/
 ├── apps/
 │   ├── backend/          # API REST NestJS + Prisma
 │   ├── ai-engine/        # Moteur IA FastAPI (Python)
-│   └── frontend/         # Application Next.js (miandry an'lisany)
+│   └── frontend/         # Application Next.js (Vitrine , dashboard , mobile )
 │
 ├── package.json
 ├── pnpm-workspace.yaml
