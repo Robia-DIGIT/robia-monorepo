@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  Building2,
   FileText,
   HelpCircle,
   Layers,
@@ -42,6 +43,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { to: "/execution", label: "Exécution", icon: Layers },
   { to: "/rapports", label: "Rapports", icon: FileText },
   { to: "/ia", label: "IA Conversationnelle", icon: MessageSquare, badge: "AI" },
+  { to: "/business-profile", label: "Business Profile", icon: Building2 },
 ];
 
 const FOCUS_RING =

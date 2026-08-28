@@ -33,7 +33,7 @@ export default function LoginPage() {
 
     try {
       await login({ email: normalizedEmail, password: normalizedPassword });
-      navigate("/analyse", { replace: true });
+      navigate("/create-organization", { replace: true });
     } catch (submissionError) {
       setError(
         submissionError instanceof Error

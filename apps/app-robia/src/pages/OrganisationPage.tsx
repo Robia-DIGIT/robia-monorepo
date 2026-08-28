@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { createOrganization, type Organization } from '../lib/api'
+import { clearWorkspaceOnboarding, readWorkspaceOnboarding } from '../lib/onboarding'
 
 // ─────────────────────────────────────────────────────────────────────────
 // UI primitives
@@ -341,7 +342,11 @@ interface CreateOrganizationPageProps {
 }
 
 export default function CreateOrganizationPage({ onCreated }: CreateOrganizationPageProps) {
-  const [form, setForm] = useState<OrganizationForm>(EMPTY_FORM)
+  const onboarding = useMemo(() => readWorkspaceOnboarding(), [])
+  const [form, setForm] = useState<OrganizationForm>(() => ({
+    ...EMPTY_FORM,
+    name: onboarding?.company ?? '',
+  }))
   const [touched, setTouched] = useState<Partial<Record<keyof OrganizationForm, boolean>>>({})
   const [status, setStatus] = useState<Status>('idle')
   const [submitError, setSubmitError] = useState('')
@@ -382,6 +387,7 @@ export default function CreateOrganizationPage({ onCreated }: CreateOrganization
       })
       setCreated(organization)
       setStatus('success')
+      clearWorkspaceOnboarding()
       onCreated?.(organization)
       navigate('/analyse', { replace: true })
     } catch (err) {
@@ -409,6 +415,11 @@ export default function CreateOrganizationPage({ onCreated }: CreateOrganization
           <p className="text-sm text-muted mt-0.5">
             Ces informations servent de base à votre audit de référencement local.
           </p>
+          {onboarding && (
+            <p className="mt-2 inline-flex rounded-full bg-teal-light px-3 py-1 text-xs font-semibold text-teal-dark">
+              Rôle : {onboarding.role === 'owner' ? 'Propriétaire' : onboarding.role === 'manager' ? 'Responsable' : 'Membre'}
+            </p>
+          )}
         </div>
       </div>
 
