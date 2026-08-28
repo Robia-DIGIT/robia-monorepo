@@ -92,3 +92,29 @@ body {
 .animate-spin-slow {
   animation: spin 2s linear infinite;
 }
+
+:root {
+  --robia-primary: #1F3A5F;
+  --robia-primary-hover: #172D47;
+  --robia-primary-subtle: #F1F5F9;
+  --robia-intelligence: #14B8A6;
+  --robia-intelligence-dark: #0F766E;
+  --robia-opportunity: #F97316;
+  --robia-surface: #FFFFFF;
+  --robia-background: #F8FAFC;
+  --robia-border: #E2E8F0;
+  --robia-text: #1E293B;
+  --robia-text-secondary: #64748B;
+}
+
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--robia-intelligence); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

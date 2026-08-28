@@ -4,6 +4,7 @@ import { Menu, Search } from 'lucide-react'
 import { getCurrentOrganization, getCurrentUser, logout, type Organization, type UserSummary } from './lib/api'
 import Sidebar from './components/Sidebar'
 import { clearAuthResponse, isAuthenticated } from './lib/auth'
+import { WebsiteProvider } from './components/WebsiteContext'
 
 export type ConnectionStatus = 'loading' | 'connected' | 'partial' | 'error'
 
@@ -131,7 +132,9 @@ export default function App() {
         </div>
 
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          <WebsiteProvider>
+            <Outlet />
+          </WebsiteProvider>
         </main>
       </div>
     </div>

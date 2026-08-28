@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   Activity,
+  MapPin,
+  Radar,
   ArrowRight,
   Eye,
   Search,
@@ -20,7 +22,8 @@ import {
   YAxis,
 } from 'recharts'
 
-import { Alert, Badge, Button, Card, EmptyState, KpiCard, ProgressBar, SearchBar, Tabs } from '../components/ui'
+import { Alert, Badge, Button, Card, EmptyState, ProgressBar, SearchBar, Tabs } from '../components/ui'
+import { useWebsiteContext } from '../components/WebsiteContext'
 import {
   createWebsite,
   generateOpportunities,
@@ -28,7 +31,6 @@ import {
   getLatestAudit,
   listAudits,
   listOpportunities,
-  listWebsites,
   runAudit,
   auditScore,
   auditSubscores,
@@ -37,15 +39,13 @@ import {
   type Audit,
   type Opportunity,
   type Organization,
-  type Website,
 } from '../lib/api'
 
 const tabs = ["Vue d'ensemble", 'Historique', 'Recommandations', 'Concurrents']
 
 export default function PageAnalyse() {
   const [organization, setOrganization] = useState<Organization | null>(null)
-  const [websites, setWebsites] = useState<Website[]>([])
-  const [selectedWebsiteId, setSelectedWebsiteId] = useState('')
+  const { websites, activeWebsite, activeWebsiteId: selectedWebsiteId, setActiveWebsiteId: setSelectedWebsiteId, refreshWebsites } = useWebsiteContext()
   const [latestAudit, setLatestAudit] = useState<Audit | null>(null)
   const [audits, setAudits] = useState<Audit[]>([])
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
@@ -84,22 +84,13 @@ export default function PageAnalyse() {
     setError('')
 
     try {
-      const [organizationData, websitesData] = await Promise.all([
-        getCurrentOrganization(),
-        listWebsites(),
-      ])
-
+      const organizationData = await getCurrentOrganization()
       setOrganization(organizationData)
-      setWebsites(websitesData)
 
-      const initialWebsiteId = selectedWebsiteId || websitesData[0]?.id || ''
-
-      if (initialWebsiteId) {
-        setSelectedWebsiteId(initialWebsiteId)
-
+      if (selectedWebsiteId) {
         const [auditData, auditsData] = await Promise.all([
-          getLatestAudit(initialWebsiteId),
-          listAudits(initialWebsiteId),
+          getLatestAudit(selectedWebsiteId),
+          listAudits(selectedWebsiteId),
         ])
 
         setLatestAudit(auditData)
@@ -122,7 +113,7 @@ export default function PageAnalyse() {
   useEffect(() => {
     void loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [selectedWebsiteId])
 
   // Clear the success notice on its own after a few seconds so it doesn't linger forever
   useEffect(() => {
@@ -143,6 +134,7 @@ export default function PageAnalyse() {
       if (query.trim()) {
         const website = await createWebsite({ url: query.trim() })
         websiteId = website.id ?? websiteId
+        await refreshWebsites(websiteId)
       }
 
       if (!websiteId) {
@@ -185,63 +177,43 @@ export default function PageAnalyse() {
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-slide-up">
-      <div className="relative mb-8 overflow-hidden rounded-3xl bg-linear-to-br from-navy via-navy to-navy-light p-8 shadow-xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(20,184,166,0.18),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(29,78,216,0.14),transparent_30%)]" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center">
-              <TrendingUp size={10} color="white" strokeWidth={3} />
-            </div>
-            <span className="text-teal text-xs font-semibold tracking-wide uppercase">Propulsé par l'IA</span>
+      <header className="mb-7 border-b border-border pb-6">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+          <div>
+            <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Tableau de visibilité locale</p>
+            <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Bonjour, que voulez-vous améliorer aujourd’hui ?</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">ROBIA observe les signaux de {organization?.name ?? 'votre entreprise'}, mesure leur impact et transforme le prochain progrès en action claire.</p>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2 leading-tight">
-            Analysez la visibilité locale
-            <br className="hidden sm:block" /> de votre entreprise
-          </h1>
-          <p className="text-white/60 text-sm mb-6 max-w-xl">
-            {organization?.name ?? 'Votre organisation'} · {organization?.city ?? 'Localisation à définir'} · branchez un site, lancez un audit et générez les opportunités.
-          </p>
-          <form onSubmit={handleAnalyse} className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 space-y-3 min-w-0">
-              <SearchBar
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Entrez l'URL du site à analyser…"
-                aria-label="URL du site à analyser"
-              />
-              {websites.length > 0 && (
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <label htmlFor="website-select" className="text-xs text-white/50 shrink-0">
-                    Site actif :
-                  </label>
-                  <select
-                    id="website-select"
-                    value={selectedWebsiteId}
-                    onChange={(event) => setSelectedWebsiteId(event.target.value)}
-                    className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 min-w-0 max-w-full text-sm text-white outline-none backdrop-blur focus:ring-2 focus:ring-teal"
-                  >
-                    {websites.map((website) => (
-                      <option key={website.id ?? website.url} value={website.id ?? ''} className="text-dark">
-                        {website.name ?? website.url ?? 'Site'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-            <Button
-              variant="primary"
-              size="lg"
-              loading={busy}
-              type="submit"
-              disabled={busy || (!query.trim() && !selectedWebsiteId)}
-              icon={<Search size={16} strokeWidth={2.5} />}
-            >
-              {busy ? 'Analyse en cours…' : "Lancer l'analyse"}
-            </Button>
+          <div className="flex items-center gap-3 border-l-2 border-teal pl-4">
+            <MapPin size={18} className="text-teal-dark" />
+            <div><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Zone locale</p><p className="text-sm font-semibold text-navy">{organization?.city ?? 'Localisation à définir'}</p></div>
+          </div>
+        </div>
+      </header>
+
+      <section className="mb-7 grid overflow-hidden rounded-xl border border-navy-light bg-navy lg:grid-cols-[1fr_260px]">
+        <div className="p-5 md:p-7">
+          <div className="mb-5 flex min-w-0 flex-wrap items-center gap-3">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Site observé</span>
+            {websites.length > 0 ? <select id="website-select" value={selectedWebsiteId} onChange={(event) => setSelectedWebsiteId(event.target.value)} className="min-w-0 max-w-full border-0 border-b border-white/20 bg-transparent px-0 py-1 text-sm font-bold text-white outline-none focus:border-teal">
+              {websites.map((website) => <option key={website.id ?? website.url} value={website.id ?? ''} className="text-dark">{website.name ?? website.url ?? 'Site'}</option>)}
+            </select> : <span className="text-sm font-semibold text-white">Aucun site configuré</span>}
+          </div>
+          <h2 className="max-w-xl text-xl font-bold tracking-tight text-white md:text-2xl">{hasAnalyzed ? 'Actualiser le signal de visibilité' : 'Lancer votre premier diagnostic local'}</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-white/55">{activeWebsite?.url ?? 'Ajoutez une URL pour mesurer sa présence, sa performance et ses opportunités locales.'}</p>
+          <form onSubmit={handleAnalyse} className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <SearchBar value={query} onChange={(event) => setQuery(event.target.value)} placeholder="https://votre-site.fr" aria-label="URL du site à analyser" className="flex-1" />
+            <Button variant="primary" size="lg" loading={busy} type="submit" disabled={busy || (!query.trim() && !selectedWebsiteId)} icon={<Search size={16} strokeWidth={2.5} />}>{busy ? 'Analyse en cours…' : hasAnalyzed ? 'Actualiser l’analyse' : 'Analyser ce site'}</Button>
           </form>
         </div>
-      </div>
+        <div className="relative hidden min-h-56 overflow-hidden border-l border-white/10 lg:block" aria-hidden="true">
+          <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-teal/15" />
+          <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-teal/30" />
+          <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-teal text-lg font-bold text-white">{hasAnalyzed ? summaryScore : <MapPin size={22} />}</div>
+          <span className="absolute bottom-5 left-0 right-0 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Signal ROBIA</span>
+        </div>
+      </section>
 
       {(error || notice) && (
         <div className="mb-6 space-y-3" role="status" aria-live="polite">
@@ -251,7 +223,7 @@ export default function PageAnalyse() {
       )}
 
       {!hasAnalyzed && !busy && (
-        <div className="mb-6 rounded-3xl border border-dashed border-border bg-white/80 p-8 text-center shadow-sm">
+        <div className="mb-6 rounded-xl border border-dashed border-border bg-white/80 p-8 text-center shadow-sm">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-light text-teal">
             <Search size={22} strokeWidth={2.5} />
           </div>
@@ -261,7 +233,7 @@ export default function PageAnalyse() {
       )}
 
       {busy && (
-        <div className="mb-6 rounded-3xl border border-teal/20 bg-linear-to-br from-white to-teal-light/40 p-8 shadow-sm" role="status" aria-live="polite">
+        <div className="mb-6 rounded-xl border border-teal/20 bg-teal-light/30 p-8 shadow-sm" role="status" aria-live="polite">
           <div className="flex flex-col items-center text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal text-white shadow-lg shadow-teal/20">
               <Search size={22} strokeWidth={2.5} />
@@ -281,36 +253,26 @@ export default function PageAnalyse() {
 
       {hasAnalyzed && !busy && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <KpiCard
-              label="Score SEO Local"
-              value={summaryScore}
-              suffix="/100"
-              delta="Depuis le dernier audit"
-              deltaUp
-              iconBg="bg-[#CCFBF1]"
-              icon={<Activity size={20} color="#14B8A6" strokeWidth={2.5} />}
-            />
-            <KpiCard
-              label="Visibilité Google"
-              value={summaryScore}
-              suffix="%"
-              delta="Analyse backend"
-              deltaUp
-              iconBg="bg-[#DBEAFE]"
-              icon={<Eye size={20} color="#1D4ED8" strokeWidth={2.5} />}
-            />
-            <KpiCard
-              label="Opportunités détectées"
-              value={opportunities.length}
-              delta="Prêtes à exécuter"
-              deltaUp
-              iconBg="bg-[#FED7AA]"
-              icon={<Users size={20} color="#F97316" strokeWidth={2.5} />}
-            />
-          </div>
+          <section className="mb-7 grid gap-0 overflow-hidden border-y border-border bg-white lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="flex items-center gap-6 border-b border-border px-1 py-6 lg:border-r lg:border-b-0 lg:pr-8">
+              <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[10px] border-teal-light">
+                <span className="text-[38px] font-bold tracking-[-0.06em] text-navy">{summaryScore}</span>
+                <span className="absolute -bottom-2 rounded-sm bg-teal px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white">sur 100</span>
+              </div>
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-teal-dark">ROBIA Visibility Score</p><h2 className="mt-2 text-xl font-bold text-navy">Visibilité {scoreLabel.toLowerCase()}</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted">Ce score synthétise les signaux locaux, le contenu, la technique et la capacité du site à être compris.</p></div>
+            </div>
+            <div className="grid sm:grid-cols-2">
+              <div className="border-b border-border p-5 sm:border-r sm:border-b-0"><Eye size={18} className="text-teal-dark" /><p className="mt-5 text-[28px] font-bold tracking-tight text-navy">{summaryScore}<span className="text-sm text-muted">%</span></p><p className="mt-1 text-xs font-semibold text-muted">Visibilité mesurée</p></div>
+              <div className="p-5"><Users size={18} className="text-orange" /><p className="mt-5 text-[28px] font-bold tracking-tight text-navy">{opportunities.length}</p><p className="mt-1 text-xs font-semibold text-muted">Opportunités détectées</p></div>
+            </div>
+          </section>
 
-          <Card className="p-6 mb-6">
+          <section className="mb-7 grid border-l-2 border-orange bg-orange-light/35 p-5 md:grid-cols-[1fr_auto] md:items-center md:gap-6">
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">Prochaine action recommandée</p><h2 className="mt-2 text-base font-bold text-navy">{filteredRecommendations[0]?.title ?? 'Consulter les signaux prioritaires du site'}</h2><p className="mt-1 text-sm leading-6 text-muted">{filteredRecommendations[0]?.description ?? 'ROBIA affichera ici l’action ayant le meilleur rapport impact / effort après l’analyse.'}</p></div>
+            <Button variant="primary" className="mt-4 md:mt-0" iconRight={<ArrowRight size={14} />} onClick={() => setActiveTab('Recommandations')}>Voir les opportunités</Button>
+          </section>
+
+          <Card className="p-5 md:p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-dark">Évolution de la performance</h2>
@@ -367,8 +329,8 @@ export default function PageAnalyse() {
                         <ProgressBar value={subscores.local} label="Google Business (local)" showValue color="#14B8A6" />
                         <ProgressBar value={subscores.content} label="Contenu local" showValue color="#1D4ED8" />
                         <ProgressBar value={subscores.technical} label="Cohérence NAP / Technique" showValue color="#F97316" />
-                        <ProgressBar value={subscores.performance} label="Performance site" showValue color="#6366F1" />
-                        <ProgressBar value={subscores.ai_readiness} label="Prêt pour l'IA" showValue color="#A855F7" />
+                        <ProgressBar value={subscores.performance} label="Performance site" showValue color="#1D4ED8" />
+                        <ProgressBar value={subscores.ai_readiness} label="Prêt pour l'IA" showValue color="#F97316" />
                       </>
                     ) : (
                       <EmptyState

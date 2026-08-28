@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Building2, Check, MapPin, Radar, Route } from "lucide-react";
 import { Link } from "react-router-dom";
 import logoSnom from "../assets/logo_snom.png";
 
@@ -12,98 +13,56 @@ interface AuthShellProps {
   children: ReactNode;
 }
 
-export default function AuthShell({
-  eyebrow,
-  title,
-  description,
-  footerLabel,
-  footerLinkLabel,
-  footerTo,
-  children,
-}: AuthShellProps) {
+export default function AuthShell({ eyebrow, title, description, footerLabel, footerLinkLabel, footerTo, children }: AuthShellProps) {
+  const isRegistration = footerTo === "/login";
+
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(29,78,216,0.16),transparent_30%),linear-gradient(180deg,#F8FAFC_0%,#EFF6FF_100%)] text-dark">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.58)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.58)_1px,transparent_1px)] bg-size-[36px_36px] opacity-45" />
-      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid w-full items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-          <section className="hidden lg:flex lg:flex-col lg:justify-center lg:pr-8">
-            <div className="inline-flex w-fit items-center gap-3 rounded-full border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-navy shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-teal" />
-              {eyebrow}
-            </div>
-
-            <h1 className="mt-8 max-w-xl text-5xl font-semibold leading-[1.05] tracking-tight text-navy-dark">
-              {title}
-            </h1>
-
-            <p className="mt-5 max-w-lg text-base leading-7 text-muted">
-              {description}
-            </p>
-
-            <div className="mt-10 grid max-w-xl gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div className="text-sm font-semibold text-navy">Connexion rapide</div>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  Gardez un accès direct au tableau de bord et à vos analyses.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div className="text-sm font-semibold text-navy">Création fluide</div>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  Inscrivez votre entreprise en quelques secondes et démarrez.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-10 flex items-center gap-4 text-sm text-muted">
-              <img
-                src={logoSnom}
-                alt="ROBIA Copilot"
-                className="h-12 w-12 rounded-2xl border border-white/80 bg-white object-contain p-2 shadow-[0_18px_45px_rgba(15,23,42,0.08)]"
-              />
-              <div>
-                <div className="font-semibold text-navy-dark">ROBIA Copilot</div>
-                <div>Assistant IA pour vos opérations et vos rapports.</div>
-              </div>
-            </div>
-          </section>
-
-          <section className="mx-auto w-full max-w-md">
-            <div className="rounded-4xl border border-white/70 bg-white/90 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.14)] backdrop-blur sm:p-8">
-              <div className="flex justify-center">
-                <img
-                  src={logoSnom}
-                  alt="ROBIA Copilot"
-                  className="h-18 w-18 rounded-2xl border border-border-light bg-white object-contain p-2 shadow-sm"
-                />
-              </div>
-
-              <div className="mt-6 space-y-2 text-center">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-dark">
-                  {eyebrow}
-                </p>
-                <h2 className="text-2xl font-semibold tracking-tight text-navy-dark">
-                  {title}
-                </h2>
-                <p className="text-sm leading-6 text-muted">{description}</p>
-              </div>
-
-              <div className="mt-6">{children}</div>
-
-              <p className="mt-6 text-center text-xs text-muted">
-                {footerLabel}{" "}
-                <Link
-                  to={footerTo}
-                  className="font-semibold text-teal-dark transition-colors hover:text-navy-dark hover:underline"
-                >
-                  {footerLinkLabel}
-                </Link>
-              </p>
-            </div>
-          </section>
+    <main className="min-h-screen bg-slate-bg text-dark lg:grid lg:grid-cols-[minmax(360px,0.82fr)_minmax(520px,1.18fr)]">
+      <aside className="relative hidden min-h-screen overflow-hidden bg-navy px-10 py-9 text-white lg:flex lg:flex-col xl:px-16 xl:py-12">
+        <div className="flex items-center gap-3">
+          <img src={logoSnom} alt="" className="h-10 w-10 rounded-lg bg-white object-contain p-1.5" />
+          <div><p className="text-[15px] font-bold tracking-tight">Rob<span className="text-teal">IA</span> Copilot</p><p className="mt-0.5 text-[11px] text-white/45">Intelligence de visibilité locale</p></div>
         </div>
-      </div>
-    </div>
+
+        <div className="my-auto max-w-lg py-12">
+          <p className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-teal"><Radar size={15} /> Signal local</p>
+          <h1 className="max-w-md text-[40px] font-bold leading-[1.08] tracking-[-0.035em]">Votre activité locale, rendue visible et actionnable.</h1>
+          <p className="mt-5 max-w-md text-[15px] leading-7 text-white/60">ROBIA rassemble les signaux de votre entreprise, identifie ce qui limite sa visibilité et indique clairement la prochaine action.</p>
+
+          <div className="relative mt-10 h-56 max-w-md overflow-hidden border-y border-white/10" aria-hidden="true">
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+            <div className="absolute left-[42%] top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border border-teal/15" />
+            <div className="absolute left-[42%] top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-teal/30" />
+            <div className="absolute left-[42%] top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-teal text-white"><MapPin size={20} /></div>
+            <div className="absolute right-2 top-8 border-l-2 border-orange bg-white/5 px-4 py-3"><p className="text-[10px] font-bold uppercase tracking-wide text-orange">Opportunité</p><p className="mt-1 text-xs text-white/65">Un signal devient une action.</p></div>
+            <div className="absolute bottom-7 left-2 flex items-center gap-2 text-xs text-white/50"><Route size={15} className="text-teal" /> Entreprise → site → visibilité</div>
+          </div>
+        </div>
+
+        <p className="text-xs leading-5 text-white/35">Un espace sécurisé pour piloter votre présence locale et suivre l’impact de vos actions.</p>
+      </aside>
+
+      <section className="flex min-h-screen flex-col px-5 py-6 sm:px-8 lg:px-12 xl:px-20">
+        <header className="flex items-center justify-between lg:justify-end">
+          <div className="flex items-center gap-2 lg:hidden"><img src={logoSnom} alt="ROBIA Copilot" className="h-9 w-9 rounded-lg bg-white object-contain p-1 ring-1 ring-border" /><span className="text-sm font-bold text-navy">ROBIA Copilot</span></div>
+          <p className="text-xs text-muted">{footerLabel} <Link to={footerTo} className="ml-1 font-bold text-teal-dark hover:text-navy hover:underline">{footerLinkLabel}</Link></p>
+        </header>
+
+        <div className={`mx-auto flex w-full flex-1 items-center py-10 ${isRegistration ? "max-w-2xl" : "max-w-md"}`}>
+          <div className="w-full">
+            {isRegistration && <div className="mb-7 flex items-center gap-3" aria-label="Étape 1 sur 2"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal text-white"><Check size={14} /></span><span className="h-px flex-1 bg-border" /><span className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-white text-xs font-bold text-muted">2</span><span className="ml-1 text-[11px] font-semibold text-muted">Profil entreprise</span></div>}
+
+            <div className="mb-7">
+              <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark">{isRegistration ? <Building2 size={14} /> : <Radar size={14} />}{eyebrow}</p>
+              <h2 className="text-[30px] font-bold leading-tight tracking-[-0.03em] text-navy md:text-[34px]">{title}</h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-muted">{description}</p>
+            </div>
+
+            <div>{children}</div>
+            <p className="mt-7 text-center text-xs text-muted lg:hidden">{footerLabel} <Link to={footerTo} className="font-bold text-teal-dark hover:underline">{footerLinkLabel}</Link></p>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

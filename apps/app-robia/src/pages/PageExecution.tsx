@@ -1,22 +1,23 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertCircle, Download, Play, RefreshCw, Settings2, ShieldCheck } from 'lucide-react'
 
 import { Button, Card, Badge, PageHeader, ProgressBar, EmptyState } from '../components/ui'
+import WebsiteSelector from '../components/WebsiteSelector'
+import { useWebsiteContext } from '../components/WebsiteContext'
 import {
   exportActionPlan,
   generateActions,
   getCurrentOrganization,
   getLatestAudit,
   listActions,
+  listDocuments,
   listOpportunities,
   listValidations,
-  listWebsites,
   updateActionStatus,
   actionStatusLabel,
   actionProgressPct,
   type ActionItem,
   type ValidationLog,
-  type Website,
 } from '../lib/api'
 
 function ActionCard({ item, onUpdate }: { item: ActionItem; onUpdate: (id: string, status: string) => Promise<void> }) {
@@ -62,9 +63,9 @@ function ActionCard({ item, onUpdate }: { item: ActionItem; onUpdate: (id: strin
 
 export default function PageExecution() {
   const [organizationName, setOrganizationName] = useState('')
+  const { activeWebsiteId, activeWebsite } = useWebsiteContext()
   const [actions, setActions] = useState<ActionItem[]>([])
   const [validations, setValidations] = useState<ValidationLog[]>([])
-  const [websites, setWebsites] = useState<Website[]>([])
   const [sourceOpportunityId, setSourceOpportunityId] = useState('')
   const [opportunityCount, setOpportunityCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -79,37 +80,37 @@ export default function PageExecution() {
   const doneCount = useMemo(() => actions.filter((a) => actionProgressPct(a.status) >= 100).length, [actions])
   const errorCount = useMemo(() => actions.filter((a) => actionProgressPct(a.status) <= 5 && a.status.toLowerCase().includes('error')).length, [actions])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
 
     try {
       const organization = await getCurrentOrganization()
-      const websiteList = await listWebsites()
-      const websiteId = websiteList[0]?.id
-      const audit = websiteId ? await getLatestAudit(String(websiteId)) : null
-      const [actionList, validationList, opportunities] = await Promise.all([
+      const audit = activeWebsiteId ? await getLatestAudit(activeWebsiteId) : null
+      const opportunities = audit?.id ? await listOpportunities(String(audit.id)) : []
+      const opportunityIds = new Set(opportunities.map((item) => String(item.id)))
+      const [allActions, allValidations, documentGroups] = await Promise.all([
         listActions(),
         listValidations(),
-        audit?.id ? listOpportunities(String(audit.id)) : Promise.resolve([]),
+        Promise.all(opportunities.map((item) => listDocuments(String(item.id)).catch(() => []))),
       ])
+      const documentIds = new Set(documentGroups.flat().map((item) => String(item.id)))
 
       setOrganizationName(organization.name ?? 'Organisation')
-      setWebsites(websiteList)
       setSourceOpportunityId(opportunities[0]?.id ? String(opportunities[0].id) : '')
-      setActions(actionList)
-      setValidations(validationList)
+      setActions(allActions.filter((item) => opportunityIds.has(String(item.opportunityId))))
+      setValidations(allValidations.filter((item) => documentIds.has(String(item.documentId))))
       setOpportunityCount(opportunities.length)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les actions.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeWebsiteId])
 
   useEffect(() => {
     void loadData()
-  }, [])
+  }, [loadData])
 
   const handleGenerate = async () => {
     const firstOpportunityId = sourceOpportunityId || actions.find((item) => item.opportunityId)?.opportunityId
@@ -136,7 +137,7 @@ export default function PageExecution() {
     setError('')
 
     try {
-      const blob = await exportActionPlan()
+      const blob = await exportActionPlan(activeWebsiteId)
       const file = new Blob([blob], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(file)
       const anchor = document.createElement('a')
@@ -170,7 +171,7 @@ export default function PageExecution() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-slide-up">
       <PageHeader
         title="Exécution automatisée"
-        subtitle={`Suivez les actions connectées à ${organizationName}${websites.length > 0 ? ` · ${websites.length} site(s)` : ''}`}
+        subtitle={`Actions dédiées à ${activeWebsite?.name ?? activeWebsite?.url ?? "ce site"} · ${organizationName}`}
         actions={
           <>
             {errorCount > 0 && (
@@ -183,6 +184,8 @@ export default function PageExecution() {
           </>
         }
       />
+
+      <WebsiteSelector className="mb-6 md:max-w-xl" />
 
       {error && <div className="mb-6"><Card className="p-4 text-sm text-red-700 bg-red-50 border-red-200">{error}</Card></div>}
 

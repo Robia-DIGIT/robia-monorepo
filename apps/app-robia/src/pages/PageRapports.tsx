@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Calendar, Download, FileText,  Share2, Sparkles, TrendingUp } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { Button, Card, EmptyState, PageHeader } from '../components/ui'
+import WebsiteSelector from '../components/WebsiteSelector'
+import { useWebsiteContext } from '../components/WebsiteContext'
 import {
   exportActionPlan,
   getCurrentOrganization,
   getLatestAudit,
   listActions,
+  listDocuments,
   listAudits,
   listOpportunities,
   listValidations,
-  listWebsites,
   auditScore,
   actionProgressPct,
   oppIsDone,
@@ -23,6 +25,7 @@ import {
 
 export default function PageRapports() {
   const [organizationName, setOrganizationName] = useState('')
+  const { activeWebsiteId, activeWebsite } = useWebsiteContext()
   const [latestAudit, setLatestAudit] = useState<Audit | null>(null)
   const [audits, setAudits] = useState<Audit[]>([])
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
@@ -44,44 +47,48 @@ export default function PageRapports() {
       : []
   }, [audits])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
 
     try {
-      const [organization, websites] = await Promise.all([getCurrentOrganization(), listWebsites()])
-      const websiteId = websites[0]?.id
-      const latestAuditData = websiteId ? await getLatestAudit(String(websiteId)) : null
-      const [auditList, opportunityList, actionList, validationList] = await Promise.all([
-        websiteId ? listAudits(websiteId) : Promise.resolve([]),
+      const organization = await getCurrentOrganization()
+      const latestAuditData = activeWebsiteId ? await getLatestAudit(activeWebsiteId) : null
+      const [auditList, opportunityList] = await Promise.all([
+        activeWebsiteId ? listAudits(activeWebsiteId) : Promise.resolve([]),
         latestAuditData?.id ? listOpportunities(String(latestAuditData.id)) : Promise.resolve([]),
+      ])
+      const opportunityIds = new Set(opportunityList.map((item) => String(item.id)))
+      const [allActions, allValidations, documentGroups] = await Promise.all([
         listActions(),
         listValidations(),
+        Promise.all(opportunityList.map((item) => listDocuments(String(item.id)).catch(() => []))),
       ])
+      const documentIds = new Set(documentGroups.flat().map((item) => String(item.id)))
 
       setOrganizationName(organization.name ?? 'Organisation')
       setAudits(auditList)
       setOpportunities(opportunityList)
-      setActions(actionList)
-      setValidations(validationList)
+      setActions(allActions.filter((item) => opportunityIds.has(String(item.opportunityId))))
+      setValidations(allValidations.filter((item) => documentIds.has(String(item.documentId))))
       setLatestAudit(latestAuditData)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Impossible de charger le rapport.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeWebsiteId])
 
   useEffect(() => {
     void loadData()
-  }, [])
+  }, [loadData])
 
   const handleGenerate = async () => {
     setBusy(true)
     setError('')
 
     try {
-      await exportActionPlan()
+      await exportActionPlan(activeWebsiteId)
       setGenerated(true)
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : 'Impossible de générer le rapport.')
@@ -95,7 +102,7 @@ export default function PageRapports() {
     setError('')
 
     try {
-      const blob = await exportActionPlan()
+      const blob = await exportActionPlan(activeWebsiteId)
       const url = window.URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
@@ -123,7 +130,7 @@ export default function PageRapports() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-slide-up">
       <PageHeader
         title="Rapports & Analytics"
-        subtitle={`Synthèse opérationnelle de ${organizationName}`}
+        subtitle={`Synthèse dédiée à ${activeWebsite?.name ?? activeWebsite?.url ?? "ce site"} · ${organizationName}`}
         actions={
           <>
             {generated && <Button variant="outline" size="sm" icon={<Share2 size={14} />}>Partager</Button>}
@@ -133,6 +140,8 @@ export default function PageRapports() {
           </>
         }
       />
+
+      <WebsiteSelector className="mb-6 md:max-w-xl" />
 
       {error && <div className="mb-6"><Card className="p-4 text-sm text-red-700 bg-red-50 border-red-200">{error}</Card></div>}
 

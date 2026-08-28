@@ -38,11 +38,11 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-  { to: "/analyse", label: "Analyse", icon: Search },
+  { to: "/analyse", label: "Visibilité", icon: Search },
   { to: "/opportunites", label: "Opportunités", icon: Zap },
-  { to: "/execution", label: "Exécution", icon: Layers },
+  { to: "/execution", label: "Actions", icon: Layers },
   { to: "/rapports", label: "Rapports", icon: FileText },
-  { to: "/ia", label: "IA Conversationnelle", icon: MessageSquare, badge: "AI" },
+  { to: "/ia", label: "Copilot", icon: MessageSquare, badge: "IA" },
   { to: "/business-profile", label: "Business Profile", icon: Building2 },
 ];
 
@@ -276,7 +276,7 @@ export default function Sidebar({
             collapsed ? "mx-auto justify-center" : "w-full gap-3 rounded-lg bg-white/5 px-3 py-2.5",
           )}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-electric to-navy-light text-sm font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-navy-light text-sm font-bold text-white">
             {orgInitial}
           </div>
           {!collapsed && (
@@ -342,7 +342,7 @@ export default function Sidebar({
               collapsed ? "justify-center" : "flex-1 gap-3 rounded-lg px-3 py-2.5 hover:bg-white/6",
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-teal to-electric text-sm font-semibold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal text-sm font-semibold text-white">
               {userInitial}
             </div>
             {!collapsed && (

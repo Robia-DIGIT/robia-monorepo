@@ -22,7 +22,7 @@ export function Button({
   className = '',
   ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center gap-2  font-medium rounded-xl transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 select-none'
+  const base = 'inline-flex items-center justify-center gap-2  font-semibold rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 select-none'
   
 const sizes = {
   sm: 'h-8 px-3 text-xs gap-1.5',
@@ -30,8 +30,8 @@ const sizes = {
   lg: 'h-13 px-4 text-[15px] gap-2',
 } as const
   const variants = {
-    primary: 'bg-[#F97316] text-white hover:bg-[#EA580C] focus-visible:ring-[#F97316] shadow-sm shadow-[#F97316]/20 disabled:opacity-50',
-    secondary: 'bg-[#1F3A5F] text-white hover:bg-[#2D5282] focus-visible:ring-[#1F3A5F] shadow-sm disabled:opacity-50',
+    primary: 'bg-[#F97316] text-white hover:bg-[#EA580C] focus-visible:ring-[#F97316] shadow-none disabled:opacity-50',
+    secondary: 'bg-[#1F3A5F] text-white hover:bg-[#2D5282] focus-visible:ring-[#1F3A5F] shadow-none disabled:opacity-50',
     outline: 'border border-[#E2E8F0] text-[#1E293B] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] focus-visible:ring-[#1D4ED8] disabled:opacity-50',
     ghost: 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#1E293B] focus-visible:ring-[#1D4ED8] disabled:opacity-50',
     danger: 'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500 disabled:opacity-50',
@@ -84,7 +84,7 @@ interface CardProps {
 
 export function Card({ children, className = '', hover = false }: CardProps) {
   return (
-    <div className={`bg-white rounded-2xl border border-border shadow-sm ${hover ? 'hover:shadow-md hover:border-border transition-all duration-200 cursor-pointer' : ''} ${className}`}>
+    <div className={`bg-white rounded-xl border border-border shadow-[0_1px_2px_rgba(31,58,95,0.04)] ${hover ? 'hover:border-teal/35 transition-all duration-200 cursor-pointer' : ''} ${className}`}>
       {children}
     </div>
   )
@@ -104,7 +104,7 @@ interface KpiCardProps {
 
 export function KpiCard({ label, value, delta, deltaUp = true, icon, iconBg = 'bg-[#CCFBF1]', suffix }: KpiCardProps) {
   return (
-    <Card className="p-6">
+    <Card className="relative overflow-hidden p-5 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-teal">
       <div className="flex items-start justify-between mb-4">
         <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
           {icon}
@@ -296,15 +296,15 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions, badge }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-8">
+    <div className="mb-7 flex flex-col items-start justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-2xl font-bold text-dark">{title}</h1>
+          <h1 className="text-2xl font-bold tracking-[-0.025em] text-navy md:text-[28px]">{title}</h1>
           {badge}
         </div>
         {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-3 shrink-0">{actions}</div>}
+      {actions && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">{actions}</div>}
     </div>
   )
 }

@@ -600,8 +600,11 @@ export async function listActions() {
   return request<ActionItem[]>("/actions");
 }
 
-export async function exportActionPlan() {
-  return request<Blob>("/actions/export", { responseType: "blob" });
+export async function exportActionPlan(websiteId?: string) {
+  return request<Blob>("/actions/export", {
+    responseType: "blob",
+    query: websiteId ? { website_id: websiteId } : undefined,
+  });
 }
 
 export async function updateActionStatus(id: string, status: string) {
