@@ -1,0 +1,25 @@
+name: Frontend production images
+
+on:
+  pull_request:
+    paths:
+      - "apps/app-robia/**"
+      - "apps/vitrine-robia/**"
+      - "docker-compose.frontend.production.yml"
+      - ".github/workflows/frontend-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate compose
+        run: docker compose -f docker-compose.frontend.production.yml config --quiet
+      - name: Build production images
+        run: docker compose -f docker-compose.frontend.production.yml build
