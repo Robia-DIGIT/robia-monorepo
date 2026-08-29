@@ -9,10 +9,16 @@ import { Pricing } from "../components/Pricing";
 import { FAQ } from "../components/FAQ";
 import { FinalCTA } from "../components/FinalCTA";
 import SearchSection from "../components/SearchSection";
+import { Seo } from "../components/Seo";
 
 export default function Home() {
   return (
     <>
+      <Seo
+        title="ROBIA Copilot | Visibilité locale et SEO à Madagascar"
+        description="ROBIA Copilot analyse votre visibilité locale, détecte vos opportunités SEO et transforme vos données en actions concrètes à Madagascar."
+        canonicalPath="/"
+      />
       <Hero />
       <SearchSection />
       <Problem />
