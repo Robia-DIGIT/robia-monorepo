@@ -18,10 +18,10 @@ function useScrolled(threshold = 30) {
 }
 
 const NAV_LINKS = [
-  { label: "Produit", href: "#produit" },
-  { label: "Tarifs", href: "#tarifs" },
-  { label: "Cas d'usage", href: "#cas" },
-  { label: "Blog", href: "#blog" },
+  { label: "Produit", href: "/#produit" },
+  { label: "Tarifs", href: "/#tarifs" },
+  { label: "Cas d'usage", href: "/#cas" },
+  { label: "Antananarivo", href: "/seo-local-antananarivo" },
 ];
 
 export function Navbar() {
