@@ -1,5 +1,5 @@
 import { cn } from "../lib/utils";
-import { FadeUp } from "./ui/animations";
+import { FadeUp, ScrollDepth } from "./ui/animations";
 import { SectionLabel } from "./ui/SectionLabel";
 
 const KPI_CARDS = [
@@ -33,27 +33,26 @@ const CHART_BARS = [
 
 export function DashboardShowcase() {
   return (
-    <section className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 bg-[#1E293B] overflow-hidden">
+    <section className="overflow-hidden bg-[#102B38] px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
       <div className="max-w-7xl mx-auto">
         <FadeUp>
-          <div className="text-center mb-10 sm:mb-16">
+          <div className="mb-12 grid gap-7 border-t border-white/20 pt-6 text-left lg:grid-cols-[.35fr_1fr]">
             <SectionLabel>Tableau de bord</SectionLabel>
-            <h2 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+            <h2 className="mt-4 max-w-4xl text-4xl font-extrabold leading-[1.02] tracking-[-.05em] text-white sm:text-6xl">
               Contrôle total.{" "}
               <span className="text-teal-400">Vision claire.</span>
             </h2>
-            <p className="mt-4 text-slate-400 text-base sm:text-lg max-w-xl mx-auto">
+            <p className="mt-5 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
               Tout ce que vous devez savoir sur votre présence en ligne, dans un panneau
               intuitif mis à jour en temps réel.
             </p>
           </div>
         </FadeUp>
 
-        <FadeUp delay={0.2}>
+        <ScrollDepth>
           <div className="relative">
-            <div className="absolute inset-0 bg-teal-500/10 blur-3xl rounded-full" />
-            <div className="relative bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl p-1">
-              <div className="bg-[#0F172A] rounded-xl sm:rounded-2xl overflow-hidden">
+            <div className="relative border border-white/15 bg-white/5 p-1 shadow-[0_45px_90px_-45px_rgba(0,0,0,.8)]">
+              <div className="overflow-hidden bg-[#0F172A]">
                 {/* Browser chrome */}
                 <div className="flex items-center gap-2 px-3 sm:px-5 py-3 border-b border-white/10">
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500/50 flex-shrink-0" />
@@ -138,7 +137,7 @@ export function DashboardShowcase() {
               </div>
             </div>
           </div>
-        </FadeUp>
+        </ScrollDepth>
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { cn } from "../lib/utils";
 import RobiaLogo from "../assets/logo_snom.png";
@@ -27,15 +27,9 @@ const NAV_LINKS = [
 export function Navbar() {
   const scrolled = useScrolled();
   const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-  const location = useLocation();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
-
-  // Close the mobile menu whenever the route changes
-  useEffect(() => {
-    close();
-  }, [location.pathname, close]);
 
   // Lock body scroll while the mobile menu is open
   useEffect(() => {
@@ -56,7 +50,7 @@ export function Navbar() {
       if (e.key === "Escape") close();
     };
     const onClickOutside = (e : MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) close();
+      if (menuRef.current && e.target instanceof Node && !menuRef.current.contains(e.target)) close();
     };
 
     document.addEventListener("keydown", onKeyDown);
@@ -70,21 +64,21 @@ export function Navbar() {
   return (
     <>
       <header
-        className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-5 sm:pt-2"
+        className="fixed inset-x-0 top-0 z-50 flex justify-center bg-[#F3F1EA]/95 px-5 backdrop-blur-md sm:px-8 lg:px-12"
       >
         <div
           className={cn(
-            "flex h-14 w-full max-w-7xl items-center justify-between rounded-full px-3 transition-all duration-300 sm:h-16 sm:rounded-4xl sm:px-6",
+            "flex h-[68px] w-full max-w-7xl items-center justify-between border-b px-0 transition-all duration-300 sm:h-[78px]",
             scrolled
-              ? "border border-white/50 bg-white/80 shadow-xl backdrop-blur-2xl"
-              : "border border-white/20 bg-white/40 backdrop-blur-xl"
+              ? "border-[#15313D]/25"
+              : "border-[#15313D]/15"
           )}
         >
           {/* Logo */}
           <Link
             to="/"
             onClick={close}
-            className="flex shrink-0 items-center gap-3 transition-transform duration-300 hover:scale-105"
+            className="flex shrink-0 items-center gap-3 opacity-95 transition-opacity hover:opacity-70"
           >
             <img
               src={RobiaLogo}
@@ -99,10 +93,10 @@ export function Navbar() {
               <a
                 key={item.label}
                 href={item.href}
-                className="group relative rounded-full px-3 py-2 text-sm font-medium text-slate-800 transition-all duration-300 hover:bg-orange-50 hover:text-slate-900 xl:px-4"
+                className="group relative px-3 py-2 text-[13px] font-medium text-[#304850] transition-colors hover:text-[#087F75] xl:px-4"
               >
                 {item.label}
-                <span className="absolute bottom-1 left-4 right-4 h-0.5 origin-left scale-x-0 rounded-full bg-[#F97316] transition-transform duration-300 group-hover:scale-x-100" />
+                <span className="absolute bottom-0 left-4 right-4 h-px origin-left scale-x-0 bg-[#14B8A6] transition-transform duration-300 group-hover:scale-x-100" />
               </a>
             ))}
           </nav>
@@ -110,15 +104,15 @@ export function Navbar() {
           {/* Desktop CTA */}
           <div className="hidden items-center gap-2 lg:flex xl:gap-3">
             <Link
-              to="https://app.robia.digital/login"
-              className="whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-100 hover:text-slate-900 xl:px-4"
+              to="http://localhost:5173/"
+              className="whitespace-nowrap px-3 py-2 text-[13px] font-medium text-[#304850] transition hover:text-[#087F75] xl:px-4"
             >
               Connexion
             </Link>
 
             <a
               href="#tarifs"
-              className="group inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#F97316] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/30 active:scale-95 xl:px-5 xl:py-4"
+              className="group inline-flex items-center gap-2 whitespace-nowrap rounded-sm bg-[#102B38] px-4 py-3 text-[13px] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#164453] active:scale-[.98] xl:px-5"
             >
               Commencer gratuitement
               <ChevronRight
@@ -180,7 +174,8 @@ export function Navbar() {
           ))}
           <hr className="my-3 border-slate-200 sm:my-4" />
           <Link
-            to="https://app.robia.digital/login"
+            // to="https://app.robia.digital/login"
+            to="http://localhost:5173/"
             onClick={close}
             className="rounded-xl px-4 py-3.5 text-base text-slate-700 transition hover:bg-slate-100 active:bg-slate-200 sm:text-sm"
           >

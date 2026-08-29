@@ -66,12 +66,12 @@ export function Pricing() {
   const [annual, setAnnual] = useState(false);
 
   return (
-    <section id="tarifs" className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 bg-[#E6FAF8]">
+    <section id="tarifs" className="bg-[#E0DED6] px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
       <div className="max-w-7xl mx-auto">
         <FadeUp>
-          <div className="text-center mb-10 sm:mb-12 px-2">
+          <div className="mb-12 border-t border-[#15313D]/20 pt-6 text-left">
             <SectionLabel>Tarifs</SectionLabel>
-            <h2 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#1E293B] tracking-tight">
+            <h2 className="mt-5 max-w-4xl text-4xl font-extrabold leading-[1.02] tracking-[-.05em] text-[#1E293B] sm:text-6xl">
               Un investissement qui{" "}
               <span className="text-teal-500">se rentabilise seul.</span>
             </h2>
@@ -80,11 +80,11 @@ export function Pricing() {
             </p>
 
             {/* Toggle */}
-            <div className="inline-flex items-center gap-3 mt-8 bg-white border border-teal-100 rounded-xl p-1.5">
+            <div className="mt-8 inline-flex items-center gap-2 border border-[#15313D]/20 bg-[#F3F1EA] p-1.5">
               <button
                 onClick={() => setAnnual(false)}
                 className={cn(
-                  "px-3.5 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                  "px-3.5 sm:px-4 py-2 text-sm font-semibold transition-all",
                   !annual
                     ? "bg-teal-500 text-white shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
@@ -95,7 +95,7 @@ export function Pricing() {
               <button
                 onClick={() => setAnnual(true)}
                 className={cn(
-                  "px-3.5 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5",
+                  "flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold transition-all sm:px-4",
                   annual
                     ? "bg-teal-500 text-white shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
@@ -125,10 +125,10 @@ export function Pricing() {
             <StaggerChild key={name} className="shrink-0 w-[82%] xs:w-[75%] sm:w-[60%] md:w-auto snap-center">
               <div
                 className={cn(
-                  "h-full flex flex-col rounded-3xl border p-6 sm:p-7 transition-all duration-300",
+                  "flex h-full flex-col border p-6 transition-all duration-300 sm:p-7",
                   highlighted
-                    ? "bg-[#1E293B] border-transparent shadow-2xl shadow-slate-300 md:scale-[1.02]"
-                    : "bg-white border-teal-100 shadow-sm hover:shadow-lg hover:shadow-teal-50"
+                    ? "border-transparent bg-[#102B38] shadow-[10px_12px_0_#14B8A6] md:-translate-y-2"
+                    : "border-[#15313D]/20 bg-[#F3F1EA] hover:-translate-y-1"
                 )}
               >
                 {highlighted && (
@@ -194,7 +194,7 @@ export function Pricing() {
                 <a
                   href="#"
                   className={cn(
-                    "w-full text-center py-3.5 rounded-xl font-semibold text-sm transition-all duration-200",
+                    "w-full py-3.5 text-center text-sm font-semibold transition-all duration-200",
                     highlighted
                       ? "bg-teal-500 hover:bg-teal-400 text-white shadow-lg shadow-teal-900/30"
                       : "bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200"

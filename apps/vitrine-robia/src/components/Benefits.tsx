@@ -1,89 +1,14 @@
-import {
-  TrendingUp,
-  Clock,
-  Star,
-  Users,
-  Shield,
-  MonitorSmartphone,
-} from "lucide-react";
-import { FadeUp, StaggerContainer, StaggerChild } from "./ui/animations";
-import { SectionLabel } from "./ui/SectionLabel";
+import { Check, Clock, MapPin, Shield, TrendingUp } from "lucide-react";
+import { motion } from "motion/react";
 
-const BENEFITS = [
-  {
-    icon: TrendingUp,
-    title: "Plus de clients vous trouvent",
-    body: "Apparaissez en tête des résultats Google pour les recherches locales et captez les clients au moment où ils cherchent.",
-    stat: "+147% de visibilité",
-  },
-  {
-    icon: Clock,
-    title: "Économisez des heures par semaine",
-    body: "Déléguez toute la gestion de votre présence digitale à ROBIA. Concentrez-vous sur ce que vous faites le mieux.",
-    stat: "10h/semaine économisées",
-  },
-  {
-    icon: Star,
-    title: "Réputation impeccable",
-    body: "Avis répondus, profil complet et contenu frais renforcent la confiance de vos futurs clients.",
-    stat: "+0,8 point de note",
-  },
-  {
-    icon: Users,
-    title: "Plus de conversions",
-    body: "Des informations correctes et à jour réduisent la friction et transforment les visiteurs digitaux en clients réels.",
-    stat: "×3 taux de conversion",
-  },
-  {
-    icon: Shield,
-    title: "Cohérence totale",
-    body: "Rien d'obsolète, rien d'oublié. ROBIA garantit que votre marque est parfaitement représentée sur tous les canaux.",
-    stat: "100% de cohérence",
-  },
-  {
-    icon: MonitorSmartphone,
-    title: "Résultats mesurables",
-    body: "Un tableau de bord clair avec les métriques qui importent. Visualisez votre retour sur investissement en temps réel.",
-    stat: "ROI visible en 30 jours",
-  },
-] as const;
+const outcomes=[
+  {icon:MapPin,title:"Être trouvé au bon endroit",body:"Comprenez précisément les zones où votre entreprise apparaît — et celles où elle disparaît."},
+  {icon:Clock,title:"Savoir quoi faire maintenant",body:"Les opportunités sont classées par impact et traduites en tâches claires, sans jargon technique."},
+  {icon:Shield,title:"Construire une présence fiable",body:"Informations, avis et contenus restent cohérents sur les points de contact qui inspirent confiance."},
+  {icon:TrendingUp,title:"Voir le progrès réel",body:"Suivez les mouvements de classement et les actions réalisées au lieu de vous fier à une impression."},
+];
 
-export function Benefits() {
-  return (
-    <section className="py-28 px-6">
-      <div className="max-w-7xl mx-auto">
-        <FadeUp>
-          <div className="text-center mb-16">
-            <SectionLabel>Résultats concrets</SectionLabel>
-            <h2 className="mt-4 text-4xl md:text-5xl font-extrabold text-[#1E293B] tracking-tight">
-              Un impact qui va bien au-delà{" "}
-              <span className="text-teal-500">du digital.</span>
-            </h2>
-            <p className="mt-4 text-slate-500 text-lg max-w-xl mx-auto">
-              Plus de visibilité en ligne = plus de clients chez vous. C'est aussi simple que ça.
-            </p>
-          </div>
-        </FadeUp>
-
-        <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {BENEFITS.map(({ icon: Icon, title, body, stat }) => (
-            <StaggerChild key={title}>
-              <div className="bg-white rounded-3xl border border-teal-100 p-7 group hover:-translate-y-1 transition-transform duration-300 shadow-sm hover:shadow-lg hover:shadow-teal-50">
-                <div className="flex items-center justify-between mb-5">
-                  <div className="w-11 h-11 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center group-hover:bg-teal-100 transition-colors">
-                    <Icon size={19} className="text-teal-600" />
-                  </div>
-                  <span className="text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
-                    {stat}
-                  </span>
-                </div>
-                <h3 className="font-bold text-[#1E293B] text-lg mb-2">{title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{body}</p>
-              </div>
-            </StaggerChild>
-          ))}
-        </StaggerContainer>
-      </div>
-    </section>
-  );
-}
+export function Benefits(){return <section className="bg-[#F3F1EA] px-5 py-24 text-[#15313D] sm:px-8 lg:px-12 lg:py-32"><div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-[.8fr_1.2fr] lg:gap-24">
+  <div className="lg:sticky lg:top-28 lg:self-start"><p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#F97316]">L’impact métier</p><h2 className="mt-6 font-[Roboto] text-4xl font-black leading-[1.04] tracking-[-.045em] sm:text-6xl">La visibilité devient une discipline quotidienne.</h2><p className="mt-6 max-w-lg text-base leading-7 text-[#61747A]">ROBIA ne promet pas des chiffres abstraits. Il donne à chaque entreprise locale une méthode pour observer, décider et progresser.</p></div>
+  <div className="border-t border-[#15313D]/25">{outcomes.map(({icon:Icon,title,body},i)=><motion.article initial={{opacity:0,x:18}} whileInView={{opacity:1,x:0}} viewport={{once:true,amount:.5}} transition={{delay:i*.06}} key={title} className="grid grid-cols-[45px_1fr_24px] gap-4 border-b border-[#15313D]/20 py-8 sm:grid-cols-[55px_200px_1fr_24px] sm:items-center"><span className="grid h-10 w-10 place-items-center border border-[#15313D]/20 text-[#087F75]"><Icon size={18}/></span><h3 className="font-[Roboto] text-lg font-bold">{title}</h3><p className="col-start-2 text-sm leading-6 text-[#61747A] sm:col-start-auto">{body}</p><Check size={18} className="text-[#14B8A6]"/></motion.article>)}</div>
+  </div></section>}

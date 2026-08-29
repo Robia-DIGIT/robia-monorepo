@@ -1,150 +1,16 @@
-import { Globe, Search, FileText, Star, BarChart3, Zap } from "lucide-react";
-import { cn } from "../lib/utils";
-import { FadeUp, StaggerContainer, StaggerChild } from "./ui/animations";
-import { SectionLabel } from "./ui/SectionLabel";
+import { BarChart3, FileText, Globe, Search, Star, Zap } from "lucide-react";
+import { motion } from "motion/react";
 
-const PLATFORM_CARDS = [
-  { name: "Google", bg: "bg-blue-50 border-blue-100" },
-  { name: "Facebook", bg: "bg-indigo-50 border-indigo-100" },
-  { name: "Instagram", bg: "bg-pink-50 border-pink-100" },
-  { name: "Site web", bg: "bg-green-50 border-green-100" },
-] as const;
+const features=[
+  {icon:Globe,n:"01",title:"Présence unifiée",body:"Google, Facebook, Instagram et votre site restent cohérents depuis un seul espace de contrôle.",signal:"Informations synchronisées"},
+  {icon:Search,n:"02",title:"SEO local continu",body:"ROBIA suit les signaux qui influencent votre visibilité et révèle les écarts qui comptent dans votre zone.",signal:"Opportunités détectées"},
+  {icon:FileText,n:"03",title:"Contenu guidé",body:"Posts, descriptions et réponses sont préparés dans la voix de votre entreprise, prêts à être validés.",signal:"Action recommandée"},
+  {icon:Star,n:"04",title:"Réputation suivie",body:"Chaque nouvel avis devient un signal de confiance à traiter rapidement, sans perdre votre ton humain.",signal:"Avis prioritaire"},
+  {icon:BarChart3,n:"05",title:"Résultats lisibles",body:"Positions, visites, appels et progression sont réunis dans une lecture conçue pour décider.",signal:"Progression mesurée"},
+];
 
-const FEATURE_TAGS = [
-  "Publication automatique",
-  "Planification intelligente",
-  "Validation optionnelle",
-  "Journal des actions",
-] as const;
-
-export function Features() {
-  return (
-    <section className="py-16 sm:py-20 md:py-28 px-4 sm:px-6 bg-[#E6FAF8]">
-      <div className="max-w-7xl mx-auto">
-        <FadeUp>
-          <div className="text-center mb-10 sm:mb-16">
-            <SectionLabel>Fonctionnalités</SectionLabel>
-            <h2 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#1E293B] tracking-tight">
-              Tout ce dont votre entreprise a besoin,{" "}
-              <span className="text-teal-500">en un seul endroit.</span>
-            </h2>
-          </div>
-        </FadeUp>
-
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {/* Omnicanal — wide */}
-          <StaggerChild className="md:col-span-2 lg:col-span-2 bg-white rounded-2xl sm:rounded-3xl border border-teal-100 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-5 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0">
-                <Globe size={20} className="text-teal-700" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="font-bold text-[#1E293B] truncate">Présence Omnicanale Unifiée</h3>
-                <p className="text-sm text-slate-500 truncate">Google · Facebook · Instagram · Site web</p>
-              </div>
-            </div>
-            <p className="text-slate-500 text-sm leading-relaxed mb-5">
-              Une seule plateforme synchronise vos informations sur tous les canaux. Vous
-              changez vos horaires ? Nous les mettons à jour partout automatiquement.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-              {PLATFORM_CARDS.map(({ name, bg }) => (
-                <div key={name} className={cn("rounded-2xl border p-3 text-center", bg)}>
-                  <div className="text-xs font-semibold text-slate-600">{name}</div>
-                  <div className="text-[10px] text-green-600 font-bold mt-1">Actif ✓</div>
-                </div>
-              ))}
-            </div>
-          </StaggerChild>
-
-          {/* SEO */}
-          <StaggerChild className="bg-white rounded-2xl sm:rounded-3xl border border-teal-100 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
-              <Search size={20} className="text-blue-600" />
-            </div>
-            <h3 className="font-bold text-[#1E293B] mb-2">SEO Local Automatique</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Mots-clés locaux, balises méta et contenu optimisés en continu par l'IA pour
-              vous positionner en tête des résultats.
-            </p>
-          </StaggerChild>
-
-          {/* Content — dark card */}
-          <StaggerChild className="bg-[#1E293B] rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-teal-500/20 flex items-center justify-center mb-4">
-              <FileText size={20} className="text-teal-400" />
-            </div>
-            <h3 className="font-bold text-white mb-2">Génération de Contenu IA</h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Posts, légendes, descriptions et réponses aux avis créés automatiquement avec
-              la voix de votre entreprise.
-            </p>
-            <div className="mt-4 bg-white/10 rounded-xl p-3 text-xs text-slate-300 italic">
-              "Découvrez notre nouveau plat du jour ! Préparé avec des produits frais du
-              marché, le choix idéal pour un déjeuner savoureux..." ✨
-            </div>
-          </StaggerChild>
-
-          {/* Reviews */}
-          <StaggerChild className="bg-white rounded-2xl sm:rounded-3xl border border-teal-100 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-yellow-100 flex items-center justify-center mb-4">
-              <Star size={20} className="text-yellow-500" />
-            </div>
-            <h3 className="font-bold text-[#1E293B] mb-2">Gestion des Avis</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Recevez des alertes pour chaque nouvel avis et laissez ROBIA répondre avec des
-              messages personnalisés et professionnels.
-            </p>
-            <div className="mt-4 flex items-center gap-1 flex-wrap">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} size={16} className="text-yellow-400 fill-yellow-400" />
-              ))}
-              <span className="text-xs text-slate-500 ml-2">4,9 de moyenne</span>
-            </div>
-          </StaggerChild>
-
-          {/* Analytics */}
-          <StaggerChild className="bg-white rounded-2xl sm:rounded-3xl border border-teal-100 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-green-100 flex items-center justify-center mb-4">
-              <BarChart3 size={20} className="text-green-600" />
-            </div>
-            <h3 className="font-bold text-[#1E293B] mb-2">Tableau de Bord des Résultats</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Suivez en temps réel l'évolution de votre présence : visites, clics, appels et
-              positionnement Google.
-            </p>
-          </StaggerChild>
-
-          {/* Auto-execution — full width */}
-          <StaggerChild className="md:col-span-2 lg:col-span-3 bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-5 sm:gap-6">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Zap size={20} className="text-white" />
-                  </div>
-                  <h3 className="font-bold text-white text-lg">Exécution Automatique</h3>
-                </div>
-                <p className="text-teal-100 text-sm leading-relaxed max-w-xl">
-                  ROBIA ne se contente pas de suggérer — il agit. Il publie du contenu, met à
-                  jour les profils et répond aux avis pendant que vous vous concentrez sur
-                  votre activité.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                {FEATURE_TAGS.map((f) => (
-                  <span
-                    key={f}
-                    className="bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/30"
-                  >
-                    {f}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </StaggerChild>
-        </StaggerContainer>
-      </div>
-    </section>
-  );
-}
+export function Features(){return <section className="bg-[#E0DED6] px-5 py-24 text-[#15313D] sm:px-8 lg:px-12 lg:py-32"><div className="mx-auto max-w-7xl">
+  <div className="grid gap-8 lg:grid-cols-[.75fr_1.25fr] lg:gap-24"><div><p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#087F75]">Le système ROBIA</p><h2 className="mt-6 font-[Roboto] text-4xl font-black leading-[1.04] tracking-[-.045em] sm:text-6xl">Pas plus d’outils.<br/>Une meilleure lecture.</h2></div><div className="flex items-end"><p className="max-w-xl text-base leading-7 text-[#61747A]">ROBIA réunit les signaux dispersés de votre présence locale et les transforme en une séquence de travail simple.</p></div></div>
+  <div className="mt-20 border-t border-[#15313D]/25">{features.map(({icon:Icon,n,title,body,signal},i)=><motion.article initial={{opacity:0,y:12}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.5}} transition={{delay:i*.05}} key={n} className="group grid gap-5 border-b border-[#15313D]/20 py-7 transition-colors hover:bg-[#F3F1EA]/60 sm:grid-cols-[50px_1fr_1.4fr_190px] sm:items-center sm:px-3"><span className="text-[10px] font-bold text-[#7B8B90]">{n}</span><h3 className="flex items-center gap-4 font-[Roboto] text-lg font-bold"><Icon size={19} className="text-[#087F75]"/>{title}</h3><p className="text-sm leading-6 text-[#61747A]">{body}</p><span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#087F75]"><i className="h-2 w-2 rounded-full bg-[#14B8A6]"/>{signal}</span></motion.article>)}</div>
+  <div className="mt-10 flex flex-col items-start justify-between gap-5 border-l-2 border-[#F97316] pl-5 sm:flex-row sm:items-center"><div><p className="flex items-center gap-2 font-[Roboto] text-lg font-bold"><Zap size={18} className="text-[#F97316]"/>ROBIA ne s’arrête pas au constat.</p><p className="mt-1 text-sm text-[#61747A]">Il transforme l’analyse en prochaine action.</p></div><a href="#solution" className="text-sm font-bold text-[#15313D] underline decoration-[#14B8A6] underline-offset-8">Voir le parcours produit →</a></div>
+  </div></section>}

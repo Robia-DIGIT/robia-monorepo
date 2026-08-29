@@ -1,98 +1,13 @@
-import { Star } from "lucide-react";
-import { cn } from "../lib/utils";
-import { FadeUp, StaggerContainer, StaggerChild } from "./ui/animations";
-import { SectionLabel } from "./ui/SectionLabel";
+import { motion } from "motion/react";
+import { Quote } from "lucide-react";
 
-const TESTIMONIALS = [
-  {
-    name: "Marie Dupont",
-    role: "Propriétaire",
-    business: "Restaurant La Bonne Table",
-    avatar: "MD",
-    avatarBg: "bg-teal-500",
-    quote:
-      "En 3 semaines avec ROBIA, nous sommes apparus en tête de Google pour 'restaurant midi Paris'. Les réservations ont augmenté de 40%. Je n'y croyais pas !",
-    rating: 5,
-  },
-  {
-    name: "Dr. Pierre Martin",
-    role: "Médecin",
-    business: "Cabinet Martin",
-    avatar: "PM",
-    avatarBg: "bg-blue-500",
-    quote:
-      "La gestion des avis était un cauchemar. ROBIA répond automatiquement et ma note Google est passée de 3,8 à 4,9 étoiles en deux mois.",
-    rating: 5,
-  },
-  {
-    name: "Sophie Bernard",
-    role: "Directrice",
-    business: "Hôtel Beau Rivage",
-    avatar: "SB",
-    avatarBg: "bg-purple-500",
-    quote:
-      "J'économise au moins 15 heures par semaine que je passais à maintenir les réseaux sociaux et Google à jour. ROBIA fait tout ça et bien plus.",
-    rating: 5,
-  },
-  {
-    name: "Thomas Leroy",
-    role: "Entrepreneur",
-    business: "Salon de coiffure Leroy",
-    avatar: "TL",
-    avatarBg: "bg-green-500",
-    quote:
-      "Je pensais que c'était compliqué. Connexion en 5 minutes, et dès le lendemain j'avais des posts publiés et mon profil entièrement optimisé. Bluffant !",
-    rating: 5,
-  },
-] as const;
+const testimonials=[
+  {name:"Marie Dupont",role:"Restaurant La Bonne Table",quote:"ROBIA nous a donné une lecture claire de ce qui empêchait notre établissement d’être trouvé localement."},
+  {name:"Pierre Martin",role:"Cabinet Martin",quote:"Les avis et les informations locales ne sont plus une liste de tâches dispersées. Nous savons quoi traiter en premier."},
+  {name:"Sophie Bernard",role:"Hôtel Beau Rivage",quote:"Le Copilot rend les recommandations compréhensibles, même quand on n’est pas spécialiste du référencement."},
+];
 
-export function Testimonials() {
-  return (
-    <section className="py-28 px-6">
-      <div className="max-w-7xl mx-auto">
-        <FadeUp>
-          <div className="text-center mb-16">
-            <SectionLabel>Témoignages</SectionLabel>
-            <h2 className="mt-4 text-4xl md:text-5xl font-extrabold text-[#1E293B] tracking-tight">
-              De vraies entreprises.{" "}
-              <span className="text-teal-500">De vrais résultats.</span>
-            </h2>
-          </div>
-        </FadeUp>
-
-        <StaggerContainer className="grid md:grid-cols-2 gap-6">
-          {TESTIMONIALS.map(({ name, role, business, avatar, avatarBg, quote, rating }) => (
-            <StaggerChild key={name}>
-              <div className="bg-white rounded-3xl border border-teal-100 p-7 shadow-sm hover:shadow-lg hover:shadow-teal-50 transition-shadow">
-                <div className="flex items-center gap-0.5 mb-4">
-                  {Array.from({ length: rating }).map((_, i) => (
-                    <Star key={i} size={14} className="text-teal-400 fill-teal-400" />
-                  ))}
-                </div>
-                <p className="text-slate-700 text-base leading-relaxed mb-6 italic">
-                  &ldquo;{quote}&rdquo;
-                </p>
-                <div className="flex items-center gap-3 pt-4 border-t border-teal-50">
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold",
-                      avatarBg
-                    )}
-                  >
-                    {avatar}
-                  </div>
-                  <div>
-                    <p className="font-bold text-[#1E293B] text-sm">{name}</p>
-                    <p className="text-xs text-slate-400">
-                      {role} · {business}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </StaggerChild>
-          ))}
-        </StaggerContainer>
-      </div>
-    </section>
-  );
-}
+export function Testimonials(){return <section className="bg-white px-5 py-24 text-[#15313D] sm:px-8 lg:px-12 lg:py-32"><div className="mx-auto max-w-7xl">
+  <div className="grid gap-8 lg:grid-cols-[.7fr_1.3fr]"><div><p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#087F75]">Paroles du terrain</p><h2 className="mt-6 font-[Roboto] text-4xl font-black leading-[1.04] tracking-[-.045em] sm:text-6xl">Pensé pour les entreprises, pas pour les experts.</h2></div><div className="flex items-end"><p className="max-w-xl text-base leading-7 text-[#61747A]">La valeur de ROBIA tient dans sa capacité à rendre une situation complexe immédiatement compréhensible.</p></div></div>
+  <div className="mt-20 grid border-y border-[#15313D]/20 lg:grid-cols-3">{testimonials.map((item,i)=><motion.figure initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.5}} transition={{delay:i*.08}} key={item.name} className="group border-b border-[#15313D]/20 p-7 last:border-b-0 lg:min-h-80 lg:border-b-0 lg:border-r lg:last:border-r-0"><Quote size={23} className="text-[#14B8A6]"/><blockquote className="mt-10 font-[Roboto] text-xl font-medium leading-8 tracking-[-.02em]">« {item.quote} »</blockquote><figcaption className="mt-10 border-t border-[#15313D]/15 pt-5"><strong className="block text-sm">{item.name}</strong><span className="mt-1 block text-xs text-[#738489]">{item.role}</span></figcaption></motion.figure>)}</div>
+  </div></section>}

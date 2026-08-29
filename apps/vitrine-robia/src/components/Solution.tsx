@@ -25,7 +25,7 @@ const STEPS = [
     step: "03",
     title: "Générer",
     body: "ROBIA crée du contenu SEO, des posts, des réponses aux avis et des descriptions personnalisées pour votre entreprise.",
-    color: "bg-purple-100 text-purple-600",
+    color: "bg-orange-50 text-orange-600",
   },
   {
     icon: Zap,
@@ -39,7 +39,7 @@ const STEPS = [
     step: "05",
     title: "Surveiller",
     body: "Suivez les résultats en temps réel : visites, clics, appels et classement Google depuis votre tableau de bord.",
-    color: "bg-pink-100 text-pink-600",
+    color: "bg-slate-100 text-slate-700",
   },
 ] as const;
 
@@ -54,7 +54,7 @@ function StepPreview({ active }: { active: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-5", s.color)}>
+      <div className={cn("mb-7 flex h-12 w-12 items-center justify-center", s.color)}>
         <Icon size={26} />
       </div>
       <p className="text-xs font-bold text-slate-400 tracking-widest mb-1">
@@ -63,7 +63,7 @@ function StepPreview({ active }: { active: number }) {
       <h3 className="text-2xl font-extrabold text-[#1E293B] mb-3">{s.title}</h3>
       <p className="text-slate-500 text-base leading-relaxed mb-6">{s.body}</p>
 
-      <div className="bg-[#F0FDFA] rounded-2xl p-5 space-y-3">
+      <div className="space-y-3 border-t border-slate-200 bg-[#F3F1EA] p-5">
         {active === 0 &&
           ["Google Business ✓", "Facebook ✓", "Instagram ✓", "Mon site ✓"].map((p) => (
             <div key={p} className="flex items-center gap-2.5">
@@ -159,32 +159,32 @@ export function Solution() {
   const [active, setActive] = useState(0);
 
   return (
-    <section id="solution" className="py-28 px-6">
+    <section id="solution" className="bg-white px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
       <div className="max-w-7xl mx-auto">
         <FadeUp>
-          <div className="text-center mb-16">
+          <div className="mb-16 border-t border-[#15313D]/20 pt-6 text-left">
             <SectionLabel>Comment ça marche</SectionLabel>
-            <h2 className="mt-4 text-4xl md:text-5xl font-extrabold text-[#1E293B] tracking-tight">
+            <h2 className="mt-5 max-w-4xl text-4xl font-extrabold leading-[1.02] tracking-[-.05em] text-[#1E293B] md:text-6xl">
               Cinq étapes. <span className="text-teal-500">Zéro effort.</span>
             </h2>
-            <p className="mt-4 text-slate-500 text-lg max-w-xl mx-auto">
+            <p className="mt-5 max-w-xl text-lg text-slate-500">
               ROBIA agit comme un collaborateur dédié à votre présence digitale — 24h/24, 7j/7.
             </p>
           </div>
         </FadeUp>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
+        <div className="grid items-start gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
           {/* Steps list */}
-          <div className="space-y-3">
+          <div className="border-t border-slate-300">
             {STEPS.map(({ icon: Icon, step, title, body, color }, i) => (
               <button
                 key={step}
                 onClick={() => setActive(i)}
                 className={cn(
-                  "w-full text-left p-5 rounded-2xl border transition-all duration-300",
+                  "w-full border-x-0 border-b border-t-0 border-slate-200 p-5 text-left transition-all duration-300",
                   active === i
-                    ? "bg-white border-teal-100 shadow-lg shadow-teal-50"
-                    : "bg-transparent border-transparent hover:bg-white/60"
+                    ? "bg-[#F3F1EA]"
+                    : "bg-transparent hover:bg-slate-50"
                 )}
               >
                 <div className="flex items-start gap-4">
@@ -214,7 +214,7 @@ export function Solution() {
 
           {/* Preview panel */}
           <FadeUp className="sticky top-24">
-            <div className="bg-white rounded-3xl border border-teal-100 shadow-xl shadow-teal-50/80 overflow-hidden">
+            <div className="overflow-hidden border border-slate-200 bg-white shadow-[14px_16px_0_#E5E7E3]">
               <div className="p-7">
                 <StepPreview active={active} />
               </div>

@@ -36,24 +36,24 @@ export function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <section className="py-28 px-6">
-      <div className="max-w-3xl mx-auto">
+    <section className="bg-white px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
+      <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[.65fr_1.35fr] lg:gap-24">
         <FadeUp>
-          <div className="text-center mb-16">
+          <div className="lg:sticky lg:top-28 lg:self-start">
             <SectionLabel>FAQ</SectionLabel>
-            <h2 className="mt-4 text-4xl md:text-5xl font-extrabold text-[#1E293B] tracking-tight">
+            <h2 className="mt-5 text-4xl font-extrabold leading-[1.04] tracking-[-.05em] text-[#1E293B] md:text-6xl">
               Questions fréquentes
             </h2>
           </div>
         </FadeUp>
 
-        <div className="space-y-3">
+        <div className="border-t border-[#15313D]/20">
           {FAQS.map(({ q, a }, i) => (
             <FadeUp key={q} delay={i * 0.05}>
-              <div className="bg-white rounded-2xl border border-teal-100 overflow-hidden">
+              <div className="overflow-hidden border-b border-[#15313D]/20 bg-white">
                 <button
                   onClick={() => setOpen(open === i ? null : i)}
-                  className="w-full flex items-center justify-between gap-4 p-6 text-left"
+                  className="flex w-full items-center justify-between gap-4 px-1 py-6 text-left"
                 >
                   <span className="font-semibold text-[#1E293B]">{q}</span>
                   <ChevronDown
@@ -70,7 +70,7 @@ export function FAQ() {
                   transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                   style={{ overflow: "hidden" }}
                 >
-                  <p className="px-6 pb-6 text-slate-500 text-sm leading-relaxed">{a}</p>
+                  <p className="max-w-2xl px-1 pb-7 text-sm leading-7 text-slate-500">{a}</p>
                 </motion.div>
               </div>
             </FadeUp>

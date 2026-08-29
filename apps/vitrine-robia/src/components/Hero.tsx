@@ -1,102 +1,41 @@
-import { ArrowRightIcon } from './icons'
-import DashboardMockup from './DashboardMockup'
+import { motion } from "motion/react";
+import { ArrowRight, MapPin, MoveUpRight, Radar } from "lucide-react";
 
-const STATS = [
-  { n: '+340', label: 'PME actives' },
-  { n: '4.9★', label: '128 avis'   },
-  { n: '2 min', label: 'Onboarding' },
-]
-
-const AVATARS = [
-  { letter: 'M', color: '#14b8a6' }, // Turquoise
-  { letter: 'L', color: '#1d4ed8' }, // Bleu electrique
-  { letter: 'S', color: '#f97316' }, // Orange vif
-  { letter: 'P', color: '#14b8a6' }, // Turquoise
-]
+const points = [
+  { x: "15%", y: "24%", rank: 3 }, { x: "49%", y: "17%", rank: 1 },
+  { x: "79%", y: "28%", rank: 4 }, { x: "26%", y: "57%", rank: 2 },
+  { x: "65%", y: "53%", rank: 6 }, { x: "83%", y: "74%", rank: 8 },
+  { x: "42%", y: "82%", rank: 5 },
+];
 
 export default function Hero() {
-  return (
-    <section className="relative overflow-hidden pt-28 pb-20 bg-gradient-to-br from-[#1e293b] via-[#1f3a5f] to-[#1e293b]">
-      
-      {/* Radial glows adaptés pour le mode sombre */}
-      <div className="pointer-events-none absolute -top-44 -right-44 w-[560px] h-[560px] rounded-full mix-blend-screen"
-        style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.15) 0%, transparent 70%)' }} />
-      
-      <div className="pointer-events-none absolute -bottom-20 -left-28 w-[480px] h-[480px] rounded-full mix-blend-screen"
-        style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.15) 0%, transparent 70%)' }} />
-
-      <div className="relative max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-          {/* ── Left: copy ── */}
-          <div>
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-[#14b8a6]/[0.08] border border-[#14b8a6]/20 rounded-full px-3.5 py-1.5 mb-7">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#14b8a6]" style={{ boxShadow: '0 0 8px #14b8a6' }} />
-              <span className="font-[Inter] text-xs text-[#14b8a6] font-semibold tracking-wide">Copilote IA · SEO Local</span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="font-[Roboto] font-black text-slate-100 leading-[1.08] tracking-tight mb-5"
-              style={{ fontSize: 'clamp(34px, 4.5vw, 56px)' }}>
-              De l'audit local aux{' '}
-              <span className="bg-gradient-to-r from-[#14b8a6] to-[#1d4ed8] bg-clip-text text-transparent">
-                actions prêtes
-              </span>{' '}
-              à appliquer.
-            </h1>
-
-            {/* Sub */}
-            <p className="font-[Inter] text-lg text-[#64748b] leading-relaxed mb-9">
-              Copilote IA de SEO local pour PME. Identifiez vos lacunes, priorisez vos actions et développez votre visibilité locale — sans expertise technique.
-            </p>
-
-            {/* CTAs */}
-            <div className="flex flex-wrap gap-3 mb-11">
-              <a href="#pricing"
-                className="inline-flex items-center gap-2 font-[Roboto] font-bold lg:text-[15px] text-[13px] bg-orange text-white px-3 lg:px-7 py-3.5 rounded-xl transition-all duration-200 hover:brightness-110 hover:-translate-y-0.5"
-                style={{ boxShadow: '0 4px 20px rgba(249,115,22,0.3)' }}>
-                Démarrer gratuitement <ArrowRightIcon />
-              </a>
-              <a href="#solution"
-                className="inline-block font-[Roboto] font-medium lg:text-[15px] text-[13px] text-slate-300 border border-[#1f3a5f] px-3 lg:px-7 py-3 rounded-xl transition-all duration-200 hover:border-[#1d4ed8] hover:text-slate-100 bg-[#1e293b]/50">
-                Voir la démo
-              </a>
-            </div>
-
-            {/* Social proof */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex">
-                {AVATARS.map((a, i) => (
-                  <div key={i}
-                    className="w-8 h-8 rounded-full border-2 border-[#1e293b] flex items-center justify-center font-[Roboto] text-[11px] font-bold text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${a.color}, ${a.color}80)`, marginLeft: i === 0 ? 0 : '-9px', zIndex: 4 - i }}>
-                    {a.letter}
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="font-[Inter] text-sm font-semibold text-slate-100">+340 PME nous font confiance</p>
-                <p className="font-[Inter] text-xs text-[#64748b] mt-0.5">★★★★★ 4.9 / 5 — 128 avis</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Right: dashboard ── */}
-          <DashboardMockup />
-        </div>
-
-        {/* Stats strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 mt-18 rounded-xl overflow-hidden border border-[#1f3a5f]/50 backdrop-blur-sm"
-          style={{ background: 'rgba(30, 41, 59, 0.4)', gap: '1px' }}>
-          {STATS.map((s, i) => (
-            <div key={i} className="bg-[#1f3a5f]/20 py-7 px-8 text-center transition-colors hover:bg-[#1f3a5f]/40">
-              <p className="font-[Roboto] font-black text-[32px] text-slate-100 tracking-tight">{s.n}</p>
-              <p className="font-[Inter] text-sm text-[#64748b] mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
+  return <section id="produit" className="relative overflow-hidden bg-[#F3F1EA] px-5 pb-20 pt-28 text-[#15313D] sm:px-8 lg:px-12 lg:pb-28 lg:pt-32">
+    <div className="mx-auto max-w-7xl">
+      <div className="flex items-center justify-between border-t border-[#15313D]/60 pt-3 text-[10px] font-semibold uppercase tracking-[.18em] text-[#52686F]">
+        <span>Intelligence de visibilité locale</span><span className="hidden sm:block">Diagnostic en temps réel · 01</span>
       </div>
-    </section>
-  )
+      <div className="grid items-center gap-14 pt-14 lg:grid-cols-[.9fr_1.1fr] lg:gap-20 lg:pt-20">
+        <motion.div initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:.65,ease:[.22,1,.36,1]}}>
+          <p className="mb-7 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.2em] text-[#087F75]"><span className="h-2 w-2 rounded-full bg-[#14B8A6] motion-safe:animate-pulse"/>ROBIA COPILOT</p>
+          <h1 className="max-w-3xl font-[Roboto] text-[clamp(3rem,5.5vw,5rem)] font-black leading-[.98] tracking-[-.055em]">Votre entreprise existe.<br/><span className="text-[#087F75]">Faites-la trouver.</span></h1>
+          <p className="mt-7 max-w-xl text-base leading-7 text-[#566A71] sm:text-lg">ROBIA révèle où votre présence locale disparaît, explique pourquoi et transforme chaque signal en action concrète.</p>
+          <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-8"><a href="#tarifs" className="group inline-flex items-center gap-3 rounded-sm bg-[#F97316] px-5 py-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#E5650C] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#14B8A6]/40">Analyser ma visibilité <ArrowRight size={17} className="transition group-hover:translate-x-1"/></a><a href="#solution" className="border-b border-[#15313D]/40 pb-1 text-sm font-semibold">Voir comment ROBIA agit ↘</a></div>
+          <p className="mt-14 text-[10px] uppercase tracking-[.14em] text-[#7A898D]">Google Business Profile · Classements locaux · Réputation</p>
+        </motion.div>
+
+        <motion.div initial={{opacity:0,scale:.97}} animate={{opacity:1,scale:1}} transition={{duration:.75,delay:.12,ease:[.22,1,.36,1]}} className="bg-[#102B38] p-4 text-white shadow-[16px_18px_0_#D9DED7] sm:p-6">
+          <div className="flex items-start justify-between border-b border-white/15 pb-5"><div><span className="text-[9px] uppercase tracking-[.18em] text-[#8BA2AA]">Aperçu produit · Visibilité locale</span><strong className="mt-2 block text-base">Quartier Analakely</strong></div><div className="font-[Roboto] text-4xl font-black">74<span className="text-xs text-[#8BA2AA]">/100</span></div></div>
+          <div className="relative h-[360px] overflow-hidden bg-[#173B48] sm:h-[430px]">
+            <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] [background-size:40px_40px]"/>
+            <div className="absolute left-[-20%] top-[45%] h-7 w-[140%] -rotate-[24deg] border-y border-white/10 bg-[#274854]"/><div className="absolute left-[-20%] top-[55%] h-7 w-[140%] rotate-[42deg] border-y border-white/10 bg-[#274854]"/>
+            {[210,340].map((size,i)=><motion.div key={size} className="absolute left-1/2 top-1/2 rounded-full border border-[#14B8A6]/35" style={{width:size,height:size,x:'-50%',y:'-50%'}} animate={{opacity:[.3,.8,.3],scale:[.96,1.02,.96]}} transition={{duration:4+i,repeat:Infinity,ease:'easeInOut'}}/>)}
+            {points.map((p,i)=><motion.span key={i} initial={{scale:0}} animate={{scale:1}} transition={{delay:.4+i*.06,type:'spring'}} className={`absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-[#173B48] text-[11px] font-bold ${p.rank<=3?'bg-[#14B8A6]':p.rank<=6?'bg-[#E4AC42]':'bg-[#DB7252]'}`} style={{left:p.x,top:p.y}}>{p.rank}</motion.span>)}
+            <div className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 bg-white px-3 py-2 text-[11px] font-bold text-[#15313D]"><MapPin size={16} fill="#F97316" className="text-[#F97316]"/>Votre établissement</div>
+            <div className="absolute bottom-4 left-4 flex items-center gap-2 text-[10px] text-[#B4C6CB]"><Radar size={15}/>Zone analysée · 5 km</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-5 pt-5 text-[10px] text-[#B5C5CA]"><span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-[#14B8A6]"/>Positions fortes</span><span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-[#F97316]"/>Opportunités</span><span className="ml-auto flex items-center gap-1 text-[#82D8CC]"><MoveUpRight size={14}/>Progression suivie</span></div>
+        </motion.div>
+      </div>
+    </div>
+  </section>;
 }

@@ -1,5 +1,5 @@
-import  Hero  from "../components/Hero";
-import Problem  from "../components/Problem";
+import Hero from "../components/Hero";
+import Problem from "../components/Problem";
 import { Solution } from "../components/Solution";
 import { Features } from "../components/Features";
 import { Benefits } from "../components/Benefits";
@@ -13,8 +13,8 @@ import SearchSection from "../components/SearchSection";
 export default function Home() {
   return (
     <>
-      <SearchSection />
       <Hero />
+      <SearchSection />
       <Problem />
       <Solution />
       <Features />
