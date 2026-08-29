@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { Building2, MapPin, Sparkles } from "lucide-react";
+import { Building2, MapPin } from "lucide-react";
 import { getCurrentUser } from "../lib/api";
 import { clearAuthResponse, isAuthenticated } from "../lib/auth";
 
