@@ -1,0 +1,39 @@
+name: robia-frontends
+
+services:
+  dashboard:
+    build:
+      context: ./apps/app-robia
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.robiacopilot.site}
+    restart: unless-stopped
+    networks:
+      supabase:
+        aliases:
+          - robia-dashboard
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+
+  vitrine:
+    build:
+      context: ./apps/vitrine-robia
+    restart: unless-stopped
+    networks:
+      supabase:
+        aliases:
+          - robia-vitrine
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  supabase:
+    external: true
+    name: supabase_default
