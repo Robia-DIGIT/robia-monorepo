@@ -118,3 +118,108 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ROBIA session verification — local visibility sequence */
+.robia-loader-light {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(20, 184, 166, 0.09), transparent 31%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 28%);
+}
+.robia-map-surface {
+  background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012));
+  box-shadow: 0 30px 80px rgba(8, 24, 42, 0.26), inset 0 1px rgba(255,255,255,0.025);
+}
+.robia-map-road { stroke: rgba(255,255,255,0.095); stroke-width: 1.2; }
+.robia-map-road-muted { stroke: rgba(255,255,255,0.055); }
+.robia-zone { fill: none; stroke-width: 1; }
+.robia-zone-outer { stroke: rgba(255,255,255,0.06); stroke-dasharray: 2 7; }
+.robia-zone-inner { stroke: rgba(20,184,166,0.13); }
+.robia-location-core, .robia-location-halo, .robia-scan-ring {
+  transform: translate(-50%, -50%);
+}
+.robia-signal {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid rgba(20,184,166,0.38);
+  border-radius: 7px;
+  color: #5eead4;
+  background: #203e61;
+  box-shadow: 0 5px 14px rgba(9,25,43,0.28);
+  opacity: 0;
+}
+.robia-connection {
+  stroke: rgba(20,184,166,0.58);
+  stroke-width: 1;
+  stroke-dasharray: 112;
+  stroke-dashoffset: 112;
+}
+.robia-visibility-scene { --robia-loader-cycle: 3.8s; }
+.robia-location-core { animation: robia-core var(--robia-loader-cycle) cubic-bezier(.22,1,.36,1) infinite; }
+.robia-location-halo { animation: robia-halo var(--robia-loader-cycle) cubic-bezier(.22,1,.36,1) infinite; }
+.robia-scan-ring { animation: robia-scan var(--robia-loader-cycle) cubic-bezier(.22,1,.36,1) infinite; }
+.robia-signal { animation: robia-detect var(--robia-loader-cycle) cubic-bezier(.22,1,.36,1) infinite; }
+.robia-signal-b { animation-delay: 100ms; }
+.robia-signal-c { animation-delay: 200ms; }
+.robia-signal-d { animation-delay: 300ms; }
+.robia-connection { animation: robia-connect var(--robia-loader-cycle) cubic-bezier(.4,0,.2,1) infinite; }
+.robia-connection-b { animation-delay: 100ms; }
+.robia-connection-c { animation-delay: 200ms; }
+.robia-connection-d { animation-delay: 300ms; }
+.robia-opportunity { animation: robia-opportunity var(--robia-loader-cycle) ease-out infinite; }
+.robia-progress-signal { animation: robia-progress 1.7s cubic-bezier(.4,0,.2,1) infinite; }
+.robia-status-backdrop {
+  background: linear-gradient(180deg, rgba(31,58,95,.78), rgba(23,45,71,.88));
+  box-shadow: 0 18px 60px rgba(8,24,42,.2);
+  backdrop-filter: blur(10px);
+}
+
+@keyframes robia-core {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(.72); }
+  12%, 82% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  91% { transform: translate(-50%,-50%) scale(1.06); }
+  100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+}
+@keyframes robia-halo {
+  0%, 8% { opacity: 0; transform: translate(-50%,-50%) scale(.5); }
+  22%, 84% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: .3; transform: translate(-50%,-50%) scale(.88); }
+}
+@keyframes robia-scan {
+  0%, 15% { opacity: 0; transform: translate(-50%,-50%) scale(.45); }
+  32% { opacity: .72; }
+  63%, 100% { opacity: 0; transform: translate(-50%,-50%) scale(2.05); }
+}
+@keyframes robia-detect {
+  0%, 30% { opacity: 0; transform: scale(.72) translateY(3px); }
+  44%, 88% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: .48; transform: scale(.94); }
+}
+@keyframes robia-connect {
+  0%, 43% { opacity: 0; stroke-dashoffset: 112; }
+  66%, 88% { opacity: .72; stroke-dashoffset: 0; }
+  100% { opacity: .18; stroke-dashoffset: 0; }
+}
+@keyframes robia-opportunity {
+  0%, 69% { opacity: 0; transform: scale(.45); }
+  81%, 100% { opacity: 1; transform: scale(1); }
+}
+@keyframes robia-progress {
+  0% { transform: translateX(-120%); opacity: 0; }
+  18% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translateX(220%); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .robia-location-core, .robia-location-halo, .robia-scan-ring,
+  .robia-signal, .robia-connection, .robia-opportunity, .robia-progress-signal {
+    animation: none !important;
+  }
+  .robia-location-core, .robia-location-halo { opacity: 1; transform: translate(-50%,-50%); }
+  .robia-scan-ring { opacity: .25; transform: translate(-50%,-50%) scale(1.5); }
+  .robia-signal, .robia-opportunity { opacity: 1; transform: none; }
+  .robia-connection { opacity: .35; stroke-dashoffset: 0; }
+  .robia-progress-signal { opacity: .75; transform: translateX(50%); }
+}

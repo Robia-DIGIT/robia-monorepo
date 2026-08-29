@@ -20,6 +20,7 @@ import {
   Star,
   Globe2,
   AlertCircle,
+  Radar,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { createOrganization, type Organization } from '../lib/api'
@@ -254,8 +255,8 @@ function OrganizationPreview({ form }: { form: OrganizationForm }) {
       <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2 px-1">
         Aperçu de votre fiche locale
       </p>
-      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-        <div className="h-20 bg-linear-to-br from-navy to-navy-light relative">
+      <div className="border-t-2 border-orange bg-white overflow-hidden">
+        <div className="h-20 bg-navy relative">
           <div className="absolute -bottom-6 left-5 w-14 h-14 rounded-2xl bg-white border-4 border-white shadow-sm flex items-center justify-center">
             <div className="w-full h-full rounded-xl bg-orange-light flex items-center justify-center">
               <Store size={20} className="text-[#C2410C]" aria-hidden />
@@ -408,9 +409,10 @@ export default function CreateOrganizationPage({ onCreated }: CreateOrganization
   }
 
   return (
-    <div className="w-full bg-slate-bg rounded-2xl p-6 md:p-8">
-      <div className="mb-7 flex items-start gap-3">
-        <div>
+    <div className="min-h-screen w-full bg-slate-bg p-5 md:p-8">
+      <header className="mb-7 border-b border-border pb-6">
+        <div className="max-w-3xl">
+          <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Étape 2 · Profil entreprise</p>
           <h1 className="text-2xl font-bold text-dark">Créer votre organisation</h1>
           <p className="text-sm text-muted mt-0.5">
             Ces informations servent de base à votre audit de référencement local.
@@ -421,11 +423,11 @@ export default function CreateOrganizationPage({ onCreated }: CreateOrganization
             </p>
           )}
         </div>
-      </div>
+      </header>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-6 items-start">
+      <div className="grid max-w-6xl lg:grid-cols-[1fr_320px] gap-8 items-start">
         {/* Form */}
-        <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="border-t-2 border-teal bg-white p-5 md:p-6 space-y-5">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-muted uppercase tracking-wide">
               Informations générales

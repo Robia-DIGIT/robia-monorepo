@@ -11,6 +11,7 @@ import {
   Upload,
   X,
   LogOut,
+  Radar,
 } from "lucide-react";
 
 import {
@@ -515,8 +516,7 @@ export default function ProfilePage() {
 
   return (
     <div
-      className="min-h-screen bg-slate-bg px-4 py-12 sm:px-8 relative overflow-x-hidden"
-      style={{ backgroundImage: "radial-linear(circle, #e2e8f0 1px, transparent 1.2px)", backgroundSize: "24px 24px" }}
+      className="min-h-screen bg-slate-bg px-4 py-8 sm:px-8 relative overflow-x-hidden"
     >
       <style>{`
         @keyframes shake {
@@ -545,9 +545,14 @@ export default function ProfilePage() {
         tabIndex={-1}
       />
 
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-7 border-b border-border pb-6">
+          <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Identité de l’espace ROBIA</p>
+          <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Profil et présence de l’entreprise</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Gérez les informations utilisées dans vos profils, rapports et communications.</p>
+        </header>
         {/* Sticky action bar: stays reachable while scrolling a long form */}
-        <div className="sticky top-4 z-10 mb-4 flex items-center justify-between gap-4 rounded-2xl border border-border bg-white/90 backdrop-blur px-6 py-3 shadow-sm">
+        <div className="sticky top-4 z-10 mb-4 flex items-center justify-between gap-4 rounded-lg border border-border bg-white px-5 py-3">
           <div className="min-w-0">
             <p className="text-sm font-bold text-dark truncate">Profil de l'entreprise</p>
             {hasUnsavedChanges ? (
@@ -559,7 +564,7 @@ export default function ProfilePage() {
           <SaveCancelActions compact />
         </div>
 
-        <div className="bg-white rounded-2xl border border-border shadow-sm relative transition-all duration-300">
+        <div className="relative border-t-2 border-teal bg-white transition-all duration-300">
           {/* Banner Header */}
           <div className="pt-6 pb-6 px-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border">
             <button
@@ -568,7 +573,7 @@ export default function ProfilePage() {
               aria-label="Changer le logo de l'entreprise"
               className="absolute -top-14 left-8 group w-28 h-28 rounded-full border-4 border-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
             >
-              <div className="relative w-full h-full rounded-full bg-linear-to-br from-electric to-electric-dark flex items-center justify-center overflow-hidden p-6 hover:scale-[1.03] transition-all duration-200">
+              <div className="relative w-full h-full rounded-full bg-navy flex items-center justify-center overflow-hidden p-6 hover:scale-[1.03] transition-all duration-200">
                 {displayedLogoUrl ? (
                   <img src={displayedLogoUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
@@ -816,7 +821,7 @@ export default function ProfilePage() {
             </div>
           </FormRow>
 
-          <div className="py-6 px-8 flex justify-between gap-3 bg-slate-bg/30 rounded-b-2xl">
+          <div className="py-6 px-8 flex justify-between gap-3 bg-slate-bg/30 rounded-b-lg">
             <div className="flex items-center  gap-3 self-end md:self-auto">
               <button
                 type="button"
