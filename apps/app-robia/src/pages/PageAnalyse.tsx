@@ -43,6 +43,16 @@ import {
 
 const tabs = ["Vue d'ensemble", 'Historique', 'Recommandations', 'Concurrents']
 
+function normalizeWebsiteUrl(value: string) {
+  try {
+    const parsed = new URL(value.trim())
+    const pathname = parsed.pathname.replace(/\/+$/, '')
+    return `${parsed.protocol.toLowerCase()}//${parsed.host.toLowerCase()}${pathname}`
+  } catch {
+    return value.trim().replace(/\/+$/, '')
+  }
+}
+
 export default function PageAnalyse() {
   const [organization, setOrganization] = useState<Organization | null>(null)
   const { websites, activeWebsite, activeWebsiteId: selectedWebsiteId, setActiveWebsiteId: setSelectedWebsiteId, refreshWebsites } = useWebsiteContext()
@@ -132,9 +142,19 @@ export default function PageAnalyse() {
       let websiteId = selectedWebsiteId
 
       if (query.trim()) {
-        const website = await createWebsite({ url: query.trim() })
-        websiteId = website.id ?? websiteId
-        await refreshWebsites(websiteId)
+        const requestedUrl = query.trim()
+        const normalizedRequestedUrl = normalizeWebsiteUrl(requestedUrl)
+        const existingWebsite = websites.find(
+          (website) => normalizeWebsiteUrl(website.url) === normalizedRequestedUrl,
+        )
+
+        if (existingWebsite?.id) {
+          websiteId = existingWebsite.id
+        } else {
+          const website = await createWebsite({ url: requestedUrl })
+          websiteId = website.id ?? websiteId
+          await refreshWebsites(websiteId)
+        }
       }
 
       if (!websiteId) {
@@ -202,7 +222,7 @@ export default function PageAnalyse() {
           <h2 className="max-w-xl text-xl font-bold tracking-tight text-white md:text-2xl">{hasAnalyzed ? 'Actualiser le signal de visibilité' : 'Lancer votre premier diagnostic local'}</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-white/55">{activeWebsite?.url ?? 'Ajoutez une URL pour mesurer sa présence, sa performance et ses opportunités locales.'}</p>
           <form onSubmit={handleAnalyse} className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <SearchBar value={query} onChange={(event) => setQuery(event.target.value)} placeholder="https://votre-site.fr" aria-label="URL du site à analyser" className="flex-1" />
+            <SearchBar value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeWebsite ? "Laissez vide pour actualiser le site sélectionné" : "https://votre-site.fr"} aria-label="URL du site à analyser" className="flex-1" />
             <Button variant="primary" size="lg" loading={busy} type="submit" disabled={busy || (!query.trim() && !selectedWebsiteId)} icon={<Search size={16} strokeWidth={2.5} />}>{busy ? 'Analyse en cours…' : hasAnalyzed ? 'Actualiser l’analyse' : 'Analyser ce site'}</Button>
           </form>
         </div>
