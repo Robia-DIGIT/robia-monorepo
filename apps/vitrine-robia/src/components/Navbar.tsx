@@ -104,7 +104,7 @@ export function Navbar() {
           {/* Desktop CTA */}
           <div className="hidden items-center gap-2 lg:flex xl:gap-3">
             <Link
-              to="http://localhost:5173/"
+              to="https://app.robiacopilot.site/login"
               className="whitespace-nowrap px-3 py-2 text-[13px] font-medium text-[#304850] transition hover:text-[#087F75] xl:px-4"
             >
               Connexion
@@ -174,8 +174,7 @@ export function Navbar() {
           ))}
           <hr className="my-3 border-slate-200 sm:my-4" />
           <Link
-            // to="https://app.robia.digital/login"
-            to="http://localhost:5173/"
+            to="https://app.robiacopilot.site/login"
             onClick={close}
             className="rounded-xl px-4 py-3.5 text-base text-slate-700 transition hover:bg-slate-100 active:bg-slate-200 sm:text-sm"
           >
