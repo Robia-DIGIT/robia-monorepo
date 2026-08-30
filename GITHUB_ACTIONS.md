@@ -2,6 +2,12 @@
 
 Le workflow existant `Frontend production images` construit toujours les deux applications. Il s'exécute aussi sur les changements frontend fusionnés dans `main`. Un job séparé de déploiement dépend de la réussite du build.
 
+## Protection de main
+
+Le contrôle `build` s'exécute sur toutes les PR ciblant `main`, même si elles ne modifient que le mobile ou la documentation. Il peut ainsi devenir obligatoire sans rester en attente à cause d'un filtre de fichiers. Ce contrôle vérifie les builds web, pas la compilation ni les tests de l'application mobile ; ces PR consomment donc aussi un build web. Ne pas utiliser les directives de commit comme `[skip ci]` sur une PR soumise à ce contrôle obligatoire.
+
+Dans la protection de `main`, rendre `build` obligatoire, mais pas `Deploy production over restricted SSH` : le déploiement est interdit sur les PR. Le filtrage des fichiers pour les événements `push` reste inchangé ; une modification exclusivement mobile ou documentaire ne déclenche pas de déploiement web automatique après fusion. Un lancement manuel sur `main` reste possible.
+
 ## Avant activation
 
 1. Ajouter les secrets de dépôt `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` et `VPS_KNOWN_HOSTS`.
