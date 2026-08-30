@@ -9,11 +9,8 @@ on:
       - "docker-compose.frontend.production.yml"
       - ".github/workflows/frontend-production.yml"
   pull_request:
-    paths:
-      - "apps/app-robia/**"
-      - "apps/vitrine-robia/**"
-      - "docker-compose.frontend.production.yml"
-      - ".github/workflows/frontend-production.yml"
+    # Required checks must run even for mobile-only or documentation-only PRs.
+    branches: [main]
   workflow_dispatch:
 
 permissions:
