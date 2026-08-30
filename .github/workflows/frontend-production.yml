@@ -1,6 +1,13 @@
 name: Frontend production images
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/app-robia/**"
+      - "apps/vitrine-robia/**"
+      - "docker-compose.frontend.production.yml"
+      - ".github/workflows/frontend-production.yml"
   pull_request:
     paths:
       - "apps/app-robia/**"
@@ -23,3 +30,41 @@ jobs:
         run: docker compose -f docker-compose.frontend.production.yml config --quiet
       - name: Build production images
         run: docker compose -f docker-compose.frontend.production.yml build
+
+  deploy:
+    name: Deploy production over restricted SSH
+    needs: build
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.repository == 'Robia-DIGIT/robia-monorepo' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      vars.VPS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    concurrency:
+      group: production-frontend
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Deploy the tested commit
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in VPS_HOST VPS_USER VPS_SSH_KEY VPS_KNOWN_HOSTS; do
+            test -n "${!name}" || { echo "::error::Missing secret: $name"; exit 1; }
+          done
+          umask 077
+          robia_ssh_dir=$(mktemp -d)
+          trap 'rm -f -- "$robia_ssh_dir/id_ed25519" "$robia_ssh_dir/known_hosts"; rmdir -- "$robia_ssh_dir"' EXIT
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > "$robia_ssh_dir/id_ed25519"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" | tr -d '\r' > "$robia_ssh_dir/known_hosts"
+          unset VPS_SSH_KEY VPS_KNOWN_HOSTS
+          ssh-keygen -y -P '' -f "$robia_ssh_dir/id_ed25519" >/dev/null
+          ssh-keygen -F "$VPS_HOST" -f "$robia_ssh_dir/known_hosts" >/dev/null
+          ssh -F /dev/null -T -o BatchMode=yes -o IdentitiesOnly=yes -o IdentityAgent=none -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o StrictHostKeyChecking=yes -o HostKeyAlgorithms=ssh-ed25519 -o GlobalKnownHostsFile=/dev/null -o UserKnownHostsFile="$robia_ssh_dir/known_hosts" -o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=6 -i "$robia_ssh_dir/id_ed25519" "${VPS_USER}@${VPS_HOST}" "deploy-frontend ${GITHUB_SHA}"
