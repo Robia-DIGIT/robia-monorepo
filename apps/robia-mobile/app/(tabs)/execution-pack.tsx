@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MOCK_DOCUMENTS } from '@/src/data/mock';
+import { Brand, Radius } from '@/constants/theme';
 
 export default function ExecutionPackScreen() {
   return (
@@ -42,7 +43,10 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: 6,
-    paddingVertical: 4,
+    padding: 16,
+    borderRadius: Radius.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: Brand.teal,
   },
   disclaimer: {
     fontSize: 13,

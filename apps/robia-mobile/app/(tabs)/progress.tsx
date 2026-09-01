@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { Colors, Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   MOCK_PLAN_WEEKS,
@@ -97,19 +97,23 @@ const styles = StyleSheet.create({
   },
   progressBlock: {
     gap: 10,
+    padding: 16,
+    borderRadius: Radius.lg,
   },
   track: {
     height: 8,
-    borderRadius: 999,
+    borderRadius: Radius.pill,
     backgroundColor: '#68707633',
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
-    borderRadius: 999,
+    borderRadius: Radius.pill,
   },
   week: {
     gap: 10,
+    padding: 16,
+    borderRadius: Radius.lg,
   },
   taskRow: {
     gap: 4,

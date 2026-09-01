@@ -12,13 +12,14 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { Colors, Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function AuditScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const tint = Colors[colorScheme].tint;
   const textColor = Colors[colorScheme].text;
+  const borderColor = Colors[colorScheme].border;
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [city, setCity] = useState('');
   const [industry, setIndustry] = useState('');
@@ -54,6 +55,7 @@ export default function AuditScreen() {
           autoCapitalize="none"
           keyboardType="url"
           color={textColor}
+          borderColor={borderColor}
         />
         <LabeledInput
           label="Ville"
@@ -61,6 +63,7 @@ export default function AuditScreen() {
           value={city}
           onChangeText={setCity}
           color={textColor}
+          borderColor={borderColor}
         />
         <LabeledInput
           label="Secteur d'activité"
@@ -68,6 +71,7 @@ export default function AuditScreen() {
           value={industry}
           onChangeText={setIndustry}
           color={textColor}
+          borderColor={borderColor}
         />
 
         {isRunning ? (
@@ -95,17 +99,19 @@ export default function AuditScreen() {
 function LabeledInput({
   label,
   color,
+  borderColor,
   ...inputProps
 }: {
   label: string;
   color: string;
+  borderColor: string;
 } & ComponentProps<typeof TextInput>) {
   return (
     <ThemedView style={styles.field}>
       <ThemedText type="defaultSemiBold">{label}</ThemedText>
       <TextInput
         placeholderTextColor="#687076"
-        style={[styles.input, { color, borderColor: '#68707655' }]}
+        style={[styles.input, { color, borderColor }]}
         {...inputProps}
       />
     </ThemedView>
@@ -126,14 +132,14 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
   },
   cta: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     paddingVertical: 14,
     alignItems: 'center',
   },

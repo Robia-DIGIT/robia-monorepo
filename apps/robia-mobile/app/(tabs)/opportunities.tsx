@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MOCK_OPPORTUNITIES, type ImpactLevel } from '@/src/data/mock';
+import { Brand, Radius } from '@/constants/theme';
 
 export default function OpportunitiesScreen() {
   return (
@@ -50,7 +51,10 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: 8,
-    paddingVertical: 4,
+    padding: 16,
+    borderRadius: Radius.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: Brand.orange,
   },
   metaRow: {
     flexDirection: 'row',
@@ -60,6 +64,9 @@ const styles = StyleSheet.create({
   chip: {
     gap: 2,
     minWidth: 90,
+    padding: 8,
+    borderRadius: Radius.sm,
+    backgroundColor: Brand.slate100,
   },
   chipLabel: {
     fontSize: 12,

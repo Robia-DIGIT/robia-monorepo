@@ -5,7 +5,7 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Brand, Colors, Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_ESTABLISHMENT } from '@/src/data/mock';
 
@@ -15,7 +15,7 @@ export default function HomeScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: Brand.navy, dark: Brand.navyDark }}
       headerImage={
         <IconSymbol
           size={220}
@@ -31,7 +31,7 @@ export default function HomeScreen() {
       <ThemedText type="subtitle">{MOCK_ESTABLISHMENT.name}</ThemedText>
       <ThemedText>{MOCK_ESTABLISHMENT.city}</ThemedText>
 
-      <ThemedView style={styles.scoreCard}>
+      <ThemedView style={[styles.scoreCard, { borderColor: Colors[colorScheme].border }]}>
         <ThemedText type="defaultSemiBold">Score d&apos;impact local</ThemedText>
         <ThemedText type="title">
           {MOCK_ESTABLISHMENT.impactScore}
@@ -82,6 +82,9 @@ const styles = StyleSheet.create({
   scoreCard: {
     gap: 8,
     marginTop: 8,
+    padding: 20,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -90,6 +93,9 @@ const styles = StyleSheet.create({
   tile: {
     flex: 1,
     gap: 4,
+    padding: 12,
+    borderRadius: Radius.md,
+    backgroundColor: Brand.slate100,
   },
   tileLabel: {
     fontSize: 12,
@@ -97,7 +103,7 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     paddingVertical: 14,
     alignItems: 'center',
   },
