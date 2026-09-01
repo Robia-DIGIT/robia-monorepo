@@ -84,8 +84,7 @@ export default function OnboardingScreen() {
           style={styles.brandLogo}
           accessibilityLabel="Logo RobIA Copilot"
         />
-        <View style={styles.brandDivider} />
-        <Text style={styles.brandTagline}>Votre visibilité, augmentée.</Text>
+       
       </View>
 
       <FlatList
