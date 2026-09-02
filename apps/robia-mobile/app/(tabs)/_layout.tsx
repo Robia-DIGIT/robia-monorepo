@@ -1,145 +1,110 @@
-import { router, Tabs } from 'expo-router';
-import React, { ReactNode, useMemo } from 'react';
-import { PanResponder, StyleSheet, View } from 'react-native';
+import {
+  createMaterialTopTabNavigator,
+  MaterialTopTabNavigationEventMap,
+  MaterialTopTabNavigationOptions,
+} from '@react-navigation/material-top-tabs';
+import { ParamListBase, TabNavigationState } from '@react-navigation/native';
+import { withLayoutContext } from 'expo-router';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const TAB_ROUTES = ['index', 'opportunities', 'execution-pack', 'progress', 'profile'] as const;
-const TAB_HREFS = [
-  '/(tabs)',
-  '/(tabs)/opportunities',
-  '/(tabs)/execution-pack',
-  '/(tabs)/progress',
-  '/(tabs)/profile',
-] as const;
+const { Navigator } = createMaterialTopTabNavigator();
 
-function SwipeableTabScene({
-  children,
-  routeName,
-}: {
-  children: ReactNode;
-  routeName: string;
-}) {
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) => {
-          const horizontalDistance = Math.abs(gesture.dx);
-          const verticalDistance = Math.abs(gesture.dy);
+const SwipeTabs = withLayoutContext<
+  MaterialTopTabNavigationOptions,
+  typeof Navigator,
+  TabNavigationState<ParamListBase>,
+  MaterialTopTabNavigationEventMap
+>(Navigator);
 
-          return horizontalDistance > 20 && horizontalDistance > verticalDistance * 1.6;
-        },
-        onPanResponderRelease: (_, gesture) => {
-          const currentIndex = TAB_ROUTES.indexOf(routeName as (typeof TAB_ROUTES)[number]);
-          if (currentIndex < 0) return;
+type RobiaIconName =
+  | 'house.fill'
+  | 'target'
+  | 'doc.text.fill'
+  | 'checklist'
+  | 'person.crop.circle';
 
-          const isIntentionalSwipe = Math.abs(gesture.dx) > 70 || Math.abs(gesture.vx) > 0.55;
-          if (!isIntentionalSwipe) return;
-
-          const direction = gesture.dx < 0 ? 1 : -1;
-          const nextIndex = currentIndex + direction;
-          if (nextIndex < 0 || nextIndex >= TAB_HREFS.length) return;
-
-          router.navigate(TAB_HREFS[nextIndex]);
-        },
-        onPanResponderTerminationRequest: () => true,
-      }),
-    [routeName]
-  );
-
-  return (
-    <View style={styles.swipeScene} {...panResponder.panHandlers}>
-      {children}
-    </View>
-  );
+function createTabIcon(name: RobiaIconName) {
+  return function TabBarIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+      <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+        <IconSymbol size={focused ? 23 : 22} name={name} color={color} />
+      </View>
+    );
+  };
 }
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
-  const tabBarBottom = Math.max(insets.bottom, 10);
-
-  const renderIcon = (
-    name: 'house.fill' | 'target' | 'doc.text.fill' | 'checklist' | 'person.crop.circle'
-  ) =>
-    function TabBarIcon({ color, focused }: { color: string; focused: boolean }) {
-      return (
-        <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-          <IconSymbol size={focused ? 23 : 22} name={name} color={color} />
-        </View>
-      );
-    };
+  const bottomSpacing = Math.max(insets.bottom, 10);
 
   return (
-    <Tabs
-      screenLayout={({ children, route }) => (
-        <SwipeableTabScene routeName={route.name}>{children}</SwipeableTabScene>
-      )}
+    <SwipeTabs
+      initialRouteName="index"
       screenOptions={{
-        animation: 'shift',
-        transitionSpec: {
-          animation: 'timing',
-          config: { duration: 260 },
-        },
-        headerShown: false,
-        sceneStyle: { backgroundColor: palette.background },
+        animationEnabled: true,
+        swipeEnabled: true,
+        lazy: false,
+        tabBarPosition: 'bottom',
         tabBarActiveTintColor: Brand.tealDark,
         tabBarInactiveTintColor: palette.tabIconDefault,
-        tabBarHideOnKeyboard: true,
-        tabBarButton: HapticTab,
+        tabBarShowIcon: true,
+        tabBarPressColor: Brand.tealLight,
+        tabBarPressOpacity: 0.72,
+        sceneStyle: { backgroundColor: palette.background },
         tabBarStyle: [
           styles.tabBar,
           {
-            bottom: tabBarBottom,
-            backgroundColor: colorScheme === 'dark' ? palette.surface : 'rgba(255, 255, 255, 0.97)',
-            borderColor: colorScheme === 'dark' ? palette.border : 'rgba(226, 232, 240, 0.8)',
+            marginBottom: bottomSpacing,
+            backgroundColor:
+              colorScheme === 'dark' ? palette.surface : 'rgba(255, 255, 255, 0.97)',
+            borderColor:
+              colorScheme === 'dark' ? palette.border : 'rgba(226, 232, 240, 0.8)',
           },
         ],
         tabBarItemStyle: styles.tabBarItem,
         tabBarIconStyle: styles.tabBarIcon,
         tabBarLabelStyle: styles.tabBarLabel,
+        tabBarIndicatorStyle: styles.tabBarIndicator,
       }}>
-      <Tabs.Screen
+      <SwipeTabs.Screen
         name="index"
-        options={{ title: 'Accueil', tabBarIcon: renderIcon('house.fill') }}
+        options={{ title: 'Accueil', tabBarIcon: createTabIcon('house.fill') }}
       />
-      <Tabs.Screen
+      <SwipeTabs.Screen
         name="opportunities"
-        options={{ title: 'Opportunités', tabBarIcon: renderIcon('target') }}
+        options={{ title: 'Opportunités', tabBarIcon: createTabIcon('target') }}
       />
-      <Tabs.Screen
+      <SwipeTabs.Screen
         name="execution-pack"
-        options={{ title: 'Documents', tabBarIcon: renderIcon('doc.text.fill') }}
+        options={{ title: 'Documents', tabBarIcon: createTabIcon('doc.text.fill') }}
       />
-      <Tabs.Screen
+      <SwipeTabs.Screen
         name="progress"
-        options={{ title: 'Suivi', tabBarIcon: renderIcon('checklist') }}
+        options={{ title: 'Suivi', tabBarIcon: createTabIcon('checklist') }}
       />
-      <Tabs.Screen
+      <SwipeTabs.Screen
         name="profile"
-        options={{ title: 'Profil', tabBarIcon: renderIcon('person.crop.circle') }}
+        options={{ title: 'Profil', tabBarIcon: createTabIcon('person.crop.circle') }}
       />
-    </Tabs>
+    </SwipeTabs>
   );
 }
 
 const styles = StyleSheet.create({
-  swipeScene: {
-    flex: 1,
-  },
   tabBar: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
     height: 74,
-    paddingTop: 7,
-    paddingBottom: 7,
-    borderTopWidth: 1,
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingTop: 5,
+    paddingBottom: 5,
     borderWidth: 1,
     borderRadius: 28,
     shadowColor: Brand.navyDark,
@@ -149,20 +114,25 @@ const styles = StyleSheet.create({
     elevation: 14,
   },
   tabBarItem: {
-    minWidth: 58,
+    minHeight: 62,
     paddingHorizontal: 1,
-    borderRadius: 20,
+    paddingVertical: 2,
   },
   tabBarIcon: {
-    marginTop: 0,
+    width: 38,
+    height: 32,
+    margin: 0,
   },
   tabBarLabel: {
-    marginTop: 1,
-    marginBottom: 1,
+    margin: 0,
     fontFamily: Fonts?.sans,
     fontSize: 9.5,
     lineHeight: 12,
     fontWeight: '700',
+    textTransform: 'none',
+  },
+  tabBarIndicator: {
+    display: 'none',
   },
   iconContainer: {
     width: 38,
