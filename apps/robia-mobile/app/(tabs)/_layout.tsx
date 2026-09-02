@@ -48,11 +48,11 @@ export default function TabLayout() {
   return (
     <SwipeTabs
       initialRouteName="index"
+      tabBarPosition="bottom"
       screenOptions={{
         animationEnabled: true,
         swipeEnabled: true,
         lazy: false,
-        tabBarPosition: 'bottom',
         tabBarActiveTintColor: Brand.tealDark,
         tabBarInactiveTintColor: palette.tabIconDefault,
         tabBarShowIcon: true,
@@ -70,7 +70,6 @@ export default function TabLayout() {
           },
         ],
         tabBarItemStyle: styles.tabBarItem,
-        tabBarIconStyle: styles.tabBarIcon,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarIndicatorStyle: styles.tabBarIndicator,
       }}>
@@ -117,11 +116,6 @@ const styles = StyleSheet.create({
     minHeight: 62,
     paddingHorizontal: 1,
     paddingVertical: 2,
-  },
-  tabBarIcon: {
-    width: 38,
-    height: 32,
-    margin: 0,
   },
   tabBarLabel: {
     margin: 0,
