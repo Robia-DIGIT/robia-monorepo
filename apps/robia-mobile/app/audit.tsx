@@ -1,149 +1,62 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useState, type ComponentProps } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-} from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { PrimaryButton, RobiaCard, RobiaHeader, RobiaScreen, robiaStyles } from '@/components/robia-ui';
+import { Brand, Fonts } from '@/constants/theme';
 
 export default function AuditScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const tint = Colors[colorScheme].tint;
-  const textColor = Colors[colorScheme].text;
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [city, setCity] = useState('');
   const [industry, setIndustry] = useState('');
   const [isRunning, setIsRunning] = useState(false);
 
   async function launchAudit() {
-    if (isRunning) {
-      return;
-    }
-
+    if (isRunning) return;
     setIsRunning(true);
     await new Promise((resolve) => setTimeout(resolve, 1600));
     setIsRunning(false);
-    router.dismissTo('/');
+    router.dismissTo('/(tabs)');
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ThemedView style={styles.container}>
-        <ThemedText type="title">Audit gratuit</ThemedText>
-        <ThemedText>
-          Indiquez le site, la ville et le secteur. ROBIA prépare ensuite des opportunités à
-          valider — sans rien publier à votre place.
-        </ThemedText>
-
-        <LabeledInput
-          label="URL du site"
-          placeholder="https://salon-lova.mg"
-          value={websiteUrl}
-          onChangeText={setWebsiteUrl}
-          autoCapitalize="none"
-          keyboardType="url"
-          color={textColor}
-        />
-        <LabeledInput
-          label="Ville"
-          placeholder="Antananarivo"
-          value={city}
-          onChangeText={setCity}
-          color={textColor}
-        />
-        <LabeledInput
-          label="Secteur d'activité"
-          placeholder="Coiffure"
-          value={industry}
-          onChangeText={setIndustry}
-          color={textColor}
-        />
-
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <RobiaScreen>
+        <RobiaHeader eyebrow="ANALYSE & DÉTECTION" title="Audit gratuit" subtitle="Trois informations suffisent à RobIA pour identifier vos premières opportunités." />
+        <RobiaCard style={styles.form} accent={Brand.teal}>
+          <LabeledInput icon="language" label="URL du site" placeholder="https://salon-lova.mg" value={websiteUrl} onChangeText={setWebsiteUrl} autoCapitalize="none" keyboardType="url" />
+          <LabeledInput icon="location-on" label="Ville" placeholder="Antananarivo" value={city} onChangeText={setCity} />
+          <LabeledInput icon="storefront" label="Secteur d’activité" placeholder="Coiffure" value={industry} onChangeText={setIndustry} />
+        </RobiaCard>
+        <View style={styles.notice}><MaterialIcons name="verified-user" size={21} color={Brand.tealDark} /><Text style={robiaStyles.body}>Aucune action ne sera publiée sans votre validation.</Text></View>
         {isRunning ? (
-          <ThemedView style={styles.loading}>
-            <ActivityIndicator color={tint} />
-            <ThemedText>Analyse en cours…</ThemedText>
-          </ThemedView>
+          <RobiaCard style={styles.loading}><ActivityIndicator color={Brand.teal} /><View style={styles.loadingCopy}><Text style={robiaStyles.cardTitle}>Analyse en cours…</Text><Text style={robiaStyles.caption}>RobIA explore votre présence locale.</Text></View></RobiaCard>
         ) : (
-          <Pressable
-            accessibilityRole="button"
-            onPress={launchAudit}
-            style={[styles.cta, { backgroundColor: tint }]}>
-            <ThemedText style={styles.ctaLabel} lightColor="#fff" darkColor="#11181C">
-              Lancer l&apos;audit gratuit
-            </ThemedText>
-          </Pressable>
+          <PrimaryButton label="Lancer l’audit gratuit" icon="radar" onPress={launchAudit} />
         )}
-
-        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
-      </ThemedView>
+      </RobiaScreen>
     </KeyboardAvoidingView>
   );
 }
 
-function LabeledInput({
-  label,
-  color,
-  ...inputProps
-}: {
-  label: string;
-  color: string;
-} & ComponentProps<typeof TextInput>) {
+function LabeledInput({ label, icon, ...inputProps }: { label: string; icon: ComponentProps<typeof MaterialIcons>['name'] } & ComponentProps<typeof TextInput>) {
   return (
-    <ThemedView style={styles.field}>
-      <ThemedText type="defaultSemiBold">{label}</ThemedText>
-      <TextInput
-        placeholderTextColor="#687076"
-        style={[styles.input, { color, borderColor: '#68707655' }]}
-        {...inputProps}
-      />
-    </ThemedView>
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputShell}><MaterialIcons name={icon} size={20} color={Brand.tealDark} /><TextInput placeholderTextColor={Brand.slate400} style={styles.input} {...inputProps} /></View>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    padding: 24,
-    gap: 16,
-  },
-  field: {
-    gap: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  cta: {
-    marginTop: 8,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  ctaLabel: {
-    fontWeight: '600',
-  },
-  loading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
-  },
+const styles=StyleSheet.create({
+  flex:{flex:1},
+  form:{gap:18},
+  field:{gap:8},
+  label:{color:Brand.navyDark,fontFamily:Fonts?.sans,fontSize:13,fontWeight:'800'},
+  inputShell:{minHeight:52,paddingHorizontal:14,borderRadius:17,flexDirection:'row',alignItems:'center',gap:10,backgroundColor:Brand.slate50,borderWidth:1,borderColor:Brand.slate200},
+  input:{flex:1,color:Brand.slate800,fontFamily:Fonts?.sans,fontSize:15},
+  notice:{paddingHorizontal:4,flexDirection:'row',alignItems:'center',gap:10},
+  loading:{flexDirection:'row',alignItems:'center',gap:14},
+  loadingCopy:{gap:2},
 });
