@@ -46,24 +46,26 @@ export const MOCK_OPPORTUNITIES: {
   {
     id: 'opp-reviews',
     title: 'Répondre aux avis clients en attente',
-    description: '4 avis Google sans réponse. Les réponses signalent un établissement actif et de confiance.',
+    description:
+      '4 avis Google sans réponse. Les réponses signalent un établissement actif et de confiance.',
     impact: 'Moyen',
     effort: 'Faible',
     confidence: 88,
   },
   {
     id: 'opp-title',
-    title: "Optimiser le titre SEO de la page d'accueil",
+    title: "Optimiser le titre SEO de la page d’accueil",
     description:
-      "Le titre actuel ne contient pas « coiffure Antananarivo ». Google a du mal à classer l'activité localement.",
+      "Le titre actuel ne contient pas « coiffure Antananarivo ». Google a du mal à classer l’activité localement.",
     impact: 'Élevé',
     effort: 'Faible',
     confidence: 79,
   },
   {
     id: 'opp-nap',
-    title: "Harmoniser nom, adresse et téléphone (NAP)",
-    description: "L'adresse du site diffère de celle de Google Business Profile. Cela dilue le signal local.",
+    title: 'Harmoniser nom, adresse et téléphone (NAP)',
+    description:
+      "L’adresse du site diffère de celle de Google Business Profile. Cela dilue le signal local.",
     impact: 'Moyen',
     effort: 'Moyen',
     confidence: 73,
@@ -91,7 +93,7 @@ export const MOCK_PLAN_WEEKS: {
     tasks: [
       { id: 'w1-1', title: 'Compléter la fiche Google Business Profile', status: 'done' },
       { id: 'w1-2', title: 'Vérifier NAP sur le site et les annuaires', status: 'in_progress' },
-      { id: 'w1-3', title: "Mettre à jour le titre SEO de l'accueil", status: 'todo' },
+      { id: 'w1-3', title: "Mettre à jour le titre SEO de l’accueil", status: 'todo' },
     ],
   },
   {

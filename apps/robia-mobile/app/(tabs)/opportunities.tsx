@@ -1,76 +1,49 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { IconBadge, RobiaCard, RobiaHeader, RobiaScreen, StatusPill, robiaStyles } from '@/components/robia-ui';
+import { Brand } from '@/constants/theme';
 import { MOCK_OPPORTUNITIES, type ImpactLevel } from '@/src/data/mock';
-import { Brand, Radius } from '@/constants/theme';
 
 export default function OpportunitiesScreen() {
   return (
-    <ThemedView style={styles.flex}>
-      <SafeAreaView style={styles.flex} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <ThemedText type="title">Opportunités</ThemedText>
-          <ThemedText>Actions recommandées pour améliorer votre visibilité locale.</ThemedText>
-
-          {MOCK_OPPORTUNITIES.map((item) => (
-            <ThemedView key={item.id} style={styles.card}>
-              <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
-              <ThemedText>{item.description}</ThemedText>
-              <View style={styles.metaRow}>
-                <MetaChip label="Impact" value={item.impact} />
-                <MetaChip label="Effort" value={item.effort} />
-                <MetaChip label="Confiance IA" value={`${item.confidence} %`} />
-              </View>
-            </ThemedView>
-          ))}
-        </ScrollView>
-      </SafeAreaView>
-    </ThemedView>
+    <RobiaScreen>
+      <RobiaHeader eyebrow="RECOMMANDATIONS IA" title="Opportunités" subtitle="Les actions les plus utiles pour renforcer votre visibilité locale." />
+      <View style={styles.summary}>
+        <Text style={styles.summaryCount}>{MOCK_OPPORTUNITIES.length}</Text>
+        <Text style={robiaStyles.body}>opportunités détectées et classées par impact.</Text>
+      </View>
+      {MOCK_OPPORTUNITIES.map((item, index) => (
+        <RobiaCard key={item.id} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <IconBadge name={index === 0 ? 'storefront' : index === 1 ? 'language' : index === 2 ? 'reviews' : 'insights'} backgroundColor={index === 0 ? Brand.orangeLight : Brand.tealLight} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />
+            <StatusPill label={item.impact === 'Élevé' ? 'Prioritaire' : item.impact} tone={item.impact === 'Élevé' ? 'orange' : 'teal'} />
+          </View>
+          <Text style={robiaStyles.cardTitle}>{item.title}</Text>
+          <Text style={robiaStyles.body}>{item.description}</Text>
+          <View style={styles.metaRow}>
+            <Meta label="Effort" value={item.effort} />
+            <View style={styles.separator} />
+            <Meta label="Confiance IA" value={`${item.confidence} %`} />
+            <MaterialIcons name="arrow-forward" size={20} color={Brand.tealDark} />
+          </View>
+        </RobiaCard>
+      ))}
+    </RobiaScreen>
   );
 }
 
-function MetaChip({ label, value }: { label: string; value: ImpactLevel | string }) {
-  return (
-    <View style={styles.chip}>
-      <ThemedText style={styles.chipLabel}>{label}</ThemedText>
-      <ThemedText type="defaultSemiBold">{value}</ThemedText>
-    </View>
-  );
+function Meta({ label, value }: { label: string; value: ImpactLevel | string }) {
+  return <View style={styles.meta}><Text style={robiaStyles.caption}>{label}</Text><Text style={styles.metaValue}>{value}</Text></View>;
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  content: {
-    padding: 24,
-    gap: 16,
-    paddingBottom: 40,
-  },
-  card: {
-    gap: 8,
-    padding: 16,
-    borderRadius: Radius.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: Brand.orange,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  chip: {
-    gap: 2,
-    minWidth: 90,
-    padding: 8,
-    borderRadius: Radius.sm,
-    backgroundColor: Brand.slate100,
-  },
-  chipLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-    opacity: 0.7,
-  },
+  summary: { padding: 16, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Brand.tealLight },
+  summaryCount: { color: Brand.tealDark, fontSize: 28, fontWeight: '900' },
+  card: { gap: 12 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  metaRow: { marginTop: 2, paddingTop: 12, borderTopWidth: 1, borderTopColor: Brand.slate100, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  meta: { gap: 2 },
+  metaValue: { color: Brand.navyDark, fontSize: 13, fontWeight: '800' },
+  separator: { width: 1, height: 28, backgroundColor: Brand.slate200 },
 });
