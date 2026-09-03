@@ -7,6 +7,7 @@ import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { withLayoutContext } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -39,6 +40,20 @@ function createTabIcon(name: RobiaIconName) {
   };
 }
 
+function createTabLabel(label: string) {
+  return function TabBarLabel({ focused, color }: { focused: boolean; color: string }) {
+    return focused ? (
+      <Animated.Text
+        entering={FadeIn.duration(180)}
+        exiting={FadeOut.duration(120)}
+        style={[styles.tabBarLabel, { color }]}
+      >
+        {label}
+      </Animated.Text>
+    ) : null;
+  };
+}
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
@@ -56,6 +71,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: Brand.tealDark,
         tabBarInactiveTintColor: palette.tabIconDefault,
         tabBarShowIcon: true,
+        tabBarShowLabel: true,
         tabBarPressColor: Brand.tealLight,
         tabBarPressOpacity: 0.72,
         sceneStyle: { backgroundColor: palette.background },
@@ -75,23 +91,43 @@ export default function TabLayout() {
       }}>
       <SwipeTabs.Screen
         name="index"
-        options={{ title: 'Accueil', tabBarIcon: createTabIcon('house.fill') }}
+        options={{
+          title: 'Accueil',
+          tabBarLabel: createTabLabel('Accueil'),
+          tabBarIcon: createTabIcon('house.fill'),
+        }}
       />
       <SwipeTabs.Screen
         name="opportunities"
-        options={{ title: 'Opportunités', tabBarIcon: createTabIcon('target') }}
+        options={{
+          title: 'Opportunités',
+          tabBarLabel: createTabLabel('Opportunités'),
+          tabBarIcon: createTabIcon('target'),
+        }}
       />
       <SwipeTabs.Screen
         name="execution-pack"
-        options={{ title: 'Documents', tabBarIcon: createTabIcon('doc.text.fill') }}
+        options={{
+          title: 'Documents',
+          tabBarLabel: createTabLabel('Documents'),
+          tabBarIcon: createTabIcon('doc.text.fill'),
+        }}
       />
       <SwipeTabs.Screen
         name="progress"
-        options={{ title: 'Suivi', tabBarIcon: createTabIcon('checklist') }}
+        options={{
+          title: 'Suivi',
+          tabBarLabel: createTabLabel('Suivi'),
+          tabBarIcon: createTabIcon('checklist'),
+        }}
       />
       <SwipeTabs.Screen
         name="profile"
-        options={{ title: 'Profil', tabBarIcon: createTabIcon('person.crop.circle') }}
+        options={{
+          title: 'Profil',
+          tabBarLabel: createTabLabel('Profil'),
+          tabBarIcon: createTabIcon('person.crop.circle'),
+        }}
       />
     </SwipeTabs>
   );
@@ -100,7 +136,7 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     height: 74,
-    marginHorizontal: 16,
+    marginHorizontal: 18,
     marginTop: 8,
     paddingTop: 5,
     paddingBottom: 5,
