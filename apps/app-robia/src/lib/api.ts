@@ -431,6 +431,27 @@ export async function login(payload: { email: string; password: string }) {
   return data;
 }
 
+export async function forgotPassword(payload: { email: string }) {
+  return request<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    auth: false,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function resetPassword(payload: {
+  token: string;
+  password: string;
+}) {
+  return request<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    auth: false,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function register(payload: {
   name?: string;
   company?: string;
