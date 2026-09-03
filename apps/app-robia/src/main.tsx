@@ -7,6 +7,8 @@ import RequireAuth from './components/RequireAuth.tsx'
 import RequireNoOrganization from './components/RequireNoOrganization.tsx'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import PageAnalyse from './pages/PageAnalyse.tsx'
 import PageOpportunites from './pages/PageOpportunites'
 import PageExecution from './pages/PageExecution'
@@ -22,6 +24,8 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<RequireNoOrganization />}>
             <Route path="/create-organization" element={<CreateOrganizationPage />} />
