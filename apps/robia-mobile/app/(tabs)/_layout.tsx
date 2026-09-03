@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: 5,
     borderWidth: 1,
-    borderRadius: 28,
+    borderRadius: 100,
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.16,
@@ -129,13 +129,14 @@ const styles = StyleSheet.create({
     display: 'none',
   },
   iconContainer: {
-    width: 38,
+    width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconContainerActive: {
     backgroundColor: Brand.tealLight,
+    borderRadius: 100,
   },
 });

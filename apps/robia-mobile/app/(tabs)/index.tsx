@@ -32,7 +32,7 @@ export default function HomeScreen() {
       <RobiaCard style={styles.scoreCard} accent={Brand.teal}>
         <View style={styles.scoreTop}>
           <View>
-            <Text style={styles.scoreLabel}>Score d’impact local</Text>
+            <Text style={styles.scoreLabel}>Score d`impact local</Text>
             <View style={styles.scoreLine}>
               <Text style={styles.score}>{MOCK_ESTABLISHMENT.impactScore}</Text>
               <Text style={styles.scoreTotal}>/100</Text>
