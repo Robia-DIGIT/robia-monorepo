@@ -36,7 +36,6 @@ type RobiaIconName =
   | 'target'
   | 'doc.text.fill'
   | 'checklist'
-  | 'bubble.left.and.bubble.right.fill'
   | 'person.crop.circle';
 
 function AnimatedTabIcon({
@@ -161,15 +160,6 @@ export default function TabLayout() {
         }}
       />
       <SwipeTabs.Screen
-        name="chat"
-        listeners={tabListeners}
-        options={{
-          title: 'Assistant',
-          tabBarLabel: createTabLabel('Assistant'),
-          tabBarIcon: createTabIcon('bubble.left.and.bubble.right.fill'),
-        }}
-      />
-      <SwipeTabs.Screen
         name="execution-pack"
         listeners={tabListeners}
         options={{
@@ -196,6 +186,7 @@ export default function TabLayout() {
           tabBarIcon: createTabIcon('person.crop.circle'),
         }}
       />
+      <SwipeTabs.Screen name="chat" options={{ href: null }} />
     </SwipeTabs>
   );
 }
