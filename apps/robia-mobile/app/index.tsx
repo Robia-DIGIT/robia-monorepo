@@ -70,7 +70,7 @@ export default function OnboardingScreen() {
   const isLastSlide = activeIndex === SLIDES.length - 1;
   const heroHeight = Math.min(370, Math.max(285, height * 0.4));
 
-  const finish = () => router.replace('/(tabs)');
+  const finish = () => router.replace('/auth');
 
   const goNext = () => {
     if (isLastSlide) return finish();

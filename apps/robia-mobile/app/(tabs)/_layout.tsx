@@ -1,18 +1,26 @@
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Brand, Colors, Fonts } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   createMaterialTopTabNavigator,
   MaterialTopTabNavigationEventMap,
   MaterialTopTabNavigationOptions,
 } from '@react-navigation/material-top-tabs';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { withLayoutContext } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeOut,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Brand, Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const { Navigator } = createMaterialTopTabNavigator();
 
@@ -30,13 +38,53 @@ type RobiaIconName =
   | 'checklist'
   | 'person.crop.circle';
 
+function AnimatedTabIcon({
+  name,
+  color,
+  focused,
+}: {
+  name: RobiaIconName;
+  color: string;
+  focused: boolean;
+}) {
+  const progress = useSharedValue(focused ? 1 : 0);
+
+  useEffect(() => {
+    progress.value = withTiming(focused ? 1 : 0, {
+      duration: focused ? 240 : 180,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [focused, progress]);
+
+  const animatedIconStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(progress.value, [0, 1], [0, -1]) },
+      { scale: interpolate(progress.value, [0, 1], [1, 1.08]) },
+    ],
+  }));
+
+  return (
+    <View style={styles.iconContainer}>
+      {focused ? (
+        <Animated.View
+          entering={FadeIn.duration(0)}
+          exiting={FadeOut.duration(140)}
+          style={styles.iconContainerActive}
+        />
+      ) : null}
+      <Animated.View style={animatedIconStyle}>
+        <IconSymbol size={22} name={name} color={color} />
+      </Animated.View>
+      {focused ? (
+        <Animated.View entering={FadeIn.delay(80).duration(180)} style={styles.activeDot} />
+      ) : null}
+    </View>
+  );
+}
+
 function createTabIcon(name: RobiaIconName) {
   return function TabBarIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-      <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-        <IconSymbol size={focused ? 23 : 22} name={name} color={color} />
-      </View>
-    );
+    return <AnimatedTabIcon name={name} color={color} focused={focused} />;
   };
 }
 
@@ -53,6 +101,12 @@ function createTabLabel(label: string) {
     ) : null;
   };
 }
+
+const tabListeners = {
+  tabPress: () => {
+    void Haptics.selectionAsync();
+  },
+};
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -91,6 +145,7 @@ export default function TabLayout() {
       }}>
       <SwipeTabs.Screen
         name="index"
+        listeners={tabListeners}
         options={{
           title: 'Accueil',
           tabBarLabel: createTabLabel('Accueil'),
@@ -99,6 +154,7 @@ export default function TabLayout() {
       />
       <SwipeTabs.Screen
         name="opportunities"
+        listeners={tabListeners}
         options={{
           title: 'Opportunités',
           tabBarLabel: createTabLabel('Opportunités'),
@@ -107,6 +163,7 @@ export default function TabLayout() {
       />
       <SwipeTabs.Screen
         name="execution-pack"
+        listeners={tabListeners}
         options={{
           title: 'Documents',
           tabBarLabel: createTabLabel('Documents'),
@@ -115,6 +172,7 @@ export default function TabLayout() {
       />
       <SwipeTabs.Screen
         name="progress"
+        listeners={tabListeners}
         options={{
           title: 'Suivi',
           tabBarLabel: createTabLabel('Suivi'),
@@ -123,6 +181,7 @@ export default function TabLayout() {
       />
       <SwipeTabs.Screen
         name="profile"
+        listeners={tabListeners}
         options={{
           title: 'Profil',
           tabBarLabel: createTabLabel('Profil'),
@@ -165,14 +224,22 @@ const styles = StyleSheet.create({
     display: 'none',
   },
   iconContainer: {
-    width: 32,
+    width: 38,
     height: 32,
-    borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconContainerActive: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: Brand.tealLight,
-    borderRadius: 100,
+    borderRadius: 40,
+  },
+  activeDot: {
+    position: 'absolute',
+    bottom: -2,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Brand.tealDark,
   },
 });

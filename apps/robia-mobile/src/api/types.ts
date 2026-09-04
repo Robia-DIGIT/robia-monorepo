@@ -1,0 +1,9 @@
+export type User = { id: string; name: string | null; email: string; company: string | null };
+export type Organization = { id: string; name: string; sector: string | null; city: string | null; country: string | null };
+export type Website = { id: string; url: string; domain: string | null; status: string; lastCheckedAt: string | null; createdAt: string };
+export type Audit = { id: string; websiteId: string; status: 'pending' | 'running' | 'completed' | 'failed'; globalScore: number | null; resultJson: Record<string, unknown> | null; errorMessage: string | null; createdAt: string; completedAt: string | null };
+export type Opportunity = { id: string; auditId: string; title: string; description: string; category: string | null; impactScore: number; effortScore: number; confidenceScore: number; status: 'open' | 'in_progress' | 'done' | 'ignored'; createdAt: string };
+export type RobiaDocument = { id: string; opportunityId: string; type: string; title: string; content: string; status: 'draft' | 'edited' | 'validated'; createdAt: string; updatedAt: string };
+export type ActionStatus = 'todo' | 'in_progress' | 'done' | 'blocked' | 'ignored';
+export type ActionItem = { id: string; opportunityId: string | null; documentId: string | null; title: string; status: ActionStatus; dueDate: string | null; createdAt: string };
+export type AuthResponse = { accessToken: string; user: User };

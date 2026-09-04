@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { router, Stack, useSegments } from 'expo-router';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SessionProvider, useSession } from '@/src/auth/session';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // The native splash may already be hidden during fast refresh.
@@ -21,11 +22,24 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export const unstable_settings = { anchor: '(tabs)', initialRouteName: 'index' };
 
 export default function RootLayout() {
+  return <SessionProvider><AppLayout /></SessionProvider>;
+}
+
+function AppLayout() {
   const colorScheme = useColorScheme();
+  const segments = useSegments();
+  const { token, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
   const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
   const [showLaunchAnimation, setShowLaunchAnimation] = useState(true);
   const launchProgress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isLoading) return;
+    const section = segments[0];
+    if (!token && section === '(tabs)') router.replace('/auth');
+    if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)');
+  }, [isLoading, segments, token]);
 
   const navigationTheme = {
     ...baseTheme,
@@ -202,6 +216,7 @@ export default function RootLayout() {
     <ThemeProvider value={navigationTheme}>
       <Stack screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
         <Stack.Screen name="audit" options={{ presentation: 'modal', title: 'Nouvel audit' }} />
