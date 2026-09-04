@@ -39,7 +39,7 @@ function AppLayout() {
     if (isLoading) return;
     const section = segments[0];
     if (!token && section === '(tabs)') router.replace('/auth');
-    if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/index');
+    if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/dashboard');
   }, [isLoading, segments, token]);
 
   const navigationTheme = {
