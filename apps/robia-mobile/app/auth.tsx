@@ -387,12 +387,6 @@ const s = StyleSheet.create({
     borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.88)",
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 22,
-    elevation: 5,
   },
   logo: { width: 78, height: 50 },
   heroTitle: {
