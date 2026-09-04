@@ -15,7 +15,7 @@ export default function AuditScreen() {
     if (!websiteUrl.trim() || isRunning) return; setIsRunning(true); setError('');
     try {
       await request('/organizations/current', { method: 'PATCH', body: { city: city.trim() || undefined, sector: industry.trim() || undefined } });
-      await refreshOrganization(); await runAudit(websiteUrl); router.dismissTo('/(tabs)/index');
+      await refreshOrganization(); await runAudit(websiteUrl); router.dismissTo('/(tabs)/dashboard');
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible de lancer l’audit.'); }
     finally { setIsRunning(false); }
   }

@@ -57,7 +57,7 @@ export default function AuthScreen() {
           password,
         });
       else await login(email, password);
-      router.replace('/(tabs)/index');
+      router.replace('/(tabs)/dashboard');
     } catch (cause) {
       setError(
         cause instanceof ApiError
