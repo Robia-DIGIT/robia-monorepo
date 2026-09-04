@@ -36,6 +36,7 @@ type RobiaIconName =
   | 'target'
   | 'doc.text.fill'
   | 'checklist'
+  | 'bubble.left.and.bubble.right.fill'
   | 'person.crop.circle';
 
 function AnimatedTabIcon({
@@ -113,7 +114,6 @@ export default function TabLayout() {
   const palette = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const bottomSpacing = Math.max(insets.bottom, 10);
-
   return (
     <SwipeTabs
       initialRouteName="dashboard"
