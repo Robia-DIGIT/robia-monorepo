@@ -2,15 +2,15 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
 import { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -108,7 +108,7 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}>
           <View style={styles.introCard}>
             <View pointerEvents="none" style={styles.introOrb} />
-            <MaterialIcons name="robo" size={22} color={Brand.tealDark} />
+            <MaterialIcons name="android" size={22} color={Brand.tealDark} />
             <Text style={styles.introTitle}>Votre assistant marketing</Text>
             <Text style={styles.introText}>Des idées claires et des actions concrètes pour développer votre visibilité digitale.</Text>
           </View>

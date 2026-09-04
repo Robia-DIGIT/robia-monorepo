@@ -1,1 +1,2 @@
-export { default } from './(tabs)/chat';
+export { default } from '@/components/chat-screen';
+
