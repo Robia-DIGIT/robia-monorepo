@@ -116,7 +116,7 @@ export default function TabLayout() {
 
   return (
     <SwipeTabs
-      initialRouteName="index"
+      initialRouteName="dashboard"
       tabBarPosition="bottom"
       screenOptions={{
         animationEnabled: true,
@@ -144,7 +144,7 @@ export default function TabLayout() {
         tabBarIndicatorStyle: styles.tabBarIndicator,
       }}>
       <SwipeTabs.Screen
-        name="index"
+        name="dashboard"
         listeners={tabListeners}
         options={{
           title: 'Accueil',
