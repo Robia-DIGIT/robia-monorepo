@@ -22,6 +22,7 @@ const MAPPING = {
   'doc.text.fill': 'description',
   checklist: 'checklist',
   'person.crop.circle': 'account-circle',
+  'bubble.left.and.bubble.right.fill': 'forum',
 } as IconMapping;
 
 /**

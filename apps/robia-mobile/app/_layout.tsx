@@ -1,16 +1,18 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { router, Stack, useSegments } from 'expo-router';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { router, Stack, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { SessionProvider, useSession } from '@/src/auth/session';
 import { RobiaDataProvider } from '@/src/api/data';
+import { SessionProvider, useSession } from '@/src/auth/session';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // The native splash may already be hidden during fast refresh.
@@ -28,7 +30,9 @@ export default function RootLayout() {
 
 function AppLayout() {
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const segments = useSegments();
+  const pathname = usePathname();
   const { token, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
   const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -39,7 +43,7 @@ function AppLayout() {
     if (isLoading) return;
     const section = segments[0];
     if (!token && section === '(tabs)') router.replace('/auth');
-    if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)');
+    if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/dashboard');
   }, [isLoading, segments, token]);
 
   const navigationTheme = {
@@ -56,6 +60,11 @@ function AppLayout() {
   };
 
   const screenOptions = {
+    animation: 'slide_from_right' as const,
+    animationDuration: 260,
+    gestureEnabled: true,
+    fullScreenGestureEnabled: true,
+    animationMatchesGesture: true,
     headerStyle: { backgroundColor: Brand.slate50 },
     headerTintColor: Brand.navyDark,
     headerShadowVisible: false,
@@ -212,19 +221,43 @@ function AppLayout() {
     inputRange: [0, 0.88, 1],
     outputRange: [1, 1, 0],
   });
+  const showAssistantButton = Boolean(token) && !isLoading && pathname !== '/chat';
 
   return (
     <ThemeProvider value={navigationTheme}>
       <Stack screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="auth"
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
+          }}
+        />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="chat" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
-        <Stack.Screen name="audit" options={{ presentation: 'modal', title: 'Nouvel audit' }} />
+        <Stack.Screen
+          name="audit"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Nouvel audit' }}
+        />
         <Stack.Screen name="history" options={{ title: 'Historique' }} />
         <Stack.Screen name="reports" options={{ title: 'Rapports' }} />
         <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
       </Stack>
+
+      {showAssistantButton ? (
+        <Pressable
+          accessibilityLabel="Ouvrir l'assistant RobIA"
+          accessibilityRole="button"
+          onPress={() => router.push('/chat')}
+          style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
+          <View pointerEvents="none" style={styles.assistantRing} />
+          <MaterialIcons name="android" size={28} color={Brand.white} />
+          <Text style={styles.assistantBadge}>IA</Text>
+        </Pressable>
+      ) : null}
 
       {showLaunchAnimation ? (
         <Animated.View
@@ -263,6 +296,44 @@ function AppLayout() {
 }
 
 const styles = StyleSheet.create({
+  assistantButton: {
+    position: 'absolute',
+    right: 18,
+    zIndex: 900,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Brand.navyDark,
+    borderWidth: 3,
+    borderColor: Brand.teal,
+    shadowColor: Brand.navyDark,
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 16,
+  },
+  assistantRing: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  assistantBadge: {
+    position: 'absolute',
+    right: 5,
+    bottom: 3,
+    color: Brand.navyDark,
+    fontSize: 8,
+    fontWeight: '900',
+    backgroundColor: Brand.teal,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
   launchOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
