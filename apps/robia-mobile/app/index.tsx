@@ -56,6 +56,13 @@ const SLIDES = [
   },
 ] as const;
 
+const VISUAL_META = {
+  analyse: { metric: '+24%', label: 'opportunités détectées', pill: 'Analyse locale' },
+  creation: { metric: '3×', label: 'plus rapide à publier', pill: 'Création assistée' },
+  execution: { metric: '100%', label: 'sous votre contrôle', pill: 'Validation humaine' },
+  pilotage: { metric: '4/4', label: 'actions centralisées', pill: 'Pilotage simplifié' },
+} as const;
+
 export default function OnboardingScreen() {
   const { width, height } = useWindowDimensions();
   const listRef = useRef<FlatList<(typeof SLIDES)[number]>>(null);
@@ -63,7 +70,7 @@ export default function OnboardingScreen() {
   const isLastSlide = activeIndex === SLIDES.length - 1;
   const heroHeight = Math.min(370, Math.max(285, height * 0.4));
 
-  const finish = () => router.replace('/(tabs)');
+  const finish = () => router.replace('/auth');
 
   const goNext = () => {
     if (isLastSlide) return finish();
@@ -84,6 +91,12 @@ export default function OnboardingScreen() {
           style={styles.brandLogo}
           accessibilityLabel="Logo RobIA Copilot"
         />
+        <View style={styles.headerStep}>
+          <Text style={styles.headerStepLabel}>PARCOURS</Text>
+          <Text style={styles.headerStepValue}>
+            {String(activeIndex + 1).padStart(2, '0')} / 04
+          </Text>
+        </View>
       </View>
       <FlatList
         ref={listRef}
@@ -97,7 +110,12 @@ export default function OnboardingScreen() {
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
             <View style={[styles.hero, { height: heroHeight }]}>
+              {/* <Text pointerEvents="none" style={styles.heroWord}>ROBIA</Text> */}
               <View style={styles.heroBlob} />
+              {/* <View style={styles.insightCard}>
+                <Text style={styles.insightLabel}>{VISUAL_META[item.id].label}</Text>
+                <Text style={styles.insightMetric}>{VISUAL_META[item.id].metric}</Text>
+              </View> */}
               <View style={[styles.photoCard, styles.photoCardLeft]}>
                 <Image
                   source={item.secondaryImage}
@@ -117,6 +135,12 @@ export default function OnboardingScreen() {
                   style={styles.photo}
                   accessibilityLabel={`Illustration : ${item.title}`}
                 />
+              </View>
+              <View style={styles.featurePill}>
+                <View style={styles.featureIcon}>
+                  <MaterialIcons name="auto-awesome" size={18} color={Brand.white} />
+                </View>
+                <Text style={styles.featureLabel}>{VISUAL_META[item.id].pill}</Text>
               </View>
             </View>
 
@@ -187,6 +211,22 @@ const styles = StyleSheet.create({
     width: 58,
     height: 38,
   },
+  headerStep: { marginLeft: 'auto', alignItems: 'flex-end' },
+  headerStepLabel: {
+    color: Brand.tealDark,
+    fontFamily: Fonts.sans,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  headerStepValue: {
+    color: Brand.navyDark,
+    fontFamily: Fonts.rounded,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
   brandDivider: {
     width: 1,
     height: 22,
@@ -208,6 +248,17 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
   },
+  heroWord: {
+    position: 'absolute',
+    left: -2,
+    top: -18,
+    color: Brand.slate200,
+    fontFamily: Fonts.rounded,
+    fontSize: 66,
+    lineHeight: 76,
+    fontWeight: '900',
+    letterSpacing: -4,
+  },
   heroBlob: {
     position: 'absolute',
     width: '72%',
@@ -217,6 +268,39 @@ const styles = StyleSheet.create({
     borderRadius: 48,
     backgroundColor: Brand.tealLight,
     transform: [{ rotate: '5deg' }],
+  },
+  insightCard: {
+    position: 'absolute',
+    zIndex: 6,
+    right: 2,
+    top: 5,
+    width: 142,
+    paddingHorizontal: 17,
+    paddingVertical: 14,
+    borderRadius: 22,
+    backgroundColor: Brand.navyDark,
+    shadowColor: Brand.navyDark,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    transform: [{ rotate: '5deg' }],
+  },
+  insightLabel: {
+    color: Brand.white,
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '600',
+    opacity: 0.78,
+  },
+  insightMetric: {
+    color: Brand.tealLight,
+    fontFamily: Fonts.rounded,
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '900',
+    marginTop: 2,
   },
   photoCard: {
     position: 'absolute',
@@ -248,6 +332,40 @@ const styles = StyleSheet.create({
   photo: {
     width: '100%',
     height: '100%',
+  },
+  featurePill: {
+    position: 'absolute',
+    zIndex: 7,
+    left: 2,
+    bottom: 12,
+    minHeight: 52,
+    paddingLeft: 6,
+    paddingRight: 20,
+    borderRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Brand.white,
+    shadowColor: Brand.navyDark,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 9,
+    transform: [{ rotate: '-3deg' }],
+  },
+  featureIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Brand.teal,
+  },
+  featureLabel: {
+    color: Brand.navyDark,
+    fontFamily: Fonts.rounded,
+    fontSize: 14,
+    fontWeight: '800',
   },
   copy: {
     alignItems: 'center',

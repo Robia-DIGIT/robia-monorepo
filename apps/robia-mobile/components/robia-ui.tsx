@@ -6,9 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  View,
   type StyleProp,
   type ViewStyle,
-  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,7 +24,7 @@ export function RobiaScreen({
   const content = <View style={[styles.screenContent, contentStyle]}>{children}</View>;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       {scroll ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
