@@ -56,6 +56,11 @@ function AppLayout() {
   };
 
   const screenOptions = {
+    animation: 'slide_from_right' as const,
+    animationDuration: 260,
+    gestureEnabled: true,
+    fullScreenGestureEnabled: true,
+    animationMatchesGesture: true,
     headerStyle: { backgroundColor: Brand.slate50 },
     headerTintColor: Brand.navyDark,
     headerShadowVisible: false,
@@ -217,10 +222,20 @@ function AppLayout() {
     <ThemeProvider value={navigationTheme}>
       <Stack screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="auth"
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
+          }}
+        />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
-        <Stack.Screen name="audit" options={{ presentation: 'modal', title: 'Nouvel audit' }} />
+        <Stack.Screen
+          name="audit"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Nouvel audit' }}
+        />
         <Stack.Screen name="history" options={{ title: 'Historique' }} />
         <Stack.Screen name="reports" options={{ title: 'Rapports' }} />
         <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
