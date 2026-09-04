@@ -1,6 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
   createMaterialTopTabNavigator,
   MaterialTopTabNavigationEventMap,
@@ -8,9 +9,9 @@ import {
 } from '@react-navigation/material-top-tabs';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { withLayoutContext } from 'expo-router';
+import { router, usePathname, withLayoutContext } from 'expo-router';
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -114,9 +115,12 @@ export default function TabLayout() {
   const palette = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const bottomSpacing = Math.max(insets.bottom, 10);
+  const pathname = usePathname();
+  const assistantActive = pathname.endsWith('/chat');
 
   return (
-    <SwipeTabs
+    <View style={styles.root}>
+      <SwipeTabs
       initialRouteName="dashboard"
       tabBarPosition="bottom"
       screenOptions={{
@@ -167,6 +171,7 @@ export default function TabLayout() {
           title: 'Assistant',
           tabBarLabel: createTabLabel('Assistant'),
           tabBarIcon: createTabIcon('bubble.left.and.bubble.right.fill'),
+          tabBarItemStyle: styles.hiddenTab,
         }}
       />
       <SwipeTabs.Screen
@@ -196,11 +201,83 @@ export default function TabLayout() {
           tabBarIcon: createTabIcon('person.crop.circle'),
         }}
       />
-    </SwipeTabs>
+      </SwipeTabs>
+      <Pressable
+        accessibilityLabel="Ouvrir l’assistant RobIA"
+        accessibilityRole="button"
+        accessibilityState={{ selected: assistantActive }}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.navigate('/(tabs)/chat');
+        }}
+        style={({ pressed }) => [
+          styles.assistantButton,
+          { bottom: bottomSpacing + 84 },
+          assistantActive && styles.assistantButtonActive,
+          pressed && styles.assistantButtonPressed,
+        ]}>
+        <View pointerEvents="none" style={styles.assistantGlow} />
+        <View pointerEvents="none" style={styles.assistantAccent} />
+        <MaterialIcons name="auto-awesome" size={25} color={Brand.white} />
+        <View style={styles.onlineDot} />
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
+  hiddenTab: { display: 'none' },
+  assistantButton: {
+    position: 'absolute',
+    right: 19,
+    zIndex: 30,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: Brand.navyDark,
+    borderWidth: 3,
+    borderColor: Brand.white,
+    shadowColor: Brand.navyDark,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 15,
+    elevation: 12,
+  },
+  assistantButtonActive: { borderColor: Brand.tealLight, transform: [{ scale: 1.04 }] },
+  assistantButtonPressed: { opacity: 0.88, transform: [{ scale: 0.94 }] },
+  assistantGlow: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    right: -25,
+    top: -24,
+    backgroundColor: Brand.teal,
+  },
+  assistantAccent: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    left: -7,
+    bottom: -6,
+    backgroundColor: Brand.electric,
+  },
+  onlineDot: {
+    position: 'absolute',
+    right: 7,
+    top: 7,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: Brand.orange,
+    borderWidth: 2,
+    borderColor: Brand.white,
+  },
   tabBar: {
     height: 72,
     marginHorizontal: 16,
