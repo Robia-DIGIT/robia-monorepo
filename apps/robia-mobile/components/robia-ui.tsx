@@ -25,6 +25,8 @@ export function RobiaScreen({
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <View pointerEvents="none" style={styles.ambientTop} />
+      <View pointerEvents="none" style={styles.ambientSide} />
       {scroll ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -58,7 +60,7 @@ export function RobiaHeader({
           style={styles.logo}
           accessibilityLabel="Logo RobIA Copilot"
         />
-        {action}
+        <View style={styles.headerActions}>{action}</View>
       </View>
       {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       <Text style={styles.title}>{title}</Text>
@@ -185,24 +187,33 @@ export const robiaStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: Brand.slate50 },
+  safeArea: { flex: 1, backgroundColor: '#F4F7F8', overflow: 'hidden' },
+  ambientTop: {
+    position: 'absolute', top: -110, right: -90, width: 260, height: 260,
+    borderRadius: 130, backgroundColor: 'rgba(20,184,166,0.10)',
+  },
+  ambientSide: {
+    position: 'absolute', top: 300, left: -120, width: 220, height: 220,
+    borderRadius: 110, backgroundColor: 'rgba(29,78,216,0.045)',
+  },
   scrollContent: { flexGrow: 1 },
   screenContent: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 96,
-    gap: 20,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 112,
+    gap: 18,
   },
-  header: { gap: 6, marginBottom: 2 },
+  header: { gap: 5, marginBottom: 4 },
   brandRow: {
     minHeight: 42,
-    marginBottom: 12,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  logo: { width: 58, height: 38 },
+  logo: { width: 72, height: 40 },
+  headerActions: { minWidth: 42, minHeight: 42, alignItems: 'flex-end', justifyContent: 'center' },
   eyebrow: {
     color: Brand.tealDark,
     fontFamily: Fonts?.sans,
@@ -213,8 +224,8 @@ const styles = StyleSheet.create({
   title: {
     color: Brand.navyDark,
     fontFamily: Fonts?.rounded,
-    fontSize: 30,
-    lineHeight: 35,
+    fontSize: 29,
+    lineHeight: 34,
     fontWeight: '900',
     letterSpacing: -0.7,
   },
@@ -226,16 +237,16 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   card: {
-    padding: 18,
-    borderRadius: 24,
-    backgroundColor: Brand.white,
+    padding: 17,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
     borderColor: 'rgba(226,232,240,0.8)',
     shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.055,
+    shadowRadius: 18,
+    elevation: 2,
   },
   iconBadge: {
     width: 42,
