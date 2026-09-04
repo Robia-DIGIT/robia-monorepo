@@ -187,14 +187,14 @@ export const robiaStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F4F7F8', overflow: 'hidden' },
+  safeArea: { flex: 1, backgroundColor: '#FBFCFC', overflow: 'hidden' },
   ambientTop: {
     position: 'absolute', top: -110, right: -90, width: 260, height: 260,
-    borderRadius: 130, backgroundColor: 'rgba(20,184,166,0.10)',
+    borderRadius: 130, backgroundColor: 'rgba(20,184,166,0.055)',
   },
   ambientSide: {
     position: 'absolute', top: 300, left: -120, width: 220, height: 220,
-    borderRadius: 110, backgroundColor: 'rgba(29,78,216,0.045)',
+    borderRadius: 110, backgroundColor: 'rgba(29,78,216,0.025)',
   },
   scrollContent: { flexGrow: 1 },
   screenContent: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 112,
-    gap: 18,
+    gap: 20,
   },
   header: { gap: 5, marginBottom: 4 },
   brandRow: {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.3,
   },
   title: {
-    color: Brand.navyDark,
+    color: '#101828',
     fontFamily: Fonts?.rounded,
     fontSize: 29,
     lineHeight: 34,
@@ -239,14 +239,14 @@ const styles = StyleSheet.create({
   card: {
     padding: 17,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: Brand.white,
     borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.8)',
+    borderColor: '#EDF1F3',
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.055,
-    shadowRadius: 18,
-    elevation: 2,
+    shadowOpacity: 0.025,
+    shadowRadius: 12,
+    elevation: 1,
   },
   iconBadge: {
     width: 42,

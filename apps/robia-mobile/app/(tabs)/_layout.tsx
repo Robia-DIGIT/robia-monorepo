@@ -122,7 +122,7 @@ export default function TabLayout() {
         animationEnabled: true,
         swipeEnabled: true,
         lazy: false,
-        tabBarActiveTintColor: Brand.white,
+        tabBarActiveTintColor: Brand.tealDark,
         tabBarInactiveTintColor: Brand.slate400,
         tabBarShowIcon: true,
         tabBarShowLabel: true,
@@ -133,8 +133,8 @@ export default function TabLayout() {
           styles.tabBar,
           {
             marginBottom: bottomSpacing,
-            backgroundColor: Brand.navyDark,
-            borderColor: 'rgba(255,255,255,0.10)',
+            backgroundColor: Brand.white,
+            borderColor: '#EDF1F3',
           },
         ],
         tabBarItemStyle: styles.tabBarItem,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.24,
+    shadowOpacity: 0.10,
     shadowRadius: 20,
     elevation: 14,
   },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   iconContainerActive: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Brand.teal,
+    backgroundColor: Brand.tealLight,
     borderRadius: 40,
   },
   activeDot: {
@@ -238,6 +238,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Brand.white,
+    backgroundColor: Brand.teal,
   },
 });
