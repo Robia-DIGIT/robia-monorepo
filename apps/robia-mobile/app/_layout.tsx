@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SessionProvider, useSession } from '@/src/auth/session';
+import { RobiaDataProvider } from '@/src/api/data';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // The native splash may already be hidden during fast refresh.
@@ -22,7 +23,7 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export const unstable_settings = { anchor: '(tabs)', initialRouteName: 'index' };
 
 export default function RootLayout() {
-  return <SessionProvider><AppLayout /></SessionProvider>;
+  return <SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider>;
 }
 
 function AppLayout() {

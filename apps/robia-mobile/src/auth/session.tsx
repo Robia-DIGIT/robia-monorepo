@@ -6,7 +6,11 @@ import type { AuthResponse, Organization, User } from '@/src/api/types';
 const TOKEN_KEY = 'robia.access-token';
 async function readToken() { return Platform.OS === 'web' ? globalThis.localStorage?.getItem(TOKEN_KEY) ?? null : SecureStore.getItemAsync(TOKEN_KEY); }
 async function writeToken(token: string | null) {
-  if (Platform.OS === 'web') { token ? globalThis.localStorage?.setItem(TOKEN_KEY, token) : globalThis.localStorage?.removeItem(TOKEN_KEY); return; }
+  if (Platform.OS === 'web') {
+    if (token) globalThis.localStorage?.setItem(TOKEN_KEY, token);
+    else globalThis.localStorage?.removeItem(TOKEN_KEY);
+    return;
+  }
   if (token) await SecureStore.setItemAsync(TOKEN_KEY, token); else await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 type RequestOptions = Omit<RequestInit, 'body'> & { body?: unknown };
