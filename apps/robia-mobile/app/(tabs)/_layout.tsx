@@ -186,7 +186,7 @@ export default function TabLayout() {
           tabBarIcon: createTabIcon('person.crop.circle'),
         }}
       />
-      <SwipeTabs.Screen name="chat" options={{ href: null }} />
+      {/* <SwipeTabs.Screen name="chat" options={{ href: null }} /> */}
     </SwipeTabs>
   );
 }
