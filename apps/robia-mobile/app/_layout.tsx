@@ -254,7 +254,7 @@ function AppLayout() {
           onPress={() => router.push('/chat')}
           style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
           <View pointerEvents="none" style={styles.assistantRing} />
-          <MaterialIcons name="robo" size={28} color={Brand.white} />
+          <MaterialIcons name="android" size={28} color={Brand.white} />
           <Text style={styles.assistantBadge}>IA</Text>
         </Pressable>
       ) : null}
