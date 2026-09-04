@@ -122,21 +122,19 @@ export default function TabLayout() {
         animationEnabled: true,
         swipeEnabled: true,
         lazy: false,
-        tabBarActiveTintColor: Brand.tealDark,
-        tabBarInactiveTintColor: palette.tabIconDefault,
+        tabBarActiveTintColor: Brand.white,
+        tabBarInactiveTintColor: Brand.slate400,
         tabBarShowIcon: true,
         tabBarShowLabel: true,
-        tabBarPressColor: Brand.tealLight,
+        tabBarPressColor: 'rgba(20,184,166,0.24)',
         tabBarPressOpacity: 0.72,
         sceneStyle: { backgroundColor: palette.background },
         tabBarStyle: [
           styles.tabBar,
           {
             marginBottom: bottomSpacing,
-            backgroundColor:
-              colorScheme === 'dark' ? palette.surface : 'rgba(255, 255, 255, 0.97)',
-            borderColor:
-              colorScheme === 'dark' ? palette.border : 'rgba(226, 232, 240, 0.8)',
+            backgroundColor: Brand.navyDark,
+            borderColor: 'rgba(255,255,255,0.10)',
           },
         ],
         tabBarItemStyle: styles.tabBarItem,
@@ -194,8 +192,8 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 74,
-    marginHorizontal: 18,
+    height: 72,
+    marginHorizontal: 16,
     marginTop: 8,
     paddingTop: 5,
     paddingBottom: 5,
@@ -203,7 +201,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.24,
     shadowRadius: 20,
     elevation: 14,
   },
@@ -231,7 +229,7 @@ const styles = StyleSheet.create({
   },
   iconContainerActive: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Brand.tealLight,
+    backgroundColor: Brand.teal,
     borderRadius: 40,
   },
   activeDot: {
@@ -240,6 +238,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Brand.tealDark,
+    backgroundColor: Brand.white,
   },
 });
