@@ -180,7 +180,7 @@ function AuthPage({
       <View style={s.heading}>
         <View style={s.headingIcon}>
           <MaterialIcons
-            name={registration ? "auto-awesome" : "waving-hand"}
+            name={registration ? "waving-hand" : "waving-hand"}
             size={18}
             color={Brand.tealDark}
           />

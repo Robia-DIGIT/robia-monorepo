@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { router, Stack, usePathname, useSegments } from 'expo-router';
+import { router, Stack, usePathname, useRootNavigationState, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -32,6 +32,7 @@ function AppLayout() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
+  const rootNavigationState = useRootNavigationState();
   const pathname = usePathname();
   const { token, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
@@ -40,11 +41,11 @@ function AppLayout() {
   const launchProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !rootNavigationState?.key) return;
     const section = segments[0];
     if (!token && section === '(tabs)') router.replace('/auth');
     if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/dashboard');
-  }, [isLoading, segments, token]);
+  }, [isLoading, rootNavigationState?.key, segments, token]);
 
   const navigationTheme = {
     ...baseTheme,
