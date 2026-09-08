@@ -57,6 +57,40 @@ export interface Website {
   createdAt?: string;
 }
 
+export interface SearchConsoleStatus {
+  connected: boolean;
+  googleAccountEmail: string | null;
+  selectedSiteUrl: string | null;
+  permissionLevel: string | null;
+  connectedAt: string | null;
+  lastSyncedAt: string | null;
+}
+
+export interface SearchConsoleSite {
+  siteUrl: string;
+  permissionLevel: string;
+  selected: boolean;
+}
+
+export interface SearchConsoleMetric {
+  key: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+export interface SearchConsolePerformance {
+  siteUrl: string;
+  startDate: string;
+  endDate: string;
+  summary: Omit<SearchConsoleMetric, "key">;
+  daily: SearchConsoleMetric[];
+  topQueries: SearchConsoleMetric[];
+  topPages: SearchConsoleMetric[];
+  lastSyncedAt: string;
+}
+
 export interface AuditSubscores {
   local: number;
   content: number;
@@ -491,6 +525,49 @@ export async function createOrganization(payload: Partial<Organization>) {
 
 export async function getCurrentOrganization() {
   return request<Organization>("/organizations/current");
+}
+
+export async function getSearchConsoleStatus() {
+  return request<SearchConsoleStatus>(
+    "/integrations/google/search-console/status",
+  );
+}
+
+export async function getSearchConsoleAuthorizationUrl() {
+  return request<{ url: string }>(
+    "/integrations/google/search-console/authorize",
+    { credentials: "include" },
+  );
+}
+
+export async function listSearchConsoleSites() {
+  return request<SearchConsoleSite[]>(
+    "/integrations/google/search-console/sites",
+  );
+}
+
+export async function selectSearchConsoleSite(siteUrl: string) {
+  return request<{ selectedSiteUrl: string; permissionLevel: string }>(
+    "/integrations/google/search-console/site",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ siteUrl }),
+    },
+  );
+}
+
+export async function getSearchConsolePerformance() {
+  return request<SearchConsolePerformance>(
+    "/integrations/google/search-console/performance",
+  );
+}
+
+export async function disconnectSearchConsole() {
+  return request<{ disconnected: boolean }>(
+    "/integrations/google/search-console",
+    { method: "DELETE" },
+  );
 }
 
 export async function updateCurrentOrganization(
