@@ -10,6 +10,7 @@ import { FAQ } from "../components/FAQ";
 import { FinalCTA } from "../components/FinalCTA";
 import SearchSection from "../components/SearchSection";
 import { Seo } from "../components/Seo";
+import { ContactForm } from "../components/ContactForm";
 
 export default function Home() {
   return (
@@ -29,6 +30,7 @@ export default function Home() {
       <Testimonials />
       <Pricing />
       <FAQ />
+      <ContactForm />
       <FinalCTA />
     </>
   );
