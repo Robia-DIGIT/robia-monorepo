@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   Building2,
+  BarChart3,
   FileText,
   HelpCircle,
   Layers,
@@ -44,6 +45,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { to: "/rapports", label: "Rapports", icon: FileText },
   { to: "/ia", label: "Copilot", icon: MessageSquare, badge: "IA" },
   { to: "/business-profile", label: "Business Profile", icon: Building2 },
+  { to: "/google-data", label: "Données Google", icon: BarChart3 },
 ];
 
 const FOCUS_RING =
