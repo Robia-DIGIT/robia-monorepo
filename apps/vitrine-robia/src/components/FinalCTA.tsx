@@ -1,4 +1,53 @@
 import { ArrowRight, Radar } from "lucide-react";
 import { motion } from "motion/react";
 
-export function FinalCTA(){return <section className="overflow-hidden bg-[#F3F1EA] px-5 py-28 text-center text-[#15313D] sm:px-8 lg:px-12 lg:py-40"><motion.div initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.4}} className="mx-auto max-w-5xl"><motion.div animate={{rotate:360}} transition={{duration:18,repeat:Infinity,ease:'linear'}} className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-[#14B8A6] text-[#087F75]"><Radar size={21}/></motion.div><p className="mt-8 text-[11px] font-bold uppercase tracking-[.2em] text-[#087F75]">Votre zone · Votre signal</p><h2 className="mt-6 font-[Roboto] text-[clamp(3rem,7vw,6rem)] font-black leading-[.96] tracking-[-.06em]">Être présent ne suffit plus.<br/><span className="text-[#087F75]">Devenez visible.</span></h2><p className="mx-auto mt-7 max-w-xl text-base leading-7 text-[#61747A]">Connectez votre établissement. ROBIA observe les signaux importants et construit votre prochaine action.</p><a href="#tarifs" className="group mt-10 inline-flex items-center gap-3 rounded-sm bg-[#F97316] px-6 py-4 text-sm font-bold text-white transition hover:-translate-y-1 hover:bg-[#E5650C] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#14B8A6]/40">Commencer avec ROBIA <ArrowRight size={17} className="transition group-hover:translate-x-1"/></a></motion.div></section>}
+export function FinalCTA() {
+  return (
+    <section className="overflow-hidden bg-[#F3F1EA] px-5 py-28 text-center text-[#15313D] sm:px-8 lg:px-12 lg:py-40">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.4 }}
+        className="mx-auto max-w-5xl"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+          className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-[#14B8A6] text-[#087F75]"
+        >
+          <Radar size={21} />
+        </motion.div>
+        <p className="mt-8 text-[11px] font-bold uppercase tracking-[.2em] text-[#087F75]">
+          Votre zone · Votre signal
+        </p>
+        <h2 className="mt-6 font-[Roboto] text-[clamp(3rem,7vw,6rem)] font-black leading-[.96] tracking-[-.06em]">
+          Être présent ne suffit plus.
+          <br />
+          <span className="text-[#087F75]">Devenez visible.</span>
+        </h2>
+        <p className="mx-auto mt-7 max-w-xl text-base leading-7 text-[#61747A]">
+          Connectez votre établissement. ROBIA observe les signaux importants
+          et construit votre prochaine action.
+        </p>
+        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <a
+            href="https://app.robiacopilot.site/register"
+            className="group inline-flex items-center gap-3 rounded-sm bg-[#F97316] px-6 py-4 text-sm font-bold text-white transition hover:-translate-y-1 hover:bg-[#E5650C] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#14B8A6]/40"
+          >
+            Commencer avec ROBIA
+            <ArrowRight
+              size={17}
+              className="transition group-hover:translate-x-1"
+            />
+          </a>
+          <a
+            href="#contact"
+            className="border-b border-[#15313D]/40 pb-1 text-sm font-semibold"
+          >
+            Demander une démonstration
+          </a>
+        </div>
+      </motion.div>
+    </section>
+  );
+}

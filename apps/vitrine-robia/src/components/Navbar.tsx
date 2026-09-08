@@ -22,6 +22,7 @@ const NAV_LINKS = [
   { label: "Tarifs", href: "/#tarifs" },
   { label: "Cas d'usage", href: "/#cas" },
   { label: "Antananarivo", href: "/seo-local-antananarivo" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export function Navbar() {

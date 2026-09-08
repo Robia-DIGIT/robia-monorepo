@@ -21,6 +21,8 @@ services:
   vitrine:
     build:
       context: ./apps/vitrine-robia
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.robiacopilot.site}
     restart: unless-stopped
     networks:
       supabase:
