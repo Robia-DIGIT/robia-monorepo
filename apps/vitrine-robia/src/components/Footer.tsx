@@ -10,6 +10,10 @@ const columns = [
       { label: "Présentation", href: "/#produit" },
       { label: "Tarifs", href: "/#tarifs" },
       { label: "SEO à Antananarivo", href: "/seo-local-antananarivo" },
+      {
+        label: "Google Business Madagascar",
+        href: "/optimisation-google-business-profile-madagascar",
+      },
     ],
   },
   {
