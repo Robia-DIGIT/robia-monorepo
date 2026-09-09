@@ -240,6 +240,8 @@ const styles = StyleSheet.create({
     color: Brand.navyDark,
     fontFamily: Fonts.rounded,
     fontSize: 21,
+    justifyContent: "center",
+    textAlign: "center",
     fontWeight: "900",
     marginTop: 10,
   },
