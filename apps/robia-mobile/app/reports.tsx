@@ -6,8 +6,8 @@ import { Brand, Fonts } from '@/constants/theme';
 
 export default function ReportsScreen() {
   return (
-    <RobiaScreen>
-      <RobiaHeader back eyebrow="PERFORMANCE" title="Rapports mensuels" subtitle="Une lecture simple de vos progrès et des prochaines actions recommandées." />
+    <RobiaScreen fixedHeader>
+      <RobiaHeader compact back eyebrow="PERFORMANCE" title="Rapports mensuels" subtitle="Une lecture simple de vos progrès et des prochaines actions recommandées." />
       <RobiaCard style={styles.hero} accent={Brand.teal}>
         <View style={styles.heroTop}><View><Text style={styles.month}>Août 2026</Text><Text style={robiaStyles.body}>Visibilité locale</Text></View><StatusPill label="+15 %" tone="teal" /></View>
         <View style={styles.chart}>{[35,48,42,63,58,76,82].map((height,index)=><View key={index} style={[styles.bar,{height:`${height}%`},index===6&&styles.barActive]} />)}</View>

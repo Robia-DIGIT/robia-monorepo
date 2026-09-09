@@ -40,8 +40,8 @@ export default function OpportunitiesScreen() {
     }
   }
   return (
-    <RobiaScreen>
-      <RobiaHeader
+    <RobiaScreen fixedHeader>
+      <RobiaHeader compact
         eyebrow="RECOMMANDATIONS IA"
         title="Opportunités"
         subtitle="Les actions les plus utiles détectées à partir de votre dernier audit."

@@ -18,7 +18,7 @@ export default function HomeScreen() {
   const firstName = user?.name?.split(' ')[0] ?? organization?.name ?? 'Entreprise';
 
   return (
-    <RobiaScreen>
+    <RobiaScreen fixedHeader>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bonjour, {firstName}</Text>

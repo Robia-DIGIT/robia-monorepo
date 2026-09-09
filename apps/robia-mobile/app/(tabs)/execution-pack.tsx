@@ -24,8 +24,8 @@ export default function ExecutionPackScreen() {
   const { documents, opportunities, isLoading } = useRobiaData();
   const ready = documents.filter((item) => item.status !== "draft").length;
   return (
-    <RobiaScreen>
-      <RobiaHeader
+    <RobiaScreen fixedHeader>
+      <RobiaHeader compact
         eyebrow="CENTRE DE PRODUCTION"
         title="Documents"
         subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."

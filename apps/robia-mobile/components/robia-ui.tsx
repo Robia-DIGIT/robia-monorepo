@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { type PropsWithChildren, type ReactNode } from 'react';
+import { Children, type PropsWithChildren, type ReactNode } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -21,15 +21,32 @@ export function RobiaScreen({
   children,
   scroll = true,
   contentStyle,
-}: PropsWithChildren<{ scroll?: boolean; contentStyle?: StyleProp<ViewStyle> }>) {
-  const content = <View style={[styles.screenContent, contentStyle]}>{children}</View>;
+  fixedHeader = false,
+}: PropsWithChildren<{
+  scroll?: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
+  fixedHeader?: boolean;
+}>) {
+  const items = Children.toArray(children);
+  const header = fixedHeader ? items.shift() : null;
+  const content = (
+    <View style={[styles.screenContent, fixedHeader && styles.screenContentBelowHeader, contentStyle]}>
+      {items}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View pointerEvents="none" style={styles.ambientTop} />
       <View pointerEvents="none" style={styles.ambientSide} />
+      {header ? (
+        <View style={styles.fixedHeader}>
+          <View style={styles.fixedHeaderInner}>{header}</View>
+        </View>
+      ) : null}
       {scroll ? (
         <ScrollView
+          style={styles.scroll}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
           {content}
@@ -40,7 +57,6 @@ export function RobiaScreen({
     </SafeAreaView>
   );
 }
-
 export function RobiaHeader({
   title,
   subtitle,
@@ -74,12 +90,12 @@ export function RobiaHeader({
             accessibilityLabel="Logo RobIA Copilot"
           />
         )}
-        {back ? <Text style={styles.navigationTitle} numberOfLines={1}>{title}</Text> : null}
+        {back || compact ? <Text style={styles.navigationTitle} numberOfLines={1}>{title}</Text> : null}
         <View style={styles.headerActions}>{action}</View>
       </View>
-      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      {!back ? <Text style={styles.title}>{title}</Text> : null}
-      {subtitle ? <Text style={[styles.subtitle, back && styles.subtitleAfterNavigation]}>{subtitle}</Text> : null}
+      {!compact && eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+      {!back && !compact ? <Text style={styles.title}>{title}</Text> : null}
+      {!compact && subtitle ? <Text style={[styles.subtitle, back && styles.subtitleAfterNavigation]}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -210,7 +226,11 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 300, left: -120, width: 220, height: 220,
     borderRadius: 110, backgroundColor: 'rgba(29,78,216,0.025)',
   },
+  scroll: { flex: 1 },
   scrollContent: { flexGrow: 1 },
+  fixedHeader: { zIndex: 20, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 9, backgroundColor: 'rgba(251,252,252,0.98)', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E8ECEF', shadowColor: Brand.navyDark, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.035, shadowRadius: 8, elevation: 3 },
+  fixedHeaderInner: { width: '100%', maxWidth: 720, alignSelf: 'center' },
+  screenContentBelowHeader: { paddingTop: 14 },
   screenContent: {
     flex: 1,
     paddingHorizontal: 20,

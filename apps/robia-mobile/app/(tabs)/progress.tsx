@@ -57,8 +57,8 @@ export default function ProgressScreen() {
     }
   }
   return (
-    <RobiaScreen>
-      <RobiaHeader
+    <RobiaScreen fixedHeader>
+      <RobiaHeader compact
         eyebrow="PLAN D’ACTION"
         title="Suivi"
         subtitle="Pilotez les actions générées par RobIA et leurs échéances."

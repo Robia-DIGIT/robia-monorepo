@@ -44,7 +44,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <RobiaScreen>
+    <RobiaScreen fixedHeader>
       <View style={styles.topBar}>
         <View style={styles.topSpacer} />
         <Text style={styles.pageTitle}>Profil</Text>
