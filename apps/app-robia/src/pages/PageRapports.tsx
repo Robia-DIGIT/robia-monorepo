@@ -60,7 +60,7 @@ export default function PageRapports() {
       ])
       const opportunityIds = new Set(opportunityList.map((item) => String(item.id)))
       const [allActions, allValidations, documentGroups] = await Promise.all([
-        listActions(),
+        listActions(activeWebsiteId),
         listValidations(),
         Promise.all(opportunityList.map((item) => listDocuments(String(item.id)).catch(() => []))),
       ])

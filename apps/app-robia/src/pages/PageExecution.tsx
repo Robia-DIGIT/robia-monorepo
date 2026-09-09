@@ -4,6 +4,7 @@ import { AlertCircle, Download, MapPin, Play, Radar, RefreshCw, Settings2, Shiel
 import { Button, Card, Badge, ProgressBar, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
 import { useWebsiteContext } from '../components/WebsiteContext'
+import DocumentWorkflow from '../components/DocumentWorkflow'
 import {
   exportActionPlan,
   generateActions,
@@ -17,6 +18,7 @@ import {
   actionStatusLabel,
   actionProgressPct,
   type ActionItem,
+  type Opportunity,
   type ValidationLog,
 } from '../lib/api'
 
@@ -37,7 +39,7 @@ function ActionCard({ item, onUpdate }: { item: ActionItem; onUpdate: (id: strin
         <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-56 sm:justify-end">
           <Button variant="outline" size="sm" icon={<Settings2 size={12} />} onClick={() => void onUpdate(String(item.id), 'in_progress')}>Démarrer</Button>
           <Button variant="primary" size="sm" icon={<ShieldCheck size={12} />} onClick={() => void onUpdate(String(item.id), 'done')}>Terminer</Button>
-          <Button variant="ghost" size="sm" icon={<Play size={12} />} onClick={() => void onUpdate(String(item.id), 'planned')}>Planifier</Button>
+          <Button variant="ghost" size="sm" icon={<Play size={12} />} onClick={() => void onUpdate(String(item.id), 'todo')}>À faire</Button>
         </div>
       </div>
     </article>
@@ -48,8 +50,8 @@ export default function PageExecution() {
   const { activeWebsiteId, activeWebsite } = useWebsiteContext()
   const [actions, setActions] = useState<ActionItem[]>([])
   const [validations, setValidations] = useState<ValidationLog[]>([])
-  const [sourceOpportunityId, setSourceOpportunityId] = useState('')
   const [opportunityCount, setOpportunityCount] = useState(0)
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -74,14 +76,14 @@ export default function PageExecution() {
       const opportunities = audit?.id ? await listOpportunities(String(audit.id)) : []
       const opportunityIds = new Set(opportunities.map((item) => String(item.id)))
       const [allActions, allValidations, documentGroups] = await Promise.all([
-        listActions(),
+        listActions(activeWebsiteId),
         listValidations(),
         Promise.all(opportunities.map((item) => listDocuments(String(item.id)).catch(() => []))),
       ])
       const documentIds = new Set(documentGroups.flat().map((item) => String(item.id)))
 
       setOrganizationName(organization.name ?? 'Organisation')
-      setSourceOpportunityId(opportunities[0]?.id ? String(opportunities[0].id) : '')
+      setOpportunities(opportunities)
       setActions(allActions.filter((item) => opportunityIds.has(String(item.opportunityId))))
       setValidations(allValidations.filter((item) => documentIds.has(String(item.documentId))))
       setOpportunityCount(opportunities.length)
@@ -97,9 +99,9 @@ export default function PageExecution() {
   }, [loadData])
 
   const handleGenerate = async () => {
-    const firstOpportunityId = sourceOpportunityId || actions.find((item) => item.opportunityId)?.opportunityId
+    const opportunityIds = opportunities.map((item) => String(item.id)).filter(Boolean)
 
-    if (!firstOpportunityId) {
+    if (opportunityIds.length === 0) {
       setError('Aucune opportunité liée trouvée pour générer des actions.')
       return
     }
@@ -108,7 +110,8 @@ export default function PageExecution() {
     setError('')
 
     try {
-      setActions(await generateActions(firstOpportunityId))
+      const generatedGroups = await Promise.all(opportunityIds.map((id) => generateActions(id)))
+      setActions(generatedGroups.flat())
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : 'Impossible de générer les actions.')
     } finally {
@@ -177,6 +180,7 @@ export default function PageExecution() {
       <div className="space-y-3">
         {actions.length === 0 ? <EmptyState icon={<RefreshCw size={18} />} title="Aucune action disponible" description={`Générez un plan à partir des ${opportunityCount} opportunité(s) connues pour ce site.`} action={<Button variant="primary" onClick={handleGenerate}>Générer les actions</Button>} /> : actions.map((item) => <ActionCard key={String(item.id)} item={item} onUpdate={handleUpdateStatus} />)}
       </div>
+      <DocumentWorkflow opportunities={opportunities} onValidationCreated={() => void loadData()} />
     </div>
   )
 }
