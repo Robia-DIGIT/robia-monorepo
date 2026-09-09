@@ -16,6 +16,7 @@ import PageRapports from './pages/PageRapports'
 import PageIA from './pages/PageIA'
 import ProfilePage from './pages/ProfilePage'
 import BusinessProfilePage from './pages/BusinessProfilePage'
+import GoogleDataPage from './pages/GoogleDataPage'
 import CreateOrganizationPage from './pages/OrganisationPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
@@ -39,6 +40,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="ia" element={<PageIA />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="business-profile" element={<BusinessProfilePage />} />
+            <Route path="google-data" element={<GoogleDataPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
