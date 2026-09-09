@@ -60,7 +60,7 @@ export default function AuditScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <RobiaScreen>
-        <RobiaHeader
+        <RobiaHeader back
           eyebrow="ANALYSE & DÉTECTION"
           title="Audit digital"
           subtitle="RobIA analyse votre site et transforme les résultats en opportunités prioritaires."

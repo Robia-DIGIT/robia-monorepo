@@ -238,14 +238,14 @@ function AppLayout() {
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen
           name="audit"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Nouvel audit' }}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom', headerShown: false }}
         />
-        <Stack.Screen name="history" options={{ title: 'Historique' }} />
-        <Stack.Screen name="reports" options={{ title: 'Rapports' }} />
-        <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+        <Stack.Screen name="history" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
 
       {showAssistantButton ? (

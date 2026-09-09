@@ -1,5 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { type PropsWithChildren, type ReactNode } from 'react';
 import {
   Pressable,
@@ -24,7 +25,7 @@ export function RobiaScreen({
   const content = <View style={[styles.screenContent, contentStyle]}>{children}</View>;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View pointerEvents="none" style={styles.ambientTop} />
       <View pointerEvents="none" style={styles.ambientSide} />
       {scroll ? (
@@ -45,30 +46,43 @@ export function RobiaHeader({
   subtitle,
   eyebrow,
   action,
+  back = false,
 }: {
   title: string;
   subtitle?: string;
   eyebrow?: string;
   action?: ReactNode;
+  back?: boolean;
 }) {
   return (
     <View style={styles.header}>
       <View style={styles.brandRow}>
-        <Image
-          source={require('@/assets/images/logo-robia-copilot.svg')}
-          contentFit="contain"
-          style={styles.logo}
-          accessibilityLabel="Logo RobIA Copilot"
-        />
+        {back ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Revenir à l’écran précédent"
+            hitSlop={8}
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}>
+            <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
+          </Pressable>
+        ) : (
+          <Image
+            source={require('@/assets/images/logo-robia-copilot.svg')}
+            contentFit="contain"
+            style={styles.logo}
+            accessibilityLabel="Logo RobIA Copilot"
+          />
+        )}
+        {back ? <Text style={styles.navigationTitle} numberOfLines={1}>{title}</Text> : null}
         <View style={styles.headerActions}>{action}</View>
       </View>
       {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {!back ? <Text style={styles.title}>{title}</Text> : null}
+      {subtitle ? <Text style={[styles.subtitle, back && styles.subtitleAfterNavigation]}>{subtitle}</Text> : null}
     </View>
   );
 }
-
 export function RobiaCard({
   children,
   style,
@@ -213,6 +227,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   logo: { width: 72, height: 40 },
+  headerButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.white, borderWidth: 1, borderColor: '#E8ECEF' },
+  navigationTitle: { position: 'absolute', left: 58, right: 58, color: Brand.navyDark, fontFamily: Fonts?.rounded, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  subtitleAfterNavigation: { marginTop: 4 },
   headerActions: { minWidth: 42, minHeight: 42, alignItems: 'flex-end', justifyContent: 'center' },
   eyebrow: {
     color: Brand.tealDark,

@@ -10,7 +10,7 @@ export default function SettingsScreen() {
   const [monthlyReport, setMonthlyReport] = useState(true);
   return (
     <RobiaScreen>
-      <RobiaHeader eyebrow="PRÉFÉRENCES" title="Paramètres du compte" subtitle="Personnalisez votre expérience RobIA et vos communications." />
+      <RobiaHeader back eyebrow="PRÉFÉRENCES" title="Paramètres du compte" subtitle="Personnalisez votre expérience RobIA et vos communications." />
       <SectionTitle title="Notifications" />
       <RobiaCard style={styles.group}>
         <Setting icon="notifications-none" title="Alertes d’opportunités" description="Recevoir les nouvelles recommandations" value={notifications} onValueChange={setNotifications} />
