@@ -187,10 +187,10 @@ export const robiaStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FBFCFC', overflow: 'hidden' },
+  safeArea: { flex: 1, backgroundColor: '#F7FBFA', overflow: 'hidden' },
   ambientTop: {
     position: 'absolute', top: -110, right: -90, width: 260, height: 260,
-    borderRadius: 130, backgroundColor: 'rgba(20,184,166,0.055)',
+    borderRadius: 130, backgroundColor: 'rgba(20,184,166,0.08)',
   },
   ambientSide: {
     position: 'absolute', top: 300, left: -120, width: 220, height: 220,
@@ -200,11 +200,11 @@ const styles = StyleSheet.create({
   screenContent: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 12,
     paddingBottom: 112,
-    gap: 18,
+    gap: 20,
   },
-  header: { gap: 5, marginBottom: 4 },
+  header: { gap: 5, marginBottom: 2 },
   brandRow: {
     minHeight: 42,
     marginBottom: 10,
@@ -224,8 +224,8 @@ const styles = StyleSheet.create({
   title: {
     color: '#101828',
     fontFamily: Fonts?.rounded,
-    fontSize: 27,
-    lineHeight: 32,
+    fontSize: 30,
+    lineHeight: 35,
     fontWeight: '900',
     letterSpacing: -0.7,
   },
@@ -237,21 +237,21 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   card: {
-    padding: 16,
+    padding: 18,
     borderRadius: 20,
     backgroundColor: Brand.white,
     borderWidth: 1,
-    borderColor: '#E8ECEF',
+    borderColor: '#E8EFED',
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.025,
-    shadowRadius: 12,
-    elevation: 1,
+    shadowOpacity: 0.045,
+    shadowRadius: 14,
+    elevation: 2,
   },
   iconBadge: {
     width: 42,
     height: 42,
-    borderRadius: 15,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -280,14 +280,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   primaryButton: {
-    minHeight: 50,
-    borderRadius: 18,
-    paddingHorizontal: 20,
+    minHeight: 54,
+    borderRadius: 16,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
-    backgroundColor: Brand.teal,
+    backgroundColor: Brand.navyDark,
   },
   primaryButtonLabel: {
     color: Brand.white,
