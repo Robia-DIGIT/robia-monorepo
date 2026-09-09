@@ -52,6 +52,63 @@ const localStructuredData = {
   ],
 };
 
+const businessProfileFaqs = [
+  {
+    question: "Google Business Profile est-il gratuit ?",
+    answer:
+      "Oui. Google permet de créer et de gérer gratuitement une fiche d’établissement afin de présenter une activité éligible dans Google Search et Google Maps. ROBIA est un outil distinct qui aide à analyser cette présence et à prioriser les améliorations.",
+  },
+  {
+    question: "Google My Business et Google Business Profile sont-ils différents ?",
+    answer:
+      "Google Business Profile est le nom actuel du service autrefois appelé Google My Business. Les deux expressions désignent donc la fiche d’établissement visible sur Google.",
+  },
+  {
+    question: "Quels éléments influencent les résultats locaux sur Google ?",
+    answer:
+      "Google explique que les résultats locaux reposent principalement sur la pertinence, la distance et la notoriété. Des informations complètes et exactes aident Google à mieux comprendre l’activité, mais aucune optimisation ne garantit une position précise.",
+  },
+  {
+    question: "ROBIA modifie-t-il ma fiche automatiquement ?",
+    answer:
+      "Non. ROBIA agit comme un copilote : il détecte les opportunités et prépare des recommandations. Vous décidez des changements à appliquer et validez les contenus avant leur publication.",
+  },
+  {
+    question: "Puis-je suivre plusieurs établissements à Madagascar ?",
+    answer:
+      "Oui. ROBIA s’adresse aussi aux entreprises et réseaux qui souhaitent suivre plusieurs points de vente, avec une attention particulière portée à la cohérence des informations de chaque établissement.",
+  },
+];
+
+const businessProfileStructuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      "@id": `${origin}/optimisation-google-business-profile-madagascar#service`,
+      name: "Optimisation Google Business Profile à Madagascar",
+      serviceType: "Audit et optimisation de fiche Google Business Profile",
+      description:
+        "ROBIA Copilot analyse les signaux d’une fiche Google Business Profile et priorise les actions de visibilité locale à Madagascar.",
+      url: `${origin}/optimisation-google-business-profile-madagascar`,
+      provider: {
+        "@type": "Organization",
+        name: "ROBIA Digital",
+        url: `${origin}/`,
+      },
+      areaServed: { "@type": "Country", name: "Madagascar" },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: businessProfileFaqs.map(({ question, answer }) => ({
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: { "@type": "Answer", text: answer },
+      })),
+    },
+  ],
+};
+
 const routes = [
   {
     path: "/seo-local-antananarivo",
@@ -60,6 +117,14 @@ const routes = [
       "Analysez et améliorez la visibilité locale de votre entreprise à Antananarivo grâce aux recommandations prioritaires de ROBIA Copilot.",
     robots: "index, follow",
     structuredData: localStructuredData,
+  },
+  {
+    path: "/optimisation-google-business-profile-madagascar",
+    title: "Optimisation Google Business Profile à Madagascar | ROBIA",
+    description:
+      "Analysez votre fiche Google Business Profile à Madagascar et obtenez des actions prioritaires, claires et validées par votre équipe avec ROBIA.",
+    robots: "index, follow",
+    structuredData: businessProfileStructuredData,
   },
   {
     path: "/confidentialite",

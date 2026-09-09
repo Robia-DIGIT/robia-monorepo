@@ -214,6 +214,12 @@ export default function LocalSeoAntananarivo() {
           <Link to="/" className="mt-8 inline-block text-sm font-semibold text-[#087F75] hover:underline">
             ← Retour à l’accueil
           </Link>
+          <Link
+            to="/optimisation-google-business-profile-madagascar"
+            className="ml-6 mt-8 inline-block text-sm font-semibold text-[#087F75] hover:underline"
+          >
+            Optimiser votre fiche Google Business Profile →
+          </Link>
         </div>
       </section>
     </>

@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import RootLayout from "./layouts/RootLayout";
+import GoogleBusinessProfileMadagascar from "./pages/GoogleBusinessProfileMadagascar";
 import Home from "./pages/Home";
 import LocalSeoAntananarivo from "./pages/LocalSeoAntananarivo";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -17,6 +18,10 @@ export const router = createBrowserRouter([
       {
         path: "seo-local-antananarivo",
         element: <LocalSeoAntananarivo />,
+      },
+      {
+        path: "optimisation-google-business-profile-madagascar",
+        element: <GoogleBusinessProfileMadagascar />,
       },
       {
         path: "confidentialite",
