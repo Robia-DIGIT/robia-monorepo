@@ -90,6 +90,9 @@ export default function AuthScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={s.hero}>
+          <View pointerEvents="none" style={[s.orb, s.orbTeal]} />
+          <View pointerEvents="none" style={[s.orb, s.orbBlue]} />
+          <View pointerEvents="none" style={[s.orb, s.orbOrange]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
             <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
           </Pressable>
@@ -101,6 +104,7 @@ export default function AuthScreen() {
               accessibilityLabel="RobIA Copilot"
             />
           </View>
+          <Text style={s.heroEyebrow}>ROBIA COPILOT</Text>
           <Text style={s.heroTitle}>Votre croissance, guidée par l’IA</Text>
           <Text style={s.heroSubtitle}>Analysez. Décidez. Agissez.</Text>
         </View>
@@ -332,15 +336,19 @@ function Field({
   label: string;
   right?: ReactNode;
 }) {
+  const [focused, setFocused] = useState(false);
+
   return (
     <View style={s.fieldGroup}>
       <Text style={s.fieldLabel}>{label}</Text>
-      <View style={s.field}>
+      <View style={[s.field, focused && s.fieldFocused]}>
         <MaterialIcons name={icon} size={20} color={Brand.tealDark} />
         <TextInput
           placeholderTextColor={Brand.slate400}
           style={s.input}
           {...props}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
         {right}
       </View>
@@ -393,6 +401,13 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   logo: { width: 78, height: 50 },
+  heroEyebrow: {
+    marginBottom: 3,
+    color: Brand.tealDark,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.8,
+  },
   heroTitle: {
     color: Brand.navyDark,
     fontFamily: Fonts?.rounded,
@@ -484,6 +499,15 @@ const s = StyleSheet.create({
     backgroundColor: Brand.slate50,
     borderWidth: 1,
     borderColor: Brand.slate200,
+  },
+  fieldFocused: {
+    borderColor: Brand.teal,
+    backgroundColor: Brand.white,
+    shadowColor: Brand.teal,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 9,
+    elevation: 2,
   },
   input: {
     flex: 1,
