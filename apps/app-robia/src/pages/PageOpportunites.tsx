@@ -9,6 +9,7 @@ import {
   getCurrentOrganization,
   getLatestAudit,
   listOpportunities,
+  updateOpportunityStatus,
   oppImpact,
   oppEffort,
   oppIsDone,
@@ -175,12 +176,17 @@ export default function PageOpportunites() {
     }
   }
 
-  const toggleDone = (id: string) => {
-    setOpportunities((current) => current.map((opp) => {
-      if (opp.id !== id) return opp
-      const wasDone = oppIsDone(opp)
-      return { ...opp, status: wasDone ?   'open' : 'done' }
-    }))
+  const toggleDone = async (id: string) => {
+    const opportunity = opportunities.find((item) => item.id === id)
+    if (!opportunity) return
+
+    setError('')
+    try {
+      const updated = await updateOpportunityStatus(id, oppIsDone(opportunity) ? 'open' : 'done')
+      setOpportunities((current) => current.map((item) => (item.id === id ? updated : item)))
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Impossible d'enregistrer le statut de l'opportunité.")
+    }
   }
 
   if (loading) {
