@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { AlertCircle, CheckCircle2, Send } from "lucide-react";
+import { trackEvent } from "../lib/analytics";
 
 const initialForm = {
   name: "",
@@ -52,6 +53,7 @@ export function ContactForm() {
 
       setForm(initialForm);
       setSuccess(true);
+      trackEvent("generate_lead", { method: "contact_form" });
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
