@@ -30,6 +30,7 @@ export default function PrivacyPolicy() {
         title="Politique de confidentialité | ROBIA Copilot"
         description="Découvrez comment ROBIA Digital collecte, utilise et protège les données personnelles sur robiacopilot.site."
         canonicalPath="/confidentialite"
+        indexable={false}
       />
       <section className="bg-[#F3F1EA] px-5 pb-24 pt-32 text-[#15313D] sm:px-8 lg:px-12 lg:pt-40">
         <div className="mx-auto max-w-4xl">

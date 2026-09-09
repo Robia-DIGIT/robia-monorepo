@@ -1,48 +1,43 @@
 import { useEffect, useState } from "react";
 import { disableAnalytics, enableAnalytics } from "../lib/analytics";
-
-const CONSENT_KEY = "robia_analytics_consent";
-const OPEN_SETTINGS_EVENT = "robia:open-cookie-settings";
-
-type ConsentChoice = "granted" | "denied" | null;
-
-export function openCookieSettings(): void {
-  window.dispatchEvent(new Event(OPEN_SETTINGS_EVENT));
-}
+import {
+  ANALYTICS_CONSENT_KEY,
+  getStoredAnalyticsConsent,
+  OPEN_COOKIE_SETTINGS_EVENT,
+  type AnalyticsConsentChoice,
+} from "../lib/analyticsConsent";
 
 export function AnalyticsConsent() {
-  const [choice, setChoice] = useState<ConsentChoice>(null);
-  const [open, setOpen] = useState(false);
+  const [choice, setChoice] = useState<AnalyticsConsentChoice>(
+    getStoredAnalyticsConsent,
+  );
+  const [open, setOpen] = useState(
+    () => getStoredAnalyticsConsent() === null,
+  );
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(CONSENT_KEY) as ConsentChoice;
-    setChoice(stored);
-
-    if (stored === "granted") {
+    if (choice === "granted") {
       enableAnalytics();
-    } else if (stored === "denied") {
+    } else if (choice === "denied") {
       disableAnalytics();
-    } else {
-      setOpen(true);
     }
 
     const showSettings = () => setOpen(true);
-    window.addEventListener(OPEN_SETTINGS_EVENT, showSettings);
-    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, showSettings);
-  }, []);
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, showSettings);
+    return () =>
+      window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, showSettings);
+  }, [choice]);
 
   const accept = () => {
-    window.localStorage.setItem(CONSENT_KEY, "granted");
+    window.localStorage.setItem(ANALYTICS_CONSENT_KEY, "granted");
     setChoice("granted");
     setOpen(false);
-    enableAnalytics();
   };
 
   const refuse = () => {
-    window.localStorage.setItem(CONSENT_KEY, "denied");
+    window.localStorage.setItem(ANALYTICS_CONSENT_KEY, "denied");
     setChoice("denied");
     setOpen(false);
-    disableAnalytics();
   };
 
   if (!open) return null;

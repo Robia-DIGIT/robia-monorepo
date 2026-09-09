@@ -34,6 +34,7 @@ export default function TermsOfUse() {
         title="Conditions générales d’utilisation | ROBIA Copilot"
         description="Consultez les conditions d’utilisation de la plateforme et du site ROBIA Copilot."
         canonicalPath="/conditions-utilisation"
+        indexable={false}
       />
       <section className="bg-[#F3F1EA] px-5 pb-24 pt-32 text-[#15313D] sm:px-8 lg:px-12 lg:pt-40">
         <div className="mx-auto max-w-4xl">

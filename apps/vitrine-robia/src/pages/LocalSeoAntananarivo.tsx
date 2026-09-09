@@ -47,6 +47,45 @@ const faqs = [
   },
 ];
 
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      "@id": "https://robiacopilot.site/seo-local-antananarivo#service",
+      name: "Audit et optimisation SEO local à Antananarivo",
+      serviceType: "SEO local et visibilité numérique",
+      description:
+        "ROBIA Copilot analyse les signaux de visibilité locale et priorise les actions SEO des entreprises à Antananarivo.",
+      url: "https://robiacopilot.site/seo-local-antananarivo",
+      provider: {
+        "@type": "Organization",
+        name: "ROBIA Digital",
+        url: "https://robiacopilot.site/",
+      },
+      areaServed: {
+        "@type": "City",
+        name: "Antananarivo",
+        containedInPlace: {
+          "@type": "Country",
+          name: "Madagascar",
+        },
+      },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+
 export default function LocalSeoAntananarivo() {
   return (
     <>
@@ -54,6 +93,7 @@ export default function LocalSeoAntananarivo() {
         title="SEO local à Antananarivo | ROBIA Copilot"
         description="Analysez et améliorez la visibilité locale de votre entreprise à Antananarivo grâce aux recommandations prioritaires de ROBIA Copilot."
         canonicalPath="/seo-local-antananarivo"
+        structuredData={structuredData}
       />
 
       <section className="bg-[#F3F1EA] px-5 pb-20 pt-32 text-[#15313D] sm:px-8 lg:px-12 lg:pb-28 lg:pt-40">
