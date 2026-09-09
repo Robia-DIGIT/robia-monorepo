@@ -3,6 +3,7 @@ import RootLayout from "./layouts/RootLayout";
 import GoogleBusinessProfileMadagascar from "./pages/GoogleBusinessProfileMadagascar";
 import Home from "./pages/Home";
 import LocalSeoAntananarivo from "./pages/LocalSeoAntananarivo";
+import LocalSeoSoftwareMadagascar from "./pages/LocalSeoSoftwareMadagascar";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfUse from "./pages/TermsOfUse";
 
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
       {
         path: "optimisation-google-business-profile-madagascar",
         element: <GoogleBusinessProfileMadagascar />,
+      },
+      {
+        path: "logiciel-seo-local-madagascar",
+        element: <LocalSeoSoftwareMadagascar />,
       },
       {
         path: "confidentialite",

@@ -14,6 +14,7 @@ const columns = [
         label: "Google Business Madagascar",
         href: "/optimisation-google-business-profile-madagascar",
       },
+      { label: "Logiciel SEO local", href: "/logiciel-seo-local-madagascar" },
     ],
   },
   {

@@ -270,6 +270,12 @@ export default function GoogleBusinessProfileMadagascar() {
           <Link to="/" className="mt-8 inline-block text-sm font-semibold text-[#087F75] hover:underline">
             ← Retour à l’accueil
           </Link>
+          <Link
+            to="/logiciel-seo-local-madagascar"
+            className="ml-6 mt-8 inline-block text-sm font-semibold text-[#087F75] hover:underline"
+          >
+            Découvrir le logiciel SEO local →
+          </Link>
         </div>
       </section>
     </>
