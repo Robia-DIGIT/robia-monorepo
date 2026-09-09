@@ -1,7 +1,7 @@
 import { ArrowUp, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "../assets/logo_snom.png";
-import { openCookieSettings } from "./AnalyticsConsent";
+import { openCookieSettings } from "../lib/analyticsConsent";
 
 const columns = [
   {
