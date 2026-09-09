@@ -31,7 +31,7 @@ export interface AuthResponse {
 export interface UserProfile {
   id: string;
   email: string;
-  phone: string ;
+  phone: string;
   company: string | null;
   bio: string | null;
   provider: string;
@@ -64,6 +64,49 @@ export interface SearchConsoleStatus {
   permissionLevel: string | null;
   connectedAt: string | null;
   lastSyncedAt: string | null;
+  selectedAnalyticsPropertyId: string | null;
+  selectedAnalyticsPropertyName: string | null;
+  lastAnalyticsSyncedAt: string | null;
+  analyticsAuthorized: boolean;
+}
+
+export interface GoogleAnalyticsProperty {
+  propertyId: string;
+  displayName: string;
+  accountName: string;
+  propertyType: string;
+  selected: boolean;
+}
+
+export interface GoogleAnalyticsDailyMetric {
+  date: string;
+  activeUsers: number;
+  sessions: number;
+  views: number;
+}
+
+export interface GoogleAnalyticsPageMetric {
+  path: string;
+  views: number;
+  activeUsers: number;
+  sessions: number;
+}
+
+export interface GoogleAnalyticsPerformance {
+  propertyId: string;
+  propertyName: string | null;
+  startDate: string;
+  endDate: string;
+  summary: {
+    activeUsers: number;
+    totalUsers: number;
+    sessions: number;
+    views: number;
+    engagementRate: number;
+  };
+  daily: GoogleAnalyticsDailyMetric[];
+  topPages: GoogleAnalyticsPageMetric[];
+  lastSyncedAt: string;
 }
 
 export interface SearchConsoleSite {
@@ -121,11 +164,7 @@ export interface Audit {
 }
 
 export type OpportunityStatus =
-  | "open"
-  | "in_progress"
-  | "done"
-  | "closed"
-  | string;
+  "open" | "in_progress" | "done" | "closed" | string;
 
 export interface Opportunity {
   id: string;
@@ -143,10 +182,7 @@ export interface Opportunity {
 }
 
 export type DocumentType =
-  | "google_business_post"
-  | "review_reply"
-  | "content_article"
-  | string;
+  "google_business_post" | "review_reply" | "content_article" | string;
 
 export interface DocumentItem {
   id: string;
@@ -161,16 +197,9 @@ export interface DocumentItem {
 
 export type ValidationActionType = "publish" | "schedule" | "review" | string;
 export type ValidationPlatform =
-  | "google_business"
-  | "facebook"
-  | "website"
-  | string;
+  "google_business" | "facebook" | "website" | string;
 export type ValidationStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "published"
-  | string;
+  "pending" | "approved" | "rejected" | "published" | string;
 
 export interface ValidationLog {
   id: string;
@@ -183,12 +212,7 @@ export interface ValidationLog {
 }
 
 export type ActionStatus =
-  | "planned"
-  | "in_progress"
-  | "done"
-  | "paused"
-  | "error"
-  | string;
+  "planned" | "in_progress" | "done" | "paused" | "error" | string;
 
 export interface ActionItem {
   id: string;
@@ -560,6 +584,29 @@ export async function selectSearchConsoleSite(siteUrl: string) {
 export async function getSearchConsolePerformance() {
   return request<SearchConsolePerformance>(
     "/integrations/google/search-console/performance",
+  );
+}
+
+export async function listGoogleAnalyticsProperties() {
+  return request<GoogleAnalyticsProperty[]>(
+    "/integrations/google/search-console/analytics/properties",
+  );
+}
+
+export async function selectGoogleAnalyticsProperty(propertyId: string) {
+  return request<GoogleAnalyticsProperty>(
+    "/integrations/google/search-console/analytics/property",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ propertyId }),
+    },
+  );
+}
+
+export async function getGoogleAnalyticsPerformance() {
+  return request<GoogleAnalyticsPerformance>(
+    "/integrations/google/search-console/analytics/performance",
   );
 }
 
