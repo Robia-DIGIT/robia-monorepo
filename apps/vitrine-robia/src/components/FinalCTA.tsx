@@ -1,5 +1,6 @@
 import { ArrowRight, Radar } from "lucide-react";
 import { motion } from "motion/react";
+import { trackEvent } from "../lib/analytics";
 
 export function FinalCTA() {
   return (
@@ -32,6 +33,9 @@ export function FinalCTA() {
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
             href="https://app.robiacopilot.site/register"
+            onClick={() =>
+              trackEvent("start_registration", { location: "final_cta" })
+            }
             className="group inline-flex items-center gap-3 rounded-sm bg-[#F97316] px-6 py-4 text-sm font-bold text-white transition hover:-translate-y-1 hover:bg-[#E5650C] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#14B8A6]/40"
           >
             Commencer avec ROBIA
@@ -42,6 +46,9 @@ export function FinalCTA() {
           </a>
           <a
             href="#contact"
+            onClick={() =>
+              trackEvent("request_demo_click", { location: "final_cta" })
+            }
             className="border-b border-[#15313D]/40 pb-1 text-sm font-semibold"
           >
             Demander une démonstration
