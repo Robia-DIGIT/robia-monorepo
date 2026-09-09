@@ -63,12 +63,14 @@ export function RobiaHeader({
   eyebrow,
   action,
   back = false,
+  compact = false,
 }: {
   title: string;
   subtitle?: string;
   eyebrow?: string;
   action?: ReactNode;
   back?: boolean;
+  compact?: boolean;
 }) {
   return (
     <View style={styles.header}>
