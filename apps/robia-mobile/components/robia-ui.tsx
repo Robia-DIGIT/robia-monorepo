@@ -199,10 +199,10 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   screenContent: {
     flex: 1,
-    paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 112,
-    gap: 20,
+    gap: 18,
   },
   header: { gap: 5, marginBottom: 4 },
   brandRow: {
@@ -224,8 +224,8 @@ const styles = StyleSheet.create({
   title: {
     color: '#101828',
     fontFamily: Fonts?.rounded,
-    fontSize: 29,
-    lineHeight: 34,
+    fontSize: 27,
+    lineHeight: 32,
     fontWeight: '900',
     letterSpacing: -0.7,
   },
@@ -237,11 +237,11 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   card: {
-    padding: 17,
-    borderRadius: 22,
+    padding: 16,
+    borderRadius: 20,
     backgroundColor: Brand.white,
     borderWidth: 1,
-    borderColor: '#EDF1F3',
+    borderColor: '#E8ECEF',
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.025,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     minHeight: 50,
     borderRadius: 18,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
