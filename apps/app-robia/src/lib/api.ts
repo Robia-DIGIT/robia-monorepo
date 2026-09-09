@@ -182,12 +182,20 @@ export interface Opportunity {
 }
 
 export type DocumentType =
-  "google_business_post" | "review_reply" | "content_article" | string;
+  | "local_page"
+  | "faq"
+  | "meta"
+  | "gbp_post"
+  | "review_reply"
+  | "dev_brief"
+  | "checklist"
+  | string;
 
 export interface DocumentItem {
   id: string;
   opportunityId: string;
   type: DocumentType;
+  title?: string;
   content: string;
   organizationId?: string;
   status?: string;
@@ -195,7 +203,7 @@ export interface DocumentItem {
   updatedAt?: string;
 }
 
-export type ValidationActionType = "publish" | "schedule" | "review" | string;
+export type ValidationActionType = "publish" | "update" | "reply" | string;
 export type ValidationPlatform =
   "google_business" | "facebook" | "website" | string;
 export type ValidationStatus =
@@ -212,7 +220,7 @@ export interface ValidationLog {
 }
 
 export type ActionStatus =
-  "planned" | "in_progress" | "done" | "paused" | "error" | string;
+  "todo" | "in_progress" | "done" | "blocked" | "ignored" | string;
 
 export interface ActionItem {
   id: string;
@@ -427,11 +435,12 @@ export function actionStatusLabel(status: ActionStatus): {
     return { label: "Terminé", badge: "teal" };
   if (s.includes("progress") || s.includes("en_cours"))
     return { label: "En cours", badge: "blue" };
-  if (s.includes("pause")) return { label: "Suspendu", badge: "gray" };
+  if (s.includes("blocked")) return { label: "Bloqué", badge: "red" };
+  if (s.includes("ignored")) return { label: "Ignoré", badge: "gray" };
   if (s.includes("error") || s.includes("fail") || s.includes("reject"))
     return { label: "Erreur", badge: "red" };
-  if (s.includes("planned") || s.includes("pend") || s === "planned")
-    return { label: "Planifié", badge: "blue" };
+  if (s === "todo" || s.includes("planned") || s.includes("pend"))
+    return { label: "À faire", badge: "blue" };
   return { label: status || "Planifié", badge: "gray" };
 }
 
@@ -439,10 +448,11 @@ export function actionProgressPct(status: ActionStatus): number {
   const s = status.toLowerCase();
   if (s.includes("done") || s.includes("completed")) return 100;
   if (s.includes("progress")) return 65;
-  if (s.includes("pause")) return 30;
+  if (s.includes("blocked")) return 30;
+  if (s.includes("ignored")) return 0;
   if (s.includes("error") || s.includes("fail") || s.includes("reject"))
     return 5;
-  if (s.includes("planned") || s.includes("pend")) return 15;
+  if (s === "todo" || s.includes("planned") || s.includes("pend")) return 15;
   return 20;
 }
 
@@ -685,6 +695,14 @@ export async function getOpportunity(id: string) {
   return request<Opportunity>(`/opportunities/${encodeURIComponent(id)}`);
 }
 
+export async function updateOpportunityStatus(id: string, status: string) {
+  return request<Opportunity>(`/opportunities/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function generateDocument(payload: {
   opportunityId: string;
   type: string;
@@ -741,8 +759,10 @@ export async function generateActions(opportunityId: string) {
   });
 }
 
-export async function listActions() {
-  return request<ActionItem[]>("/actions");
+export async function listActions(websiteId?: string) {
+  return request<ActionItem[]>("/actions", {
+    query: websiteId ? { website_id: websiteId } : undefined,
+  });
 }
 
 export async function exportActionPlan(websiteId?: string) {
