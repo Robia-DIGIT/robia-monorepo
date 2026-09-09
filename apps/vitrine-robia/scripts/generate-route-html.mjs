@@ -109,6 +109,70 @@ const businessProfileStructuredData = {
   ],
 };
 
+const localSeoSoftwareFaqs = [
+  {
+    question: "Qu’est-ce qu’un logiciel de SEO local ?",
+    answer:
+      "Un logiciel de SEO local rassemble des données et des recommandations pour aider une entreprise à améliorer la compréhension de son activité, de ses établissements et de ses zones desservies dans les recherches locales. Il facilite le diagnostic, la priorisation et le suivi, mais ne garantit pas une position donnée.",
+  },
+  {
+    question: "ROBIA remplace-t-il une agence ou un spécialiste SEO ?",
+    answer:
+      "Non. ROBIA est un copilote de décision. Il rend les données accessibles, détecte les opportunités et prépare des actions. Une équipe interne, un consultant ou une agence conserve la stratégie, la validation et l’exécution.",
+  },
+  {
+    question: "Quelles données Google puis-je consulter dans ROBIA ?",
+    answer:
+      "ROBIA peut présenter les données autorisées provenant notamment de Google Search Console et Google Analytics, ainsi que les informations utiles à la visibilité locale. Les sources disponibles dépendent des accès accordés par votre organisation.",
+  },
+  {
+    question: "Le logiciel convient-il à une petite entreprise ?",
+    answer:
+      "Oui. L’interface est conçue pour transformer des indicateurs techniques en priorités compréhensibles. Une petite équipe peut commencer avec un seul site et avancer action par action.",
+  },
+  {
+    question: "ROBIA peut-il suivre plusieurs établissements ?",
+    answer:
+      "Oui. La méthode convient aux réseaux et aux organisations qui doivent comparer plusieurs établissements et maintenir des informations cohérentes, tout en conservant une validation humaine.",
+  },
+  {
+    question: "ROBIA garantit-il la première position sur Google ?",
+    answer:
+      "Non. Aucun logiciel ne peut garantir une position précise. ROBIA aide à prendre de meilleures décisions à partir des signaux disponibles et à suivre les effets des actions réalisées.",
+  },
+];
+
+const localSeoSoftwareStructuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${origin}/logiciel-seo-local-madagascar#software`,
+      name: "ROBIA Copilot",
+      applicationCategory: "BusinessApplication",
+      applicationSubCategory: "Logiciel SEO local",
+      operatingSystem: "Web",
+      description:
+        "Logiciel de pilotage SEO local qui centralise les données Google, détecte les opportunités et priorise les actions des entreprises à Madagascar.",
+      url: `${origin}/logiciel-seo-local-madagascar`,
+      publisher: {
+        "@type": "Organization",
+        name: "ROBIA Digital",
+        url: `${origin}/`,
+      },
+      areaServed: { "@type": "Country", name: "Madagascar" },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: localSeoSoftwareFaqs.map(({ question, answer }) => ({
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: { "@type": "Answer", text: answer },
+      })),
+    },
+  ],
+};
+
 const routes = [
   {
     path: "/seo-local-antananarivo",
@@ -125,6 +189,14 @@ const routes = [
       "Analysez votre fiche Google Business Profile à Madagascar et obtenez des actions prioritaires, claires et validées par votre équipe avec ROBIA.",
     robots: "index, follow",
     structuredData: businessProfileStructuredData,
+  },
+  {
+    path: "/logiciel-seo-local-madagascar",
+    title: "Logiciel SEO local à Madagascar | ROBIA Copilot",
+    description:
+      "Pilotez votre visibilité locale à Madagascar avec ROBIA : données Google centralisées, diagnostic lisible et actions SEO prioritaires à valider.",
+    robots: "index, follow",
+    structuredData: localSeoSoftwareStructuredData,
   },
   {
     path: "/confidentialite",
