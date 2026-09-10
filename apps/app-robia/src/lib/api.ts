@@ -48,6 +48,14 @@ export interface Organization {
   createdAt: string;
 }
 
+export interface BillingSubscription {
+  plan: "starter" | "pro" | string;
+  status: string;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  canManage: boolean;
+}
+
 export interface Website {
   id: string;
   url: string;
@@ -791,5 +799,25 @@ export function updateMe(patch: Partial<UserProfile>): Promise<UserProfile> {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
+  });
+}
+
+export function getBillingSubscription(): Promise<BillingSubscription> {
+  return request<BillingSubscription>("/billing/subscription");
+}
+
+export function createCheckoutSession(
+  billingPeriod: "monthly" | "annual",
+): Promise<{ url: string }> {
+  return request<{ url: string }>("/billing/checkout-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ billingPeriod }),
+  });
+}
+
+export function createBillingPortalSession(): Promise<{ url: string }> {
+  return request<{ url: string }>("/billing/portal-session", {
+    method: "POST",
   });
 }
