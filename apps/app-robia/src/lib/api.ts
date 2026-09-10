@@ -174,6 +174,25 @@ export interface Audit {
 export type OpportunityStatus =
   "open" | "in_progress" | "done" | "closed" | string;
 
+export interface FindingEvidence {
+  url: string;
+  observed: string;
+  expected: string;
+}
+
+export interface OpportunitySourceDataV2 {
+  version?: number;
+  summary?: string;
+  ruleCode?: string;
+  severity?: "critical" | "high" | "medium" | "low" | "info" | string;
+  auditStatus?: string;
+  priorityScore?: number;
+  affectedUrls?: string[];
+  evidence?: FindingEvidence[];
+  whyItMatters?: string;
+  recommendedSteps?: string[];
+}
+
 export interface Opportunity {
   id: string;
   organizationId: string;
@@ -184,7 +203,7 @@ export interface Opportunity {
   impactScore: number;
   effortScore: number;
   confidenceScore: number;
-  sourceData: string;
+  sourceData: string | OpportunitySourceDataV2;
   status: OpportunityStatus;
   createdAt: string;
 }
@@ -236,8 +255,13 @@ export interface ActionItem {
   title: string;
   status: ActionStatus;
   priority: string;
+  priorityScore?: number;
+  sequence?: number;
   dueDate: string | null;
   description?: string;
+  affectedUrls?: string[];
+  evidence?: FindingEvidence[];
+  validationCriteria?: string;
   organizationId?: string;
   createdAt?: string;
 }
@@ -455,13 +479,39 @@ export function actionStatusLabel(status: ActionStatus): {
 export function actionProgressPct(status: ActionStatus): number {
   const s = status.toLowerCase();
   if (s.includes("done") || s.includes("completed")) return 100;
-  if (s.includes("progress")) return 65;
-  if (s.includes("blocked")) return 30;
+  if (s.includes("progress")) return 50;
+  if (s.includes("blocked")) return 0;
   if (s.includes("ignored")) return 0;
   if (s.includes("error") || s.includes("fail") || s.includes("reject"))
-    return 5;
-  if (s === "todo" || s.includes("planned") || s.includes("pend")) return 15;
-  return 20;
+    return 0;
+  return 0;
+}
+
+export function opportunitySourceData(
+  opp: Opportunity | null | undefined,
+): OpportunitySourceDataV2 {
+  return opp?.sourceData && typeof opp.sourceData === "object"
+    ? opp.sourceData
+    : {};
+}
+
+export function oppPriorityScore(opp: Opportunity | null | undefined): number {
+  const score = opportunitySourceData(opp).priorityScore;
+  return typeof score === "number" && Number.isFinite(score)
+    ? score
+    : Math.min(100, Math.max(0, oppImpact(opp) * 10));
+}
+
+export function oppPriority(opp: Opportunity | null | undefined): {
+  label: "Critique" | "Haute" | "Moyenne" | "Faible";
+  variant: "orange" | "blue" | "gray";
+} {
+  const severity = opportunitySourceData(opp).severity;
+  if (severity === "critical") return { label: "Critique", variant: "orange" };
+  if (severity === "high") return { label: "Haute", variant: "orange" };
+  if (severity === "medium") return { label: "Moyenne", variant: "blue" };
+  if (severity === "low" || severity === "info") return { label: "Faible", variant: "gray" };
+  return oppPriorityLabel(oppPriorityScore(opp));
 }
 
 export function oppPriorityLabel(impactScore: number): {
