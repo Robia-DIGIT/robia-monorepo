@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   Building2,
+  CreditCard,
   BarChart3,
   FileText,
   HelpCircle,
@@ -327,6 +328,12 @@ export default function Sidebar({
             </div>
           )}
           <ComingSoonRow icon={Settings} label="Paramètres" collapsed={collapsed} />
+          <SidebarNavItem
+            item={{ to: "/billing", label: "Abonnement", icon: CreditCard }}
+            isActive={activePath === "/billing"}
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          />
           <ComingSoonRow icon={HelpCircle} label="Aide & Support" collapsed={collapsed} />
         </div>
       </nav>
