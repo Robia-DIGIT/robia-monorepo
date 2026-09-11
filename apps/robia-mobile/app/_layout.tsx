@@ -5,7 +5,7 @@ import { router, Stack, usePathname, useRootNavigationState, useSegments } from 
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
@@ -238,14 +238,14 @@ function AppLayout() {
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen
           name="audit"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Nouvel audit' }}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom', headerShown: false }}
         />
-        <Stack.Screen name="history" options={{ title: 'Historique' }} />
-        <Stack.Screen name="reports" options={{ title: 'Rapports' }} />
-        <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+        <Stack.Screen name="history" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
 
       {showAssistantButton ? (
@@ -254,9 +254,13 @@ function AppLayout() {
           accessibilityRole="button"
           onPress={() => router.push('/chat')}
           style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
-          <View pointerEvents="none" style={styles.assistantRing} />
-          <MaterialIcons name="android" size={28} color={Brand.white} />
-          <Text style={styles.assistantBadge}>IA</Text>
+          <View pointerEvents="none" style={styles.assistantHalo} />
+          <View pointerEvents="none" style={styles.assistantCore}>
+            <MaterialIcons name="chat-bubble-outline" size={27} color={Brand.tealDark} />
+            <View style={styles.assistantRobot}>
+              <MaterialIcons name="smart-toy" size={12} color={Brand.white} />
+            </View>
+          </View>
         </Pressable>
       ) : null}
 
@@ -306,34 +310,44 @@ const styles = StyleSheet.create({
     borderRadius: 31,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Brand.navyDark,
-    borderWidth: 3,
-    borderColor: Brand.teal,
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 16,
-  },
-  assistantRing: {
-    position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    backgroundColor: Brand.white,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    borderColor: '#E3EAEC',
+    shadowColor: Brand.navyDark,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 14,
   },
-  assistantBadge: {
+  assistantHalo: {
     position: 'absolute',
-    right: 5,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: Brand.tealLight,
+  },
+  assistantCore: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ECFDF9',
+    borderWidth: 1,
+    borderColor: '#C8F3EB',
+  },
+  assistantRobot: {
+    position: 'absolute',
+    right: 3,
     bottom: 3,
-    color: Brand.navyDark,
-    fontSize: 8,
-    fontWeight: '900',
+    width: 20,
+    height: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Brand.teal,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Brand.white,
   },
   launchOverlay: {
     ...StyleSheet.absoluteFillObject,

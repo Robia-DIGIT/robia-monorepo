@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
 import { RobiaCard, RobiaScreen } from '@/components/robia-ui';
 import { Brand, Fonts } from '@/constants/theme';
@@ -11,23 +11,23 @@ type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 export default function HomeScreen() {
   const { user, organization } = useSession();
-  const { latestAudit, opportunities, documents, actions, isLoading, error, refresh } = useRobiaData();
+  const { latestAudit, opportunities, documents, actions, error, } = useRobiaData();
   const score = latestAudit?.globalScore ?? 0;
   const done = actions.filter((item) => item.status === 'done').length;
   const progress = actions.length ? Math.round((done / actions.length) * 100) : 0;
   const firstName = user?.name?.split(' ')[0] ?? organization?.name ?? 'Entreprise';
 
   return (
-    <RobiaScreen>
+    <RobiaScreen fixedHeader>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bonjour, {firstName}</Text>
           <Text style={styles.context}>{organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Actualiser" onPress={() => void refresh()} style={styles.roundButton}>
+        {/* <Pressable accessibilityRole="button" accessibilityLabel="Actualiser" onPress={() => void refresh()} style={styles.roundButton}>
           {isLoading ? <ActivityIndicator size="small" color={Brand.tealDark} /> : <MaterialIcons name="notifications-none" size={22} color={Brand.navyDark} />}
           {!isLoading && opportunities.length > 0 ? <View style={styles.notificationDot} /> : null}
-        </Pressable>
+        </Pressable> */}
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}

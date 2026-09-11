@@ -37,8 +37,8 @@ export default function HistoryScreen() {
     })();
   }, [request, websites]);
   return (
-    <RobiaScreen>
-      <RobiaHeader
+    <RobiaScreen fixedHeader>
+      <RobiaHeader compact back
         eyebrow="VOTRE PROGRESSION"
         title="Historique des audits"
         subtitle="Comparez vos diagnostics et mesurez l’évolution de votre visibilité."

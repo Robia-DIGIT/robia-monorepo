@@ -33,11 +33,10 @@ const SwipeTabs = withLayoutContext<
 
 type RobiaIconName =
   | 'house.fill'
-  | 'target'
+  | 'lightbulb.fill'
   | 'doc.text.fill'
-  | 'checklist'
-  | 'bubble.left.and.bubble.right.fill'
-  | 'person.crop.circle';
+  | 'chart.bar.fill'
+  | 'person.crop.circle.fill';
 
 function AnimatedTabIcon({
   name,
@@ -156,7 +155,7 @@ export default function TabLayout() {
         options={{
           title: 'Opportunités',
           tabBarLabel: createTabLabel('Opportunités'),
-          tabBarIcon: createTabIcon('target'),
+          tabBarIcon: createTabIcon('lightbulb.fill'),
         }}
       />
       <SwipeTabs.Screen
@@ -174,7 +173,7 @@ export default function TabLayout() {
         options={{
           title: 'Suivi',
           tabBarLabel: createTabLabel('Suivi'),
-          tabBarIcon: createTabIcon('checklist'),
+          tabBarIcon: createTabIcon('chart.bar.fill'),
         }}
       />
       <SwipeTabs.Screen
@@ -183,7 +182,7 @@ export default function TabLayout() {
         options={{
           title: 'Profil',
           tabBarLabel: createTabLabel('Profil'),
-          tabBarIcon: createTabIcon('person.crop.circle'),
+          tabBarIcon: createTabIcon('person.crop.circle.fill'),
         }}
       />
     </SwipeTabs>
