@@ -115,7 +115,7 @@ Pour lancer uniquement les frontends, filtrer explicitement par package :
 ```bash
 pnpm --filter app-robia dev
 pnpm --filter vitrine_robia dev
-pnpm --filter robia-mobile dev
+pnpm --filter robia-mobile start
 ```
 
 Pour le backend et le moteur IA, suivre le README de `Robia-Back` plutôt que d'utiliser `apps/backend`/`apps/ai-engine` via `pnpm dev`.
