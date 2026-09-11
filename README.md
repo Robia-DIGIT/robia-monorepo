@@ -1,6 +1,19 @@
 # ROBIA Monorepo
 
-ROBIA est une plateforme d'audit SEO local assistée par intelligence artificielle. Ce dépôt regroupe l'ensemble des services du projet dans un monorepo afin de faciliter le développement, la collaboration et le déploiement.
+ROBIA est une plateforme d'audit SEO local assistée par intelligence artificielle. Ce dépôt regroupe les frontends du projet (dashboard, vitrine, mobile) dans un monorepo afin de faciliter le développement, la collaboration et le déploiement.
+
+## ⚠️ Source canonique du backend et du moteur IA
+
+Le **backend NestJS** et le **moteur IA** de production ne sont **pas** dans ce monorepo. Ils vivent dans le dépôt séparé **[`Robia-DIGIT/Robia-Back`](https://github.com/Robia-DIGIT/Robia-Back)** :
+
+- backend NestJS canonique : racine de `Robia-Back` ;
+- moteur IA canonique : `Robia-Back/python-service` ;
+- migrations Prisma canoniques : `Robia-Back/prisma` ;
+- chaîne Docker et déploiement backend en production : `Robia-Back` (`Dockerfile`, `docker-compose.production.yml`, `deploy/`).
+
+Ce monorepo contient `apps/backend` et `apps/ai-engine`, deux copies historiques **non construites, non déployées et non utilisées par la production**. Elles ne doivent servir à aucun développement ni déploiement — voir l'avertissement dans leur `README.md` respectif et le détail des raisons dans [`docs/architecture/source-of-truth.md`](docs/architecture/source-of-truth.md).
+
+Toute correction backend, migration Prisma, intégration (Google, Stripe, n8n...) ou fonctionnalité IA doit être réalisée dans `Robia-Back`. Les frontends de ce monorepo consomment l'API backend en production via `https://api.robiacopilot.site`.
 
 ## Architecture
 
@@ -8,10 +21,14 @@ ROBIA est une plateforme d'audit SEO local assistée par intelligence artificiel
 robia-monorepo/
 │
 ├── apps/
-│   ├── backend/          # API REST NestJS + Prisma
-│   ├── ai-engine/        # Moteur IA FastAPI (Python)
-│   └── frontend/         # Application Next.js (Vitrine , dashboard , mobile )
+│   ├── backend/          # copie historique non canonique — voir apps/backend/README.md
+│   ├── ai-engine/        # copie historique non canonique — voir apps/ai-engine/README.md
+│   ├── app-robia/        # Dashboard client (React + Vite)
+│   ├── vitrine-robia/    # Site vitrine (React + Vite)
+│   └── robia-mobile/     # Application mobile (Expo / React Native)
 │
+├── docs/
+│   └── architecture/     # Décisions d'architecture (source de vérité, etc.)
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── turbo.json
@@ -81,66 +98,27 @@ pnpm install
 
 ## Configuration
 
-### Backend
+Le backend et le moteur IA se configurent et se lancent depuis le dépôt **[`Robia-DIGIT/Robia-Back`](https://github.com/Robia-DIGIT/Robia-Back)** — voir son README. Les instructions `apps/backend` et `apps/ai-engine` historiquement présentes ici ont été retirées pour éviter qu'un contributeur ne configure ou lance la copie non canonique par erreur.
 
-```bash
-cd apps/backend
-cp .env.example .env
-```
+### Frontends
 
-Configurer les variables d'environnement.
-
-Générer Prisma Client :
-
-```bash
-npx prisma generate
-```
-
----
-
-### AI Engine
-
-```bash
-cd apps/ai-engine
-python -m venv .venv
-```
-
-Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-Linux / macOS
-
-```bash
-source .venv/bin/activate
-```
-
-Installer les dépendances :
-
-```bash
-pip install -r requirements.txt
-```
-
-Créer le fichier `.env` à partir de `.env.example`.
+Chaque app frontend (`apps/app-robia`, `apps/vitrine-robia`, `apps/robia-mobile`) a son propre `README.md` et son propre `.env.example`.
 
 ---
 
 ## Lancer le projet
 
-Depuis la racine :
+⚠️ `pnpm dev` (= `turbo run dev`) lance le script `dev` de **tous** les packages du workspace (`apps/*`), sans filtre. Cela inclut `apps/backend` et `apps/ai-engine`, qui ont chacun un script `dev` — pas seulement les trois apps frontend. Ne pas utiliser `pnpm dev` en pensant ne lancer que le frontend.
+
+Pour lancer uniquement les frontends, filtrer explicitement par package :
 
 ```bash
-pnpm dev
+pnpm --filter app-robia dev
+pnpm --filter vitrine_robia dev
+pnpm --filter robia-mobile start
 ```
 
-Cette commande démarre automatiquement :
-
-* Backend NestJS
-* AI Engine FastAPI
-
-Le frontend sera ajouté prochainement.
+Pour le backend et le moteur IA, suivre le README de `Robia-Back` plutôt que d'utiliser `apps/backend`/`apps/ai-engine` via `pnpm dev`.
 
 ---
 
@@ -155,20 +133,9 @@ pnpm lint
 pnpm test
 ```
 
-### Backend
+### Backend et AI Engine (copies historiques non canoniques)
 
-```bash
-pnpm --filter @robia/backend dev
-pnpm --filter @robia/backend build
-```
-
-### AI Engine
-
-```bash
-cd apps/ai-engine
-
-python -m uvicorn main:app --reload --port 8005
-```
+Les commandes `pnpm --filter @robia/backend ...` et le lancement d'`apps/ai-engine` restent techniquement possibles (ce sont toujours des workspaces valides), mais ils font tourner la copie non canonique, pas la production. Utiliser `Robia-Back` pour tout développement ou test backend/IA réel — voir l'avertissement dans `apps/backend/README.md` et `apps/ai-engine/README.md`.
 
 ---
 

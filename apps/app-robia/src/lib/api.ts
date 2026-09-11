@@ -31,7 +31,7 @@ export interface AuthResponse {
 export interface UserProfile {
   id: string;
   email: string;
-  phone: string ;
+  phone: string;
   company: string | null;
   bio: string | null;
   provider: string;
@@ -46,6 +46,14 @@ export interface Organization {
   country: string | null;
   ownerId: string;
   createdAt: string;
+}
+
+export interface BillingSubscription {
+  plan: "starter" | "pro" | string;
+  status: string;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  canManage: boolean;
 }
 
 export interface Website {
@@ -64,6 +72,49 @@ export interface SearchConsoleStatus {
   permissionLevel: string | null;
   connectedAt: string | null;
   lastSyncedAt: string | null;
+  selectedAnalyticsPropertyId: string | null;
+  selectedAnalyticsPropertyName: string | null;
+  lastAnalyticsSyncedAt: string | null;
+  analyticsAuthorized: boolean;
+}
+
+export interface GoogleAnalyticsProperty {
+  propertyId: string;
+  displayName: string;
+  accountName: string;
+  propertyType: string;
+  selected: boolean;
+}
+
+export interface GoogleAnalyticsDailyMetric {
+  date: string;
+  activeUsers: number;
+  sessions: number;
+  views: number;
+}
+
+export interface GoogleAnalyticsPageMetric {
+  path: string;
+  views: number;
+  activeUsers: number;
+  sessions: number;
+}
+
+export interface GoogleAnalyticsPerformance {
+  propertyId: string;
+  propertyName: string | null;
+  startDate: string;
+  endDate: string;
+  summary: {
+    activeUsers: number;
+    totalUsers: number;
+    sessions: number;
+    views: number;
+    engagementRate: number;
+  };
+  daily: GoogleAnalyticsDailyMetric[];
+  topPages: GoogleAnalyticsPageMetric[];
+  lastSyncedAt: string;
 }
 
 export interface SearchConsoleSite {
@@ -121,11 +172,26 @@ export interface Audit {
 }
 
 export type OpportunityStatus =
-  | "open"
-  | "in_progress"
-  | "done"
-  | "closed"
-  | string;
+  "open" | "in_progress" | "done" | "closed" | string;
+
+export interface FindingEvidence {
+  url: string;
+  observed: string;
+  expected: string;
+}
+
+export interface OpportunitySourceDataV2 {
+  version?: number;
+  summary?: string;
+  ruleCode?: string;
+  severity?: "critical" | "high" | "medium" | "low" | "info" | string;
+  auditStatus?: string;
+  priorityScore?: number;
+  affectedUrls?: string[];
+  evidence?: FindingEvidence[];
+  whyItMatters?: string;
+  recommendedSteps?: string[];
+}
 
 export interface Opportunity {
   id: string;
@@ -137,21 +203,26 @@ export interface Opportunity {
   impactScore: number;
   effortScore: number;
   confidenceScore: number;
-  sourceData: string;
+  sourceData: string | OpportunitySourceDataV2;
   status: OpportunityStatus;
   createdAt: string;
 }
 
 export type DocumentType =
-  | "google_business_post"
+  | "local_page"
+  | "faq"
+  | "meta"
+  | "gbp_post"
   | "review_reply"
-  | "content_article"
+  | "dev_brief"
+  | "checklist"
   | string;
 
 export interface DocumentItem {
   id: string;
   opportunityId: string;
   type: DocumentType;
+  title?: string;
   content: string;
   organizationId?: string;
   status?: string;
@@ -159,18 +230,11 @@ export interface DocumentItem {
   updatedAt?: string;
 }
 
-export type ValidationActionType = "publish" | "schedule" | "review" | string;
+export type ValidationActionType = "publish" | "update" | "reply" | string;
 export type ValidationPlatform =
-  | "google_business"
-  | "facebook"
-  | "website"
-  | string;
+  "google_business" | "facebook" | "website" | string;
 export type ValidationStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "published"
-  | string;
+  "pending" | "approved" | "rejected" | "published" | string;
 
 export interface ValidationLog {
   id: string;
@@ -183,12 +247,7 @@ export interface ValidationLog {
 }
 
 export type ActionStatus =
-  | "planned"
-  | "in_progress"
-  | "done"
-  | "paused"
-  | "error"
-  | string;
+  "todo" | "in_progress" | "done" | "blocked" | "ignored" | string;
 
 export interface ActionItem {
   id: string;
@@ -196,8 +255,13 @@ export interface ActionItem {
   title: string;
   status: ActionStatus;
   priority: string;
+  priorityScore?: number;
+  sequence?: number;
   dueDate: string | null;
   description?: string;
+  affectedUrls?: string[];
+  evidence?: FindingEvidence[];
+  validationCriteria?: string;
   organizationId?: string;
   createdAt?: string;
 }
@@ -403,23 +467,51 @@ export function actionStatusLabel(status: ActionStatus): {
     return { label: "Terminé", badge: "teal" };
   if (s.includes("progress") || s.includes("en_cours"))
     return { label: "En cours", badge: "blue" };
-  if (s.includes("pause")) return { label: "Suspendu", badge: "gray" };
+  if (s.includes("blocked")) return { label: "Bloqué", badge: "red" };
+  if (s.includes("ignored")) return { label: "Ignoré", badge: "gray" };
   if (s.includes("error") || s.includes("fail") || s.includes("reject"))
     return { label: "Erreur", badge: "red" };
-  if (s.includes("planned") || s.includes("pend") || s === "planned")
-    return { label: "Planifié", badge: "blue" };
+  if (s === "todo" || s.includes("planned") || s.includes("pend"))
+    return { label: "À faire", badge: "blue" };
   return { label: status || "Planifié", badge: "gray" };
 }
 
 export function actionProgressPct(status: ActionStatus): number {
   const s = status.toLowerCase();
   if (s.includes("done") || s.includes("completed")) return 100;
-  if (s.includes("progress")) return 65;
-  if (s.includes("pause")) return 30;
+  if (s.includes("progress")) return 50;
+  if (s.includes("blocked")) return 0;
+  if (s.includes("ignored")) return 0;
   if (s.includes("error") || s.includes("fail") || s.includes("reject"))
-    return 5;
-  if (s.includes("planned") || s.includes("pend")) return 15;
-  return 20;
+    return 0;
+  return 0;
+}
+
+export function opportunitySourceData(
+  opp: Opportunity | null | undefined,
+): OpportunitySourceDataV2 {
+  return opp?.sourceData && typeof opp.sourceData === "object"
+    ? opp.sourceData
+    : {};
+}
+
+export function oppPriorityScore(opp: Opportunity | null | undefined): number {
+  const score = opportunitySourceData(opp).priorityScore;
+  return typeof score === "number" && Number.isFinite(score)
+    ? score
+    : Math.min(100, Math.max(0, oppImpact(opp) * 10));
+}
+
+export function oppPriority(opp: Opportunity | null | undefined): {
+  label: "Critique" | "Haute" | "Moyenne" | "Faible";
+  variant: "orange" | "blue" | "gray";
+} {
+  const severity = opportunitySourceData(opp).severity;
+  if (severity === "critical") return { label: "Critique", variant: "orange" };
+  if (severity === "high") return { label: "Haute", variant: "orange" };
+  if (severity === "medium") return { label: "Moyenne", variant: "blue" };
+  if (severity === "low" || severity === "info") return { label: "Faible", variant: "gray" };
+  return oppPriorityLabel(oppPriorityScore(opp));
 }
 
 export function oppPriorityLabel(impactScore: number): {
@@ -563,6 +655,29 @@ export async function getSearchConsolePerformance() {
   );
 }
 
+export async function listGoogleAnalyticsProperties() {
+  return request<GoogleAnalyticsProperty[]>(
+    "/integrations/google/search-console/analytics/properties",
+  );
+}
+
+export async function selectGoogleAnalyticsProperty(propertyId: string) {
+  return request<GoogleAnalyticsProperty>(
+    "/integrations/google/search-console/analytics/property",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ propertyId }),
+    },
+  );
+}
+
+export async function getGoogleAnalyticsPerformance() {
+  return request<GoogleAnalyticsPerformance>(
+    "/integrations/google/search-console/analytics/performance",
+  );
+}
+
 export async function disconnectSearchConsole() {
   return request<{ disconnected: boolean }>(
     "/integrations/google/search-console",
@@ -638,6 +753,14 @@ export async function getOpportunity(id: string) {
   return request<Opportunity>(`/opportunities/${encodeURIComponent(id)}`);
 }
 
+export async function updateOpportunityStatus(id: string, status: string) {
+  return request<Opportunity>(`/opportunities/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function generateDocument(payload: {
   opportunityId: string;
   type: string;
@@ -694,8 +817,10 @@ export async function generateActions(opportunityId: string) {
   });
 }
 
-export async function listActions() {
-  return request<ActionItem[]>("/actions");
+export async function listActions(websiteId?: string) {
+  return request<ActionItem[]>("/actions", {
+    query: websiteId ? { website_id: websiteId } : undefined,
+  });
 }
 
 export async function exportActionPlan(websiteId?: string) {
@@ -724,5 +849,25 @@ export function updateMe(patch: Partial<UserProfile>): Promise<UserProfile> {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
+  });
+}
+
+export function getBillingSubscription(): Promise<BillingSubscription> {
+  return request<BillingSubscription>("/billing/subscription");
+}
+
+export function createCheckoutSession(
+  billingPeriod: "monthly" | "annual",
+): Promise<{ url: string }> {
+  return request<{ url: string }>("/billing/checkout-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ billingPeriod }),
+  });
+}
+
+export function createBillingPortalSession(): Promise<{ url: string }> {
+  return request<{ url: string }>("/billing/portal-session", {
+    method: "POST",
   });
 }

@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FadeUp, StaggerContainer, StaggerChild } from "./ui/animations";
 import { SectionLabel } from "./ui/SectionLabel";
+import { trackEvent } from "../lib/analytics";
 
 const PLANS = [
   {
@@ -192,7 +193,19 @@ export function Pricing() {
                 </ul>
 
                 <a
-                  href="#"
+                  href={
+                    name === "Business"
+                      ? "#contact"
+                      : "https://app.robiacopilot.site/register"
+                  }
+                  onClick={() =>
+                    trackEvent("select_plan", {
+                      plan_name: name.toLowerCase(),
+                      billing_period: annual ? "annual" : "monthly",
+                      destination:
+                        name === "Business" ? "contact" : "registration",
+                    })
+                  }
                   className={cn(
                     "w-full py-3.5 text-center text-sm font-semibold transition-all duration-200",
                     highlighted

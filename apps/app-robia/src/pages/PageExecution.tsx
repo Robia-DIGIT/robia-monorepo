@@ -4,6 +4,7 @@ import { AlertCircle, Download, MapPin, Play, Radar, RefreshCw, Settings2, Shiel
 import { Button, Card, Badge, ProgressBar, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
 import { useWebsiteContext } from '../components/WebsiteContext'
+import DocumentWorkflow from '../components/DocumentWorkflow'
 import {
   exportActionPlan,
   generateActions,
@@ -17,6 +18,7 @@ import {
   actionStatusLabel,
   actionProgressPct,
   type ActionItem,
+  type Opportunity,
   type ValidationLog,
 } from '../lib/api'
 
@@ -24,20 +26,36 @@ function ActionCard({ item, onUpdate }: { item: ActionItem; onUpdate: (id: strin
   const { label: statusLabel, badge } = actionStatusLabel(item.status)
   const progress = actionProgressPct(item.status)
   const completed = progress >= 100
+  const urls = item.affectedUrls ?? []
+  const evidence = item.evidence ?? []
 
   return (
-    <article className={`border-l-2 px-4 py-4 transition-colors ${completed ? 'border-teal bg-teal-light/20' : progress >= 50 ? 'border-electric bg-white' : 'border-border bg-white hover:border-orange hover:bg-orange-light/10'}`}>
+    <article className={`border-l-2 px-4 py-4 transition-colors ${completed ? 'border-teal bg-teal-light/20' : progress > 0 ? 'border-electric bg-white' : 'border-border bg-white hover:border-orange hover:bg-orange-light/10'}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2"><Badge variant={badge}>{statusLabel}</Badge><span className="text-[10px] font-bold uppercase tracking-wide text-muted">{item.priority ?? 'Priorité à définir'}</span></div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={badge}>{statusLabel}</Badge>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">{item.priority ?? 'À qualifier'}</span>
+            {item.sequence && <span className="text-[10px] font-bold uppercase tracking-wide text-teal-dark">Étape {item.sequence}</span>}
+          </div>
           <h3 className="mt-2 text-sm font-bold text-navy">{item.title ?? 'Action à exécuter'}</h3>
           {item.description && <p className="mt-1 text-xs leading-5 text-muted">{item.description}</p>}
-          <div className="mt-4 max-w-md"><div className="mb-1.5 flex justify-between text-[10px] text-muted"><span>Échéance : {item.dueDate ?? 'Non définie'}</span><span>{progress}%</span></div><ProgressBar value={progress} color={completed ? '#14B8A6' : progress >= 40 ? '#1D4ED8' : '#F97316'} height="h-1.5" /></div>
+
+          {(urls.length > 0 || evidence.length > 0 || item.validationCriteria) && (
+            <details className="mt-3 rounded-lg border border-border bg-slate-bg px-3 py-2 text-xs text-muted">
+              <summary className="cursor-pointer font-bold text-navy">Voir les preuves et la validation</summary>
+              {urls.length > 0 && <div className="mt-3"><p className="font-bold text-dark">Pages concernées ({urls.length})</p><ul className="mt-1 space-y-1">{urls.slice(0, 5).map((url) => <li key={url}><a className="break-all text-electric hover:underline" href={url} target="_blank" rel="noreferrer">{url}</a></li>)}</ul>{urls.length > 5 && <p className="mt-1">+ {urls.length - 5} autre(s) URL</p>}</div>}
+              {evidence.length > 0 && <div className="mt-3"><p className="font-bold text-dark">Constat observé</p><ul className="mt-1 space-y-2">{evidence.slice(0, 3).map((proof, index) => <li key={`${proof.url}-${index}`}><span className="font-semibold">Observé :</span> {proof.observed}<br /><span className="font-semibold">Attendu :</span> {proof.expected}</li>)}</ul></div>}
+              {item.validationCriteria && <div className="mt-3 border-t border-border pt-2"><p className="font-bold text-dark">Critère de validation</p><p className="mt-1">{item.validationCriteria}</p></div>}
+            </details>
+          )}
+
+          <div className="mt-4 max-w-md"><div className="mb-1.5 flex justify-between text-[10px] text-muted"><span>Échéance : {item.dueDate ?? 'Non définie'}</span><span>{progress}%</span></div><ProgressBar value={progress} color={completed ? '#14B8A6' : progress > 0 ? '#1D4ED8' : '#CBD5E1'} height="h-1.5" /></div>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-56 sm:justify-end">
           <Button variant="outline" size="sm" icon={<Settings2 size={12} />} onClick={() => void onUpdate(String(item.id), 'in_progress')}>Démarrer</Button>
           <Button variant="primary" size="sm" icon={<ShieldCheck size={12} />} onClick={() => void onUpdate(String(item.id), 'done')}>Terminer</Button>
-          <Button variant="ghost" size="sm" icon={<Play size={12} />} onClick={() => void onUpdate(String(item.id), 'planned')}>Planifier</Button>
+          <Button variant="ghost" size="sm" icon={<Play size={12} />} onClick={() => void onUpdate(String(item.id), 'todo')}>À faire</Button>
         </div>
       </div>
     </article>
@@ -48,21 +66,18 @@ export default function PageExecution() {
   const { activeWebsiteId, activeWebsite } = useWebsiteContext()
   const [actions, setActions] = useState<ActionItem[]>([])
   const [validations, setValidations] = useState<ValidationLog[]>([])
-  const [sourceOpportunityId, setSourceOpportunityId] = useState('')
   const [opportunityCount, setOpportunityCount] = useState(0)
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const pendingCount = useMemo(() => actions.filter((a) => actionProgressPct(a.status) < 50 && actionProgressPct(a.status) > 5).length, [actions])
-  const activeCount = useMemo(() => actions.filter((a) => {
-    const p = actionProgressPct(a.status)
-    return p >= 50 && p < 100
-  }).length, [actions])
-  const doneCount = useMemo(() => actions.filter((a) => actionProgressPct(a.status) >= 100).length, [actions])
-  const errorCount = useMemo(() => actions.filter((a) => actionProgressPct(a.status) <= 5 && a.status.toLowerCase().includes('error')).length, [actions])
+  const pendingCount = useMemo(() => actions.filter((a) => ['todo', 'planned', 'pending'].some((status) => a.status.toLowerCase().includes(status))).length, [actions])
+  const activeCount = useMemo(() => actions.filter((a) => a.status.toLowerCase().includes('progress')).length, [actions])
+  const doneCount = useMemo(() => actions.filter((a) => ['done', 'completed'].some((status) => a.status.toLowerCase().includes(status))).length, [actions])
+  const errorCount = useMemo(() => actions.filter((a) => ['error', 'fail', 'reject', 'blocked'].some((status) => a.status.toLowerCase().includes(status))).length, [actions])
   const progressPct = actions.length > 0 ? Math.round((doneCount / actions.length) * 100) : 0
-  const nextAction = useMemo(() => actions.find((item) => actionProgressPct(item.status) < 100) ?? null, [actions])
+  const nextAction = useMemo(() => actions.find((item) => item.status.toLowerCase().includes('progress')) ?? actions.find((item) => actionProgressPct(item.status) < 100) ?? null, [actions])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -74,14 +89,14 @@ export default function PageExecution() {
       const opportunities = audit?.id ? await listOpportunities(String(audit.id)) : []
       const opportunityIds = new Set(opportunities.map((item) => String(item.id)))
       const [allActions, allValidations, documentGroups] = await Promise.all([
-        listActions(),
+        listActions(activeWebsiteId),
         listValidations(),
         Promise.all(opportunities.map((item) => listDocuments(String(item.id)).catch(() => []))),
       ])
       const documentIds = new Set(documentGroups.flat().map((item) => String(item.id)))
 
       setOrganizationName(organization.name ?? 'Organisation')
-      setSourceOpportunityId(opportunities[0]?.id ? String(opportunities[0].id) : '')
+      setOpportunities(opportunities)
       setActions(allActions.filter((item) => opportunityIds.has(String(item.opportunityId))))
       setValidations(allValidations.filter((item) => documentIds.has(String(item.documentId))))
       setOpportunityCount(opportunities.length)
@@ -97,9 +112,9 @@ export default function PageExecution() {
   }, [loadData])
 
   const handleGenerate = async () => {
-    const firstOpportunityId = sourceOpportunityId || actions.find((item) => item.opportunityId)?.opportunityId
+    const opportunityIds = opportunities.map((item) => String(item.id)).filter(Boolean)
 
-    if (!firstOpportunityId) {
+    if (opportunityIds.length === 0) {
       setError('Aucune opportunité liée trouvée pour générer des actions.')
       return
     }
@@ -108,7 +123,8 @@ export default function PageExecution() {
     setError('')
 
     try {
-      setActions(await generateActions(firstOpportunityId))
+      const generatedGroups = await Promise.all(opportunityIds.map((id) => generateActions(id)))
+      setActions(generatedGroups.flat())
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : 'Impossible de générer les actions.')
     } finally {
@@ -177,6 +193,7 @@ export default function PageExecution() {
       <div className="space-y-3">
         {actions.length === 0 ? <EmptyState icon={<RefreshCw size={18} />} title="Aucune action disponible" description={`Générez un plan à partir des ${opportunityCount} opportunité(s) connues pour ce site.`} action={<Button variant="primary" onClick={handleGenerate}>Générer les actions</Button>} /> : actions.map((item) => <ActionCard key={String(item.id)} item={item} onUpdate={handleUpdateStatus} />)}
       </div>
+      <DocumentWorkflow opportunities={opportunities} onValidationCreated={() => void loadData()} />
     </div>
   )
 }

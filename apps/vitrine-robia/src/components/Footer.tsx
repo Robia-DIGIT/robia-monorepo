@@ -1,21 +1,38 @@
 import { ArrowUp, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "../assets/logo_snom.png";
+import { openCookieSettings } from "../lib/analyticsConsent";
 
 const columns = [
   {
     title: "Produit",
-    links: ["Comment ça marche", "Fonctionnalités", "Tarifs", "Nouveautés"],
+    links: [
+      { label: "Présentation", href: "/#produit" },
+      { label: "Tarifs", href: "/#tarifs" },
+      { label: "SEO à Antananarivo", href: "/seo-local-antananarivo" },
+      {
+        label: "Google Business Madagascar",
+        href: "/optimisation-google-business-profile-madagascar",
+      },
+      { label: "Logiciel SEO local", href: "/logiciel-seo-local-madagascar" },
+    ],
   },
   {
     title: "Entreprise",
-    links: ["À propos", "Blog", "Contact", "Partenaires"],
+    links: [
+      { label: "Contact", href: "/#contact" },
+      { label: "Partenaires", href: "/#contact" },
+    ],
   },
   {
-    title: "Support",
-    links: ["Centre d’aide", "Documentation", "Confidentialité", "CGU"],
+    title: "Informations",
+    links: [
+      { label: "Confidentialité", href: "/confidentialite" },
+      { label: "CGU", href: "/conditions-utilisation" },
+    ],
   },
 ];
+
 export function Footer() {
   return (
     <footer className="bg-[#0B222C] px-5 pb-8 pt-16 text-white sm:px-8 lg:px-12">
@@ -45,19 +62,19 @@ export function Footer() {
             <br />
             <span className="text-[#14B8A6]">BE GROW.</span>
           </p>
-          {columns.map((c) => (
-            <div key={c.title}>
+          {columns.map((column) => (
+            <div key={column.title}>
               <strong className="mb-5 block text-[10px] uppercase tracking-[.16em]">
-                {c.title}
+                {column.title}
               </strong>
               <ul className="space-y-3">
-                {c.links.map((l) => (
-                  <li key={l}>
+                {column.links.map((link) => (
+                  <li key={link.label}>
                     <a
-                      href="#"
+                      href={link.href}
                       className="text-xs text-[#9AB0B7] transition hover:text-white"
                     >
-                      {l}
+                      {link.label}
                     </a>
                   </li>
                 ))}
@@ -65,8 +82,15 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="flex flex-col justify-between gap-4 border-t border-white/15 pt-6 text-[10px] text-[#6F8992] sm:flex-row">
+        <div className="flex flex-col justify-between gap-4 border-t border-white/15 pt-6 text-[10px] text-[#6F8992] sm:flex-row sm:items-center">
           <span>© 2026 ROBIA Digital. Tous droits réservés.</span>
+          <button
+            type="button"
+            onClick={openCookieSettings}
+            className="w-fit transition hover:text-white"
+          >
+            Gérer mes cookies
+          </button>
           <Link
             to="/seo-local-antananarivo"
             className="flex items-center gap-2 transition hover:text-white"
