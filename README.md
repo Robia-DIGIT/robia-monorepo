@@ -108,13 +108,17 @@ Chaque app frontend (`apps/app-robia`, `apps/vitrine-robia`, `apps/robia-mobile`
 
 ## Lancer le projet
 
-Depuis la racine :
+⚠️ `pnpm dev` (= `turbo run dev`) lance le script `dev` de **tous** les packages du workspace (`apps/*`), sans filtre. Cela inclut `apps/backend` et `apps/ai-engine`, qui ont chacun un script `dev` — pas seulement les trois apps frontend. Ne pas utiliser `pnpm dev` en pensant ne lancer que le frontend.
+
+Pour lancer uniquement les frontends, filtrer explicitement par package :
 
 ```bash
-pnpm dev
+pnpm --filter app-robia dev
+pnpm --filter vitrine_robia dev
+pnpm --filter robia-mobile dev
 ```
 
-Cette commande lance les apps frontend du workspace (`app-robia`, `vitrine-robia`, `robia-mobile`) via Turborepo. Pour le backend et le moteur IA, suivre le README de `Robia-Back`.
+Pour le backend et le moteur IA, suivre le README de `Robia-Back` plutôt que d'utiliser `apps/backend`/`apps/ai-engine` via `pnpm dev`.
 
 ---
 

@@ -41,7 +41,7 @@ En résumé : `apps/backend` et `apps/ai-engine` correspondent à un essai de mo
 | --- | --- |
 | Correction ou évolution d'un endpoint NestJS | `Robia-Back` |
 | Migration Prisma, modification du schéma de données | `Robia-Back` |
-| Intégrations (Google Search Console, GA4, Google Business Profile, n8n) | `Robia-Back` |
+| Intégrations (Google Search Console, GA4, n8n) déjà en place, et Google Business Profile (fonctionnalité future, non encore intégrée) le jour où elle sera développée | `Robia-Back` |
 | Billing / Stripe | `Robia-Back` |
 | Moteur IA, agents, prompts, fournisseurs LLM (Groq, Claude) | `Robia-Back/python-service` |
 | Dashboard (`app-robia`) | `robia-monorepo` |

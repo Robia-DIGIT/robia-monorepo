@@ -1,6 +1,6 @@
 > ⚠️ **Copie historique non canonique — ne pas utiliser pour les développements ou déploiements de production.**
 >
-> Le backend NestJS de production vit dans le dépôt séparé **[`Robia-DIGIT/Robia-Back`](https://github.com/Robia-DIGIT/Robia-Back)**. Ce dossier (`apps/backend`) n'est construit par aucune CI, n'a pas de Dockerfile, et n'est utilisé par aucun déploiement. Il est resté figé bien avant l'ajout du billing Stripe, des intégrations Google (Search Console, GA4, Business Profile), des locations et de plusieurs migrations Prisma.
+> Le backend NestJS de production vit dans le dépôt séparé **[`Robia-DIGIT/Robia-Back`](https://github.com/Robia-DIGIT/Robia-Back)**. Ce dossier (`apps/backend`) n'est construit par aucune CI, n'a pas de Dockerfile, et n'est utilisé par aucun déploiement. Il est resté figé bien avant l'ajout du billing Stripe, des intégrations Google (Search Console, GA4 — Google Business Profile reste une fonctionnalité future, non encore intégrée), des locations et de plusieurs migrations Prisma.
 >
 > Toute correction backend, migration Prisma, intégration ou fonctionnalité IA doit être réalisée dans `Robia-Back`, pas ici. Détails : [`docs/architecture/source-of-truth.md`](../../docs/architecture/source-of-truth.md).
 
