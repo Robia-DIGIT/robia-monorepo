@@ -24,6 +24,8 @@ import {
 
 import { Alert, Badge, Button, Card, EmptyState, ProgressBar, SearchBar, Tabs } from '../components/ui'
 import { PageSpeedInsightsCard } from '../components/PageSpeedInsightsCard'
+import { SeoScoreV2Card } from '../components/SeoScoreV2Card'
+import { SearchConsoleSignalsCard } from '../components/SearchConsoleSignalsCard'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import {
   createWebsite,
@@ -36,6 +38,8 @@ import {
   auditScore,
   auditSubscores,
   auditPageSpeedInsights,
+  auditSeoScoreV2,
+  auditGoogleSearchConsole,
   oppImpact,
   oppPriorityLabel,
   type Audit,
@@ -84,6 +88,8 @@ export default function PageAnalyse() {
   const radialData = [{ name: 'Score', value: summaryScore, fill: '#14B8A6' }]
   const subscores = auditSubscores(latestAudit)
   const pageSpeedInsights = auditPageSpeedInsights(latestAudit)
+  const seoScoreV2 = auditSeoScoreV2(latestAudit)
+  const searchConsoleSignals = auditGoogleSearchConsole(latestAudit)
 
   const filteredRecommendations = useMemo(() => {
     return opportunities
@@ -368,8 +374,10 @@ export default function PageAnalyse() {
             )}
 
             {activeTab === "Vue d'ensemble" && (
-              <div className="mt-6">
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <PageSpeedInsightsCard psi={pageSpeedInsights} />
+                <SeoScoreV2Card score={seoScoreV2} />
+                <SearchConsoleSignalsCard signals={searchConsoleSignals} />
               </div>
             )}
 
