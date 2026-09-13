@@ -176,17 +176,60 @@ export interface PageSpeedInsightsResult {
   unavailableReason: string | null;
 }
 
+// Explainable SEO score V2 (RC-12, PR #25 as drafted — not yet merged, not
+// yet Codex-reviewed as of this writing). Purely additive alongside
+// global_score/subscores: renders next to the legacy score, never replaces
+// it — whether/how the displayed score migrates to v2 is an explicit,
+// separate product decision (see RC-12's PR body), not decided here.
+export interface SeoCategoryScoreV2 {
+  score: number | null;
+  weight: number | null;
+  measured: boolean;
+  findingsEvaluated: number;
+}
+
+export interface SeoScoreV2 {
+  version: string;
+  globalScore: number | null;
+  categories: Record<string, SeoCategoryScoreV2>;
+}
+
+// Search Console signals attached to an audit (RC-13, PR #28 as drafted —
+// not yet merged). A stale-but-real snapshot of whatever the dashboard's
+// "Google Data" page last synced — never a live call made during the
+// audit itself. 'unavailable' with a reason is a normal, expected value
+// (not connected / no property selected / nothing synced in 28 days),
+// never an error to surface as such.
+export type SearchConsoleAuditSignalsStatus = "ok" | "unavailable";
+
+export interface AuditSearchConsoleSignals {
+  status: SearchConsoleAuditSignalsStatus;
+  source: "search_console";
+  siteUrl: string | null;
+  period: { startDate: string; endDate: string } | null;
+  summary: Omit<SearchConsoleMetric, "key"> | null;
+  lastSyncedAt: string | null;
+  unavailableReason:
+    | "not_connected"
+    | "no_property_selected"
+    | "not_synced_recently"
+    | "temporarily_unavailable"
+    | null;
+}
+
 export interface AuditResultJson {
   summary: string;
   subscores: AuditSubscores;
   global_score: number;
   missing_data: string[];
   // Multi-page v2 audit payload (see Robia-Back audits.service.ts `run()`).
-  // Only pagespeed_insights is modeled here — that's all this dashboard
-  // slice needs today.
   site_audit?: {
     pagespeed_insights?: PageSpeedInsightsResult | null;
+    seo_score_v2?: SeoScoreV2 | null;
   };
+  // Top-level, not nested in site_audit — matches where RC-13 actually
+  // attaches it in audits.service.ts.
+  google_search_console?: AuditSearchConsoleSignals | null;
 }
 
 export type AuditStatus = "completed" | "pending" | "failed" | string;
@@ -481,6 +524,18 @@ export function auditPageSpeedInsights(
   audit: Audit | null | undefined,
 ): PageSpeedInsightsResult | null {
   return audit?.resultJson?.site_audit?.pagespeed_insights ?? null;
+}
+
+export function auditSeoScoreV2(
+  audit: Audit | null | undefined,
+): SeoScoreV2 | null {
+  return audit?.resultJson?.site_audit?.seo_score_v2 ?? null;
+}
+
+export function auditGoogleSearchConsole(
+  audit: Audit | null | undefined,
+): AuditSearchConsoleSignals | null {
+  return audit?.resultJson?.google_search_console ?? null;
 }
 
 export function oppImpact(opp: Opportunity | null | undefined): number {
