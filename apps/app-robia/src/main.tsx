@@ -17,6 +17,7 @@ import PageIA from './pages/PageIA'
 import ProfilePage from './pages/ProfilePage'
 import BusinessProfilePage from './pages/BusinessProfilePage'
 import GoogleDataPage from './pages/GoogleDataPage'
+import MetaDataPage from './pages/MetaDataPage'
 import CreateOrganizationPage from './pages/OrganisationPage.tsx'
 import BillingPage from './pages/BillingPage.tsx'
 
@@ -42,6 +43,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="profile" element={<ProfilePage />} />
             <Route path="business-profile" element={<BusinessProfilePage />} />
             <Route path="google-data" element={<GoogleDataPage />} />
+            <Route path="meta-data" element={<MetaDataPage />} />
             <Route path="billing" element={<BillingPage />} />
           </Route>
         </Route>
