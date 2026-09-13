@@ -12,6 +12,15 @@ on:
     # Required checks must run even for mobile-only or documentation-only PRs.
     branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: "Confirmation explicite requise pour déployer en production"
+        required: true
+        type: choice
+        options:
+          - "NO"
+          - "DEPLOY"
+        default: "NO"
 
 permissions:
   contents: read
@@ -61,10 +70,13 @@ jobs:
     name: Deploy production over restricted SSH
     needs: [quality, build]
     if: >-
+      github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
       github.repository == 'Robia-DIGIT/robia-monorepo' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      inputs.confirm_production == 'DEPLOY' &&
       vars.VPS_DEPLOY_ENABLED == 'true'
+    environment:
+      name: production
     runs-on: ubuntu-latest
     timeout-minutes: 50
     concurrency:
