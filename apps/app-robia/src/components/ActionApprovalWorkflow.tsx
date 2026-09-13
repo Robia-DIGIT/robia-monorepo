@@ -18,17 +18,17 @@ interface Props {
 }
 
 function approvalLabel(status?: string) {
-  if (status === 'approved') return { text: 'Approuvée', variant: 'success' as const }
-  if (status === 'pending') return { text: 'En validation', variant: 'warning' as const }
-  if (status === 'rejected') return { text: 'Rejetée', variant: 'danger' as const }
-  return { text: 'Brouillon', variant: 'neutral' as const }
+  if (status === 'approved') return { text: 'Approuvée', variant: 'green' as const }
+  if (status === 'pending') return { text: 'En validation', variant: 'orange' as const }
+  if (status === 'rejected') return { text: 'Rejetée', variant: 'red' as const }
+  return { text: 'Brouillon', variant: 'gray' as const }
 }
 
 function executionLabel(status?: string) {
-  if (status === 'succeeded') return { text: 'Exécutée', variant: 'success' as const }
-  if (status === 'failed') return { text: 'Échec', variant: 'danger' as const }
-  if (status === 'ready') return { text: 'Prête', variant: 'info' as const }
-  return { text: 'Non démarrée', variant: 'neutral' as const }
+  if (status === 'succeeded') return { text: 'Exécutée', variant: 'green' as const }
+  if (status === 'failed') return { text: 'Échec', variant: 'red' as const }
+  if (status === 'ready') return { text: 'Prête', variant: 'blue' as const }
+  return { text: 'Non démarrée', variant: 'gray' as const }
 }
 
 export default function ActionApprovalWorkflow({ action, onChanged }: Props) {
