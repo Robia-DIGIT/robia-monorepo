@@ -12,6 +12,7 @@ import {
   PanelLeftClose,
   Search,
   Settings,
+  Share2,
   Zap,
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -47,6 +48,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { to: "/ia", label: "Copilot", icon: MessageSquare, badge: "IA" },
   { to: "/business-profile", label: "Business Profile", icon: Building2 },
   { to: "/google-data", label: "Données Google", icon: BarChart3 },
+  { to: "/meta-data", label: "Données Meta", icon: Share2 },
 ];
 
 const FOCUS_RING =
@@ -167,7 +169,6 @@ function SidebarNavItem({
         "relative flex items-center text-sm font-medium transition-colors duration-150",
         FOCUS_RING,
         collapsed
-          // Rail d'icônes : pas de radius/fond de bouton, juste l'icône centrée.
           ? "justify-center py-3"
           : "gap-3 rounded-lg px-3 py-2.5",
         isActive
@@ -181,7 +182,6 @@ function SidebarNavItem({
       {!collapsed && item.label}
       {item.badge &&
         (collapsed ? (
-          // En rail réduit : un simple point de notification, pas un badge texte.
           <span
             className="absolute right-2.5 top-1 h-1.5 w-1.5 rounded-full bg-orange"
             aria-hidden="true"
@@ -225,7 +225,6 @@ export default function Sidebar({
         collapsed ? "lg:w-14" : "lg:w-72",
       )}
     >
-      {/* Brand + toggle */}
       <div
         className={cx(
           !collapsed && "border-b border-white/8",
@@ -266,7 +265,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Org switcher */}
       <div className={cx(!collapsed && "border-b border-white/8", collapsed ? "px-0 py-3" : "px-3 py-4")}>
         <button
           type="button"
@@ -297,7 +295,6 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Navigation */}
       <nav
         aria-label="Navigation principale"
         className={cx(
@@ -338,7 +335,6 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* Account */}
       <div className={cx(!collapsed && "border-t border-white/8", collapsed ? "px-0 py-4" : "px-3 py-4")}>
         <div className={cx("flex items-center", collapsed ? "flex-col justify-center gap-3" : "gap-1 rounded-lg")}>
           <button
