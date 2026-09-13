@@ -24,6 +24,8 @@ import {
 
 import { Alert, Badge, Button, Card, EmptyState, ProgressBar, SearchBar, Tabs } from '../components/ui'
 import { PageSpeedInsightsCard } from '../components/PageSpeedInsightsCard'
+import { SeoScoreV2Card } from '../components/SeoScoreV2Card'
+import { SearchConsoleSignalsCard } from '../components/SearchConsoleSignalsCard'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import {
   createWebsite,
@@ -36,6 +38,8 @@ import {
   auditScore,
   auditSubscores,
   auditPageSpeedInsights,
+  auditSeoScoreV2,
+  auditGoogleSearchConsole,
   oppImpact,
   oppPriorityLabel,
   type Audit,
@@ -84,6 +88,8 @@ export default function PageAnalyse() {
   const radialData = [{ name: 'Score', value: summaryScore, fill: '#14B8A6' }]
   const subscores = auditSubscores(latestAudit)
   const pageSpeedInsights = auditPageSpeedInsights(latestAudit)
+  const seoScoreV2 = auditSeoScoreV2(latestAudit)
+  const searchConsoleSignals = auditGoogleSearchConsole(latestAudit)
 
   const filteredRecommendations = useMemo(() => {
     return opportunities
@@ -349,7 +355,7 @@ export default function PageAnalyse() {
                   <div className="space-y-3 mt-2">
                     {subscores ? (
                       <>
-                        <ProgressBar value={subscores.local} label="Google Business (local)" showValue color="#14B8A6" />
+                        <ProgressBar value={subscores.local} label="Présence locale" showValue color="#14B8A6" />
                         <ProgressBar value={subscores.content} label="Contenu local" showValue color="#1D4ED8" />
                         <ProgressBar value={subscores.technical} label="Cohérence NAP / Technique" showValue color="#F97316" />
                         <ProgressBar value={subscores.performance} label="Performance site" showValue color="#1D4ED8" />
@@ -368,8 +374,10 @@ export default function PageAnalyse() {
             )}
 
             {activeTab === "Vue d'ensemble" && (
-              <div className="mt-6">
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <PageSpeedInsightsCard psi={pageSpeedInsights} />
+                <SeoScoreV2Card score={seoScoreV2} />
+                <SearchConsoleSignalsCard signals={searchConsoleSignals} />
               </div>
             )}
 
