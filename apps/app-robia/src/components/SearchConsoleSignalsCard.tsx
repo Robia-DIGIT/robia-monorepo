@@ -14,6 +14,20 @@ function reasonLabel(reason: string | null): string {
 }
 
 /**
+ * `temporarily_unavailable` means a transient read/backend error, not
+ * anything about the connection itself — telling the user to reconnect or
+ * resync Search Console would be misleading (and wrong) advice for that
+ * case. The other three reasons are genuinely about the connection/sync
+ * state, where that instruction is the correct next step.
+ */
+function unavailableMessage(reason: string | null): string {
+  if (reason === 'temporarily_unavailable') {
+    return 'Search Console est temporairement indisponible. Réessayez plus tard.'
+  }
+  return `Donnée indisponible (${reasonLabel(reason)}). Connectez ou synchronisez Search Console depuis Données Google.`
+}
+
+/**
  * Displays the RC-13 Search Console snapshot attached to an audit. This is
  * always a stale-but-real reading of what the "Google Data" page last
  * synced (never a live call made during the audit) — 'unavailable' with a
@@ -49,8 +63,7 @@ export function SearchConsoleSignalsCard({
           Search Console
         </p>
         <p className="mt-2 text-sm text-muted">
-          Donnée indisponible ({reasonLabel(signals.unavailableReason)}). Connectez ou
-          synchronisez Search Console depuis Données Google.
+          {unavailableMessage(signals.unavailableReason)}
         </p>
       </div>
     )

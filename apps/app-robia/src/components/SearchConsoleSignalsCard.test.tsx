@@ -66,7 +66,7 @@ describe('SearchConsoleSignalsCard', () => {
     expect(screen.getByText(/pas de synchronisation récente/)).toBeInTheDocument()
   })
 
-  it('renders a friendly reason when the signal read is transiently unavailable, never a raw error', () => {
+  it('shows a transient-failure message for temporarily_unavailable, never the reconnect instruction', () => {
     render(
       <SearchConsoleSignalsCard
         signals={signals({
@@ -79,6 +79,25 @@ describe('SearchConsoleSignalsCard', () => {
       />,
     )
 
-    expect(screen.getByText(/temporairement indisponible/)).toBeInTheDocument()
+    expect(
+      screen.getByText('Search Console est temporairement indisponible. Réessayez plus tard.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Connectez ou synchronisez/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the reconnect/sync instruction for the connection-related reasons', () => {
+    render(
+      <SearchConsoleSignalsCard
+        signals={signals({
+          status: 'unavailable',
+          summary: null,
+          siteUrl: null,
+          period: null,
+          unavailableReason: 'no_property_selected',
+        })}
+      />,
+    )
+
+    expect(screen.getByText(/Connectez ou synchronisez Search Console/)).toBeInTheDocument()
   })
 })
