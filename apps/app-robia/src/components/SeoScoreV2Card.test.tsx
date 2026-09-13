@@ -29,7 +29,7 @@ describe('SeoScoreV2Card', () => {
     render(<SeoScoreV2Card score={score()} />)
 
     expect(screen.getByText('82')).toBeInTheDocument()
-    expect(screen.getByText('Google Business (local)')).toBeInTheDocument()
+    expect(screen.getByText('Présence locale')).toBeInTheDocument()
     expect(screen.getByText('90 — Bon')).toBeInTheDocument()
     expect(screen.getByText('Cohérence NAP / Technique')).toBeInTheDocument()
     expect(screen.getByText('65 — À améliorer')).toBeInTheDocument()

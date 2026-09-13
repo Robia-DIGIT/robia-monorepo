@@ -1,8 +1,13 @@
 import { Badge } from './ui'
 import type { SeoScoreV2 } from '../lib/api'
 
+// "local" is scored from the deterministic rules in RC-12 (business address,
+// LocalBusiness schema markup, social profile links) — never from Google
+// Business Profile, which remains unconnected product-wide. The label must
+// not imply otherwise (Codex review on this PR flagged an earlier "Google
+// Business (local)" wording as misleading for exactly this reason).
 const CATEGORY_LABELS: Record<string, string> = {
-  local: 'Google Business (local)',
+  local: 'Présence locale',
   content: 'Contenu local',
   technical: 'Cohérence NAP / Technique',
   performance: 'Performance site',
