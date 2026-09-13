@@ -65,4 +65,20 @@ describe('SearchConsoleSignalsCard', () => {
 
     expect(screen.getByText(/pas de synchronisation récente/)).toBeInTheDocument()
   })
+
+  it('renders a friendly reason when the signal read is transiently unavailable, never a raw error', () => {
+    render(
+      <SearchConsoleSignalsCard
+        signals={signals({
+          status: 'unavailable',
+          summary: null,
+          siteUrl: null,
+          period: null,
+          unavailableReason: 'temporarily_unavailable',
+        })}
+      />,
+    )
+
+    expect(screen.getByText(/temporairement indisponible/)).toBeInTheDocument()
+  })
 })

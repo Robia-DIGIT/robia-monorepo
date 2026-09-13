@@ -355,7 +355,7 @@ export default function PageAnalyse() {
                   <div className="space-y-3 mt-2">
                     {subscores ? (
                       <>
-                        <ProgressBar value={subscores.local} label="Google Business (local)" showValue color="#14B8A6" />
+                        <ProgressBar value={subscores.local} label="Présence locale" showValue color="#14B8A6" />
                         <ProgressBar value={subscores.content} label="Contenu local" showValue color="#1D4ED8" />
                         <ProgressBar value={subscores.technical} label="Cohérence NAP / Technique" showValue color="#F97316" />
                         <ProgressBar value={subscores.performance} label="Performance site" showValue color="#1D4ED8" />

@@ -213,6 +213,7 @@ export interface AuditSearchConsoleSignals {
     | "not_connected"
     | "no_property_selected"
     | "not_synced_recently"
+    | "temporarily_unavailable"
     | null;
 }
 

@@ -5,6 +5,7 @@ const UNAVAILABLE_REASON_LABELS: Record<string, string> = {
   not_connected: 'Search Console non connecté',
   no_property_selected: 'aucune propriété Search Console sélectionnée',
   not_synced_recently: 'pas de synchronisation récente (moins de 28 jours)',
+  temporarily_unavailable: 'temporairement indisponible, réessayez plus tard',
 }
 
 function reasonLabel(reason: string | null): string {
