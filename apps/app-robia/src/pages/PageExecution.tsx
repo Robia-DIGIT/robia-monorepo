@@ -5,6 +5,7 @@ import { Button, Card, Badge, ProgressBar, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import DocumentWorkflow from '../components/DocumentWorkflow'
+import ActionApprovalWorkflow from '../components/ActionApprovalWorkflow'
 import {
   exportActionPlan,
   generateActions,
@@ -22,7 +23,7 @@ import {
   type ValidationLog,
 } from '../lib/api'
 
-function ActionCard({ item, onUpdate }: { item: ActionItem; onUpdate: (id: string, status: string) => Promise<void> }) {
+function ActionCard({ item, onUpdate, onWorkflowChanged }: { item: ActionItem; onUpdate: (id: string, status: string) => Promise<void>; onWorkflowChanged: () => void | Promise<void> }) {
   const { label: statusLabel, badge } = actionStatusLabel(item.status)
   const progress = actionProgressPct(item.status)
   const completed = progress >= 100
@@ -51,6 +52,7 @@ function ActionCard({ item, onUpdate }: { item: ActionItem; onUpdate: (id: strin
           )}
 
           <div className="mt-4 max-w-md"><div className="mb-1.5 flex justify-between text-[10px] text-muted"><span>Échéance : {item.dueDate ?? 'Non définie'}</span><span>{progress}%</span></div><ProgressBar value={progress} color={completed ? '#14B8A6' : progress > 0 ? '#1D4ED8' : '#CBD5E1'} height="h-1.5" /></div>
+          <ActionApprovalWorkflow action={item} onChanged={onWorkflowChanged} />
         </div>
         <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-56 sm:justify-end">
           <Button variant="outline" size="sm" icon={<Settings2 size={12} />} onClick={() => void onUpdate(String(item.id), 'in_progress')}>Démarrer</Button>
@@ -191,7 +193,7 @@ export default function PageExecution() {
 
       <div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">File d’exécution</p><h2 className="mt-1 text-xl font-bold text-navy">Toutes les actions du site</h2></div>
       <div className="space-y-3">
-        {actions.length === 0 ? <EmptyState icon={<RefreshCw size={18} />} title="Aucune action disponible" description={`Générez un plan à partir des ${opportunityCount} opportunité(s) connues pour ce site.`} action={<Button variant="primary" onClick={handleGenerate}>Générer les actions</Button>} /> : actions.map((item) => <ActionCard key={String(item.id)} item={item} onUpdate={handleUpdateStatus} />)}
+        {actions.length === 0 ? <EmptyState icon={<RefreshCw size={18} />} title="Aucune action disponible" description={`Générez un plan à partir des ${opportunityCount} opportunité(s) connues pour ce site.`} action={<Button variant="primary" onClick={handleGenerate}>Générer les actions</Button>} /> : actions.map((item) => <ActionCard key={String(item.id)} item={item} onUpdate={handleUpdateStatus} onWorkflowChanged={loadData} />)}
       </div>
       <DocumentWorkflow opportunities={opportunities} onValidationCreated={() => void loadData()} />
     </div>
