@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import PageOpportunites from './PageOpportunites'
@@ -15,6 +15,7 @@ vi.mock('../lib/api', async (importOriginal) => {
     listOpportunities: vi.fn(),
     generateOpportunities: vi.fn(),
     updateOpportunityStatus: vi.fn(),
+    generateActions: vi.fn(),
   }
 })
 vi.mock('../components/WebsiteContext')
@@ -57,8 +58,10 @@ function metaOpportunity(overrides: Partial<Opportunity> = {}): Opportunity {
     description:
       "La Page Facebook active est sélectionnée, mais aucun compte Instagram professionnel n'y est lié.",
     category: 'social',
-    impactScore: 30,
-    effortScore: 20,
+    // 0-10 scale, matching Robia-Back's META_INSTAGRAM_NOT_LINKED rule
+    // (src/integrations/meta-insights.ts) — the same scale SEO findings use.
+    impactScore: 3,
+    effortScore: 2,
     confidenceScore: 0.9,
     sourceData: {
       version: 1,
@@ -186,8 +189,18 @@ describe('PageOpportunites — Meta opportunity display (RC-19)', () => {
     expect(screen.queryByText(/publier/i)).not.toBeInTheDocument()
   })
 
-  it('lets a Meta recommendation start a draft ROBIA action, exactly like any other opportunity — never a direct Meta action', async () => {
+  it('creates a real draft RC-14 ActionItem via generateActions() when the Meta CTA is clicked — never just a status change pretending to (Codex review)', async () => {
     mockedApi.listOpportunities.mockResolvedValue([metaOpportunity()])
+    mockedApi.generateActions.mockResolvedValue([
+      {
+        id: 'action-1',
+        opportunityId: 'opp-meta-1',
+        title: 'Lier un compte Instagram professionnel',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: null,
+      },
+    ] as Awaited<ReturnType<typeof api.generateActions>>)
     mockedApi.updateOpportunityStatus.mockResolvedValue({
       ...metaOpportunity(),
       status: 'in_progress',
@@ -195,13 +208,41 @@ describe('PageOpportunites — Meta opportunity display (RC-19)', () => {
 
     renderPage()
 
+    const button = await screen.findByRole('button', {
+      name: /Créer une action ROBIA \(brouillon\)/i,
+    })
+    fireEvent.click(button)
+
+    // The CTA's promise ("brouillon") is backed by the real RC-14 mechanism —
+    // generateActions() creates ActionItem rows with approvalStatus: 'draft'
+    // and executionStatus: 'not_started' by default (Robia-Back), never a
+    // Meta API call and never an executed/published action.
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /Créer une action ROBIA \(brouillon\)/i }),
-      ).toBeInTheDocument(),
+      expect(mockedApi.generateActions).toHaveBeenCalledWith('opp-meta-1'),
     )
-    // The button only transitions ROBIA's own opportunity/action status —
-    // it never calls any Meta API (mocked module has no such call to make).
+    await waitFor(() =>
+      expect(mockedApi.updateOpportunityStatus).toHaveBeenCalledWith(
+        'opp-meta-1',
+        'in_progress',
+      ),
+    )
+  })
+
+  it('never creates a draft action when generateActions() fails, and shows an error instead of silently moving the opportunity forward', async () => {
+    mockedApi.listOpportunities.mockResolvedValue([metaOpportunity()])
+    mockedApi.generateActions.mockRejectedValue(new Error('boom'))
+
+    renderPage()
+
+    const button = await screen.findByRole('button', {
+      name: /Créer une action ROBIA \(brouillon\)/i,
+    })
+    fireEvent.click(button)
+
+    await waitFor(() =>
+      expect(mockedApi.generateActions).toHaveBeenCalledWith('opp-meta-1'),
+    )
+    expect(mockedApi.updateOpportunityStatus).not.toHaveBeenCalled()
   })
 
   it('still shows the unrelated SEO opportunity alongside the Meta one, unmodified', async () => {
@@ -214,8 +255,8 @@ describe('PageOpportunites — Meta opportunity display (RC-19)', () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText('Ajouter des balises meta description'),
-      ).toBeInTheDocument(),
+        screen.getAllByText('Ajouter des balises meta description').length,
+      ).toBeGreaterThan(0),
     )
     expect(
       screen.getAllByText('Aucun compte Instagram professionnel lié').length,
@@ -223,5 +264,54 @@ describe('PageOpportunites — Meta opportunity display (RC-19)', () => {
     // The SEO card keeps its own SEO-oriented "Impact SEO" meter — the
     // Meta card never claims one.
     expect(screen.getAllByText(/Impact SEO/i).length).toBeGreaterThan(0)
+  })
+
+  it('never labels a column average "Impact SEO" when it holds Meta-sourced opportunities (Codex review)', async () => {
+    mockedApi.listOpportunities.mockResolvedValue([
+      metaOpportunity(),
+      metaOpportunity({
+        id: 'opp-meta-2',
+        title: 'Aucun média Instagram récent',
+        sourceData: {
+          version: 1,
+          source: 'meta',
+          ruleCode: 'META_NO_RECENT_MEDIA',
+          confidence: 'observed',
+          evidence: [],
+          recommendation: 'Publiez du contenu régulièrement.',
+          scoreInfluence: false,
+        },
+      }),
+    ])
+
+    renderPage()
+
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('Aucun compte Instagram professionnel lié').length,
+      ).toBeGreaterThan(0),
+    )
+    // Only Meta cards are on the page: the column subtitle must use a
+    // neutral "Impact moyen" wording, never "Impact SEO" — a Meta finding's
+    // impact is explicitly scoreInfluence: false, not an SEO impact.
+    expect(screen.queryByText(/Impact SEO/i)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/Impact moyen/i).length).toBeGreaterThan(0)
+  })
+
+  it('never features a Meta finding as the "Meilleure prochaine action" hero card, which has no Meta badges (Codex review)', async () => {
+    mockedApi.listOpportunities.mockResolvedValue([
+      metaOpportunity({ impactScore: 9 }),
+    ])
+
+    renderPage()
+
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('Aucun compte Instagram professionnel lié').length,
+      ).toBeGreaterThan(0),
+    )
+    expect(
+      screen.queryByText(/Meilleure prochaine action/i),
+    ).not.toBeInTheDocument()
   })
 })
