@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Filter, Clock, MapPin, Radar, Zap } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock, Filter, Lock, MapPin, Radar, Share2, Zap } from 'lucide-react'
 
 import { Button, Card, Badge, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
@@ -14,6 +14,7 @@ import {
   oppImpact,
   oppEffort,
   oppIsDone,
+  oppIsMeta,
   oppPriority,
   oppPriorityScore,
   opportunitySourceData,
@@ -26,7 +27,46 @@ function ImpactMeter({ value }: { value: number }) {
   const color = normalized >= 8 ? '#F97316' : normalized >= 6 ? '#14B8A6' : '#94A3B8'
   return <div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border-light"><div className="h-full rounded-full" style={{ width: `${normalized * 10}%`, backgroundColor: color }} /></div><span className="text-xs font-bold tabular-nums" style={{ color }}>{normalized}/10</span></div>
 }
+function MetaOppCard({ opp, onTransition }: { opp: Opportunity; onTransition: (id: string) => void }) {
+  const source = opportunitySourceData(opp)
+  const evidence = source.evidence ?? []
+  const done = oppIsDone(opp)
+  const inProgress = opp.status.toLowerCase().includes('progress')
+  const buttonLabel = done ? 'Réouvrir' : inProgress ? 'Marquer comme résolue' : 'Créer une action ROBIA (brouillon)'
+  const isHeuristic = source.confidence === 'heuristic'
+  return (
+    <article className={`group border-l-2 px-4 py-4 transition-colors ${done ? 'border-teal bg-teal-light/25' : 'border-orange/60 hover:bg-orange-light/10'}`}>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <Badge variant="orange"><Share2 size={11} className="mr-1 inline" />Meta</Badge>
+        <Badge variant="gray"><Lock size={10} className="mr-1 inline" />Lecture seule</Badge>
+        <Badge variant="gray">Hors score SEO</Badge>
+        {done && <CheckCircle2 size={18} className="shrink-0 text-teal" />}
+      </div>
+      <h3 className="mb-1 text-sm font-semibold text-dark">{opp.title ?? 'Opportunité sans titre'}</h3>
+      <p className="mb-3 text-xs leading-relaxed text-muted">{opp.description ?? 'Détail fourni par le backend.'}</p>
+      {evidence.length > 0 && (
+        <div className="mb-3 rounded-lg bg-slate-bg px-3 py-2 text-xs text-dark">
+          <p><span className="font-semibold">Constat observé :</span> {evidence[0].observed}</p>
+          <p className="mt-1"><span className="font-semibold">Attendu :</span> {evidence[0].expected}</p>
+        </div>
+      )}
+      {source.recommendation && (
+        <p className="mb-3 text-xs leading-relaxed text-dark">
+          <span className="font-semibold">Recommandation ROBIA :</span> {source.recommendation}
+        </p>
+      )}
+      <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-muted">
+        {isHeuristic ? 'Confiance : heuristique (seuil configurable, pas une vérité métier)' : 'Confiance : constat observé'}
+      </p>
+      <Button variant={done ? 'outline' : 'primary'} size="sm" className="w-full" onClick={() => onTransition(String(opp.id))} icon={!done && !inProgress ? <ArrowRight size={12} /> : undefined}>{buttonLabel}</Button>
+    </article>
+  )
+}
+
 function OppCard({ opp, onTransition }: { opp: Opportunity; onTransition: (id: string) => void }) {
+  if (oppIsMeta(opp)) {
+    return <MetaOppCard opp={opp} onTransition={onTransition} />
+  }
   const impact = oppImpact(opp)
   const priority = oppPriority(opp)
   const priorityScore = oppPriorityScore(opp)

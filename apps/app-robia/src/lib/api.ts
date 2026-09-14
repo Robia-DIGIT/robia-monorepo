@@ -250,7 +250,9 @@ export type OpportunityStatus =
   "open" | "in_progress" | "done" | "closed" | string;
 
 export interface FindingEvidence {
-  url: string;
+  // Absent on Meta-sourced opportunities (RC-19): that evidence is about
+  // an account-level signal, not a specific page.
+  url?: string;
   observed: string;
   expected: string;
 }
@@ -266,6 +268,14 @@ export interface OpportunitySourceDataV2 {
   evidence?: FindingEvidence[];
   whyItMatters?: string;
   recommendedSteps?: string[];
+  // RC-19: present only on Meta-sourced opportunities (Robia-Back's
+  // OpportunitiesService.buildMetaSourceData) — never combined with the
+  // SEO-oriented fields above on the same opportunity. scoreInfluence is
+  // always false for these; there is no code path where it is true.
+  source?: "meta" | string;
+  confidence?: "observed" | "heuristic" | string;
+  recommendation?: string;
+  scoreInfluence?: boolean;
 }
 
 export interface Opportunity {
@@ -536,6 +546,13 @@ export function auditGoogleSearchConsole(
   audit: Audit | null | undefined,
 ): AuditSearchConsoleSignals | null {
   return audit?.resultJson?.google_search_console ?? null;
+}
+
+// RC-19: true only for opportunities generated from Meta signals
+// (Robia-Back's OpportunitiesService.generateMetaOpportunities) — always
+// read-only, always out of the SEO score.
+export function oppIsMeta(opp: Opportunity | null | undefined): boolean {
+  return opportunitySourceData(opp).source === "meta";
 }
 
 export function oppImpact(opp: Opportunity | null | undefined): number {
