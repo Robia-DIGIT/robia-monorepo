@@ -314,4 +314,49 @@ describe('PageOpportunites — Meta opportunity display (RC-19)', () => {
       screen.queryByText(/Meilleure prochaine action/i),
     ).not.toBeInTheDocument()
   })
+
+  it('still renders the Meta card and its badges when 3+ SEO/Meta categories are present (Codex review, 2nd pass)', async () => {
+    const technicalOpportunity: Opportunity = {
+      ...seoOpportunity,
+      id: 'opp-seo-2',
+      title: 'Corriger les temps de chargement mobile',
+      category: 'technical',
+      sourceData: {
+        version: 2,
+        summary: 'Temps de chargement mobile élevé',
+        ruleCode: 'technical.slow_mobile_load',
+        severity: 'medium',
+        priorityScore: 60,
+        affectedUrls: [],
+        evidence: [],
+        recommendedSteps: [],
+      },
+    }
+    // 3 distinct categories: 'content' (SEO), 'technical' (SEO), 'social'
+    // (Meta) — categorized() previously only rendered the first two.
+    mockedApi.listOpportunities.mockResolvedValue([
+      seoOpportunity,
+      technicalOpportunity,
+      metaOpportunity(),
+    ])
+
+    renderPage()
+
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('Ajouter des balises meta description').length,
+      ).toBeGreaterThan(0),
+    )
+    expect(
+      screen.getByText('Corriger les temps de chargement mobile'),
+    ).toBeInTheDocument()
+    // The 3rd category (Meta's "social") must still be rendered, badges
+    // and all — never silently dropped because only 2 columns existed.
+    expect(
+      screen.getAllByText('Aucun compte Instagram professionnel lié').length,
+    ).toBeGreaterThan(0)
+    expect(screen.getByText('Meta')).toBeInTheDocument()
+    expect(screen.getByText(/Lecture seule/i)).toBeInTheDocument()
+    expect(screen.getByText(/Hors score SEO/i)).toBeInTheDocument()
+  })
 })

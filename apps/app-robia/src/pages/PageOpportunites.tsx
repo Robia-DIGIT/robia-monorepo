@@ -218,8 +218,16 @@ export default function PageOpportunites() {
     return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><Card className="p-8"><div className="h-8 w-72 bg-slate-100 rounded-lg" /></Card></div>
   }
 
-  const colA = categorized[0] ?? { category: 'Visibilité & Présence', items: [] }
-  const colB = categorized[1] ?? { category: 'Contenu & Technique', items: [] }
+  // RC-19 (Codex review, 2nd pass): render every category, not just the
+  // first two — with SEO opportunities already spread across several
+  // categories, a Meta ("social") category could land 3rd or later and be
+  // silently dropped, even though the backend correctly returned it.
+  const columns = categorized.length > 0
+    ? categorized
+    : [
+        { category: 'Visibilité & Présence', items: [] },
+        { category: 'Contenu & Technique', items: [] },
+      ]
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-slide-up">
@@ -244,18 +252,15 @@ export default function PageOpportunites() {
 
       <div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Toutes les opportunités</p><h2 className="mt-1 text-xl font-bold text-navy">File d’actions par signal</h2></div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OppColumn
-          title={colA.category}
-          opps={colA.items}
-          onTransition={transitionOpportunity}
-          onCreateMetaAction={createMetaDraftAction}
-        />
-        <OppColumn
-          title={colB.category}
-          opps={colB.items}
-          onTransition={transitionOpportunity}
-          onCreateMetaAction={createMetaDraftAction}
-        />
+        {columns.map((column) => (
+          <OppColumn
+            key={column.category}
+            title={column.category}
+            opps={column.items}
+            onTransition={transitionOpportunity}
+            onCreateMetaAction={createMetaDraftAction}
+          />
+        ))}
       </div>
 
       {doneOpps.length > 0 && (
