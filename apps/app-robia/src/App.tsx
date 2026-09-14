@@ -90,6 +90,10 @@ export default function App() {
     return <Navigate to="/login" replace />
   }
 
+  if (location.pathname === '/analyse' && new URLSearchParams(location.search).has('meta')) {
+    return <Navigate to={`/meta-data${location.search}`} replace />
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-bg">
       {/* Mobile overlay */}
