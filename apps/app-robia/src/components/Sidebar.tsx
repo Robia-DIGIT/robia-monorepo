@@ -13,6 +13,7 @@ import {
   Search,
   Settings,
   Share2,
+  Workflow,
   Zap,
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -49,6 +50,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { to: "/business-profile", label: "Business Profile", icon: Building2 },
   { to: "/google-data", label: "Données Google", icon: BarChart3 },
   { to: "/meta-data", label: "Données Meta", icon: Share2 },
+  { to: "/ops/automations", label: "Automatisations", icon: Workflow },
 ];
 
 const FOCUS_RING =
@@ -312,7 +314,7 @@ export default function Sidebar({
           <SidebarNavItem
             key={item.to}
             item={item}
-            isActive={activePath === item.to}
+            isActive={activePath === item.to || activePath.startsWith(`${item.to}/`)}
             collapsed={collapsed}
             onNavigate={onNavigate}
           />
