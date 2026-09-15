@@ -13,7 +13,7 @@ vi.mock('../lib/api', async (importOriginal) => {
     ...actual,
     getIntelligenceStatus: vi.fn(),
     getIntelligenceFindings: vi.fn(),
-    getLatestAudit: vi.fn(),
+    listAudits: vi.fn(),
   }
 })
 vi.mock('../components/WebsiteContext')
@@ -121,7 +121,7 @@ beforeEach(() => {
 describe('PageCommandCenter — provider status grid', () => {
   it('renders a distinct card for every provider status returned by the backend', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue(fullStatus())
-    mockedApi.getLatestAudit.mockRejectedValue(new Error('404'))
+    mockedApi.listAudits.mockResolvedValue([])
 
     renderPage()
 
@@ -135,25 +135,28 @@ describe('PageCommandCenter — provider status grid', () => {
 
   it('computes "providers disponibles" and "à configurer" as factual counts, never a health score', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue(fullStatus())
-    mockedApi.getLatestAudit.mockRejectedValue(new Error('404'))
+    mockedApi.listAudits.mockResolvedValue([])
 
     renderPage()
 
     // fullStatus(): seo=ok, pagespeed=ok -> 2 available;
-    // search_console=not_configured, ga4=not_connected, meta=not_connected,
-    // gbp=not_connected -> 4 to configure.
+    // search_console=not_configured, ga4=not_connected, meta=not_connected
+    // -> 3 to configure. GBP is also not_connected but has no real
+    // configuration surface in RC-21, so it must never inflate this count
+    // (Codex review) — the raw not_connected/not_configured tally is 4,
+    // the correct "actionable" count is 3.
     await waitFor(() => expect(screen.getByText('Providers disponibles')).toBeInTheDocument())
     const available = screen.getByText('Providers disponibles').closest('div')
     expect(available).toHaveTextContent('2')
     const toConfigure = screen.getByText('À configurer').closest('div')
-    expect(toConfigure).toHaveTextContent('4')
+    expect(toConfigure).toHaveTextContent('3')
   })
 })
 
 describe('PageCommandCenter — findings require a real completed audit', () => {
   it('loads findings only once a real completed auditId is known', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue([])
-    mockedApi.getLatestAudit.mockResolvedValue(completedAudit())
+    mockedApi.listAudits.mockResolvedValue([completedAudit()])
     mockedApi.getIntelligenceFindings.mockResolvedValue([finding()])
 
     renderPage()
@@ -166,7 +169,7 @@ describe('PageCommandCenter — findings require a real completed audit', () => 
 
   it('shows an explicit empty state with a link to /analyse, and never calls findings, when no audit has completed', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue([])
-    mockedApi.getLatestAudit.mockResolvedValue(completedAudit({ status: 'pending' }))
+    mockedApi.listAudits.mockResolvedValue([completedAudit({ status: 'pending' })])
 
     renderPage()
 
@@ -175,9 +178,9 @@ describe('PageCommandCenter — findings require a real completed audit', () => 
     expect(mockedApi.getIntelligenceFindings).not.toHaveBeenCalled()
   })
 
-  it('shows the same empty state when there is no audit at all (getLatestAudit 404s)', async () => {
+  it('shows the same empty state when there is no audit at all', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue([])
-    mockedApi.getLatestAudit.mockRejectedValue(new Error('Ressource introuvable (404)'))
+    mockedApi.listAudits.mockResolvedValue([])
 
     renderPage()
 
@@ -185,9 +188,38 @@ describe('PageCommandCenter — findings require a real completed audit', () => 
     expect(mockedApi.getIntelligenceFindings).not.toHaveBeenCalled()
   })
 
+  it('shows the same empty state when listAudits itself fails', async () => {
+    mockedApi.getIntelligenceStatus.mockResolvedValue([])
+    mockedApi.listAudits.mockRejectedValue(new Error('network down'))
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Aucun audit terminé')).toBeInTheDocument())
+    expect(mockedApi.getIntelligenceFindings).not.toHaveBeenCalled()
+  })
+
+  it('picks the latest COMPLETED audit even when a more recent audit exists but is not completed yet (Codex review)', async () => {
+    mockedApi.getIntelligenceStatus.mockResolvedValue([])
+    // listAudits() is sorted desc by createdAt, same as the real backend —
+    // the most recent entry (audit-2) is still 'pending'.
+    mockedApi.listAudits.mockResolvedValue([
+      completedAudit({ id: 'audit-2', status: 'pending', createdAt: '2026-09-12T00:00:00Z' }),
+      completedAudit({ id: 'audit-1', status: 'completed', createdAt: '2026-09-10T00:00:00Z' }),
+    ])
+    mockedApi.getIntelligenceFindings.mockResolvedValue([finding()])
+
+    renderPage()
+
+    await waitFor(() =>
+      expect(mockedApi.getIntelligenceFindings).toHaveBeenCalledWith('audit-1'),
+    )
+    expect(mockedApi.getIntelligenceFindings).not.toHaveBeenCalledWith('audit-2')
+    expect(screen.queryByText('Aucun audit terminé')).not.toBeInTheDocument()
+  })
+
   it('never displays the existing SEO score card when there is no completed audit', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue([])
-    mockedApi.getLatestAudit.mockRejectedValue(new Error('404'))
+    mockedApi.listAudits.mockResolvedValue([])
 
     renderPage()
 
@@ -197,7 +229,7 @@ describe('PageCommandCenter — findings require a real completed audit', () => 
 
   it('displays the existing SEO score as an already-computed backend value once a completed audit is found', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue([])
-    mockedApi.getLatestAudit.mockResolvedValue(completedAudit({ globalScore: 62 }))
+    mockedApi.listAudits.mockResolvedValue([completedAudit({ globalScore: 62 })])
     mockedApi.getIntelligenceFindings.mockResolvedValue([])
 
     renderPage()
@@ -210,7 +242,7 @@ describe('PageCommandCenter — findings require a real completed audit', () => 
 describe('PageCommandCenter — resilience', () => {
   it('keeps rendering the provider status grid when the findings call fails', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue(fullStatus())
-    mockedApi.getLatestAudit.mockResolvedValue(completedAudit())
+    mockedApi.listAudits.mockResolvedValue([completedAudit()])
     mockedApi.getIntelligenceFindings.mockRejectedValue(new Error('findings down'))
 
     renderPage()
@@ -222,7 +254,7 @@ describe('PageCommandCenter — resilience', () => {
 
   it('keeps rendering findings when the provider status call fails', async () => {
     mockedApi.getIntelligenceStatus.mockRejectedValue(new Error('status down'))
-    mockedApi.getLatestAudit.mockResolvedValue(completedAudit())
+    mockedApi.listAudits.mockResolvedValue([completedAudit()])
     mockedApi.getIntelligenceFindings.mockResolvedValue([finding()])
 
     renderPage()
@@ -235,7 +267,7 @@ describe('PageCommandCenter — resilience', () => {
 describe('PageCommandCenter — navigation to existing engines', () => {
   it('links to /opportunites, /execution and /ops/automations', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue([])
-    mockedApi.getLatestAudit.mockRejectedValue(new Error('404'))
+    mockedApi.listAudits.mockResolvedValue([])
 
     renderPage()
 
@@ -250,7 +282,7 @@ describe('PageCommandCenter — navigation to existing engines', () => {
 
   it('links each provider needing configuration to /google-data or /meta-data, and never for GBP', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue(fullStatus())
-    mockedApi.getLatestAudit.mockRejectedValue(new Error('404'))
+    mockedApi.listAudits.mockResolvedValue([])
 
     renderPage()
 

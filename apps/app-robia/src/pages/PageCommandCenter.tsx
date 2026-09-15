@@ -11,7 +11,8 @@ import {
   auditScore,
   getIntelligenceFindings,
   getIntelligenceStatus,
-  getLatestAudit,
+  intelligenceConfigureRoute,
+  listAudits,
   orderIntelligenceSignals,
   type Audit,
   type IntelligenceFinding,
@@ -80,12 +81,16 @@ export default function PageCommandCenter() {
       }
     }
 
-    getLatestAudit(activeWebsiteId)
-      .then((result) => {
+    // `/audits/latest` only sorts by createdAt — a newer pending/failed
+    // audit would hide an earlier completed one from `getLatestAudit()`.
+    // `listAudits()` is already sorted desc by createdAt (Robia-Back's
+    // findAllForWebsite), so the first `completed` entry in it is the
+    // real "latest completed audit" RC-21's findings endpoint requires,
+    // even when a more recent, non-completed audit exists (Codex review).
+    listAudits(activeWebsiteId)
+      .then((audits) => {
         if (!mounted) return
-        // Only a genuinely `completed` audit counts as the "real auditId"
-        // RC-21's findings endpoint requires — never a pending/failed one.
-        setAudit(result.status === 'completed' ? result : null)
+        setAudit(audits.find((item) => item.status === 'completed') ?? null)
       })
       .catch(() => {
         if (mounted) setAudit(null)
@@ -134,8 +139,17 @@ export default function PageCommandCenter() {
     () => signals.filter((signal) => signal.status === 'ok' || signal.status === 'partial').length,
     [signals],
   )
+  // Only counts providers that actually have a configuration surface
+  // (search_console/ga4/meta → /google-data or /meta-data) — GBP is
+  // always 'not_connected' in RC-21 but has no real connector to set up
+  // yet, so it must never inflate this count (Codex review).
   const toConfigureCount = useMemo(
-    () => signals.filter((signal) => signal.status === 'not_connected' || signal.status === 'not_configured').length,
+    () =>
+      signals.filter(
+        (signal) =>
+          (signal.status === 'not_connected' || signal.status === 'not_configured') &&
+          intelligenceConfigureRoute(signal.provider) !== null,
+      ).length,
     [signals],
   )
 

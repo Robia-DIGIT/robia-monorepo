@@ -50,11 +50,10 @@ export function IntelligenceFindingCard({
         <Badge variant="gray">
           {finding.scoreInfluence ? "Contribue au score SEO" : "Hors score SEO"}
         </Badge>
-        {finding.confidence && (
-          <Badge variant={finding.confidence === "heuristic" ? "orange" : "teal"}>
-            {finding.confidence === "heuristic" ? "Heuristique" : "Constat observé"}
-          </Badge>
-        )}
+        {/* Exact match on both known values (Codex review) — an unrecognized
+            confidence is never rendered as "Constat observé" by default. */}
+        {finding.confidence === "heuristic" && <Badge variant="orange">Heuristique</Badge>}
+        {finding.confidence === "observed" && <Badge variant="teal">Constat observé</Badge>}
       </div>
 
       <h3 className="mb-1 text-sm font-semibold text-dark">{finding.title}</h3>

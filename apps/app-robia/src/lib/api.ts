@@ -1345,8 +1345,10 @@ export interface IntelligenceFinding {
   confidenceScore: number;
   // Optional (RC-19's MetaFinding.confidence) — only present for
   // providers/findings that distinguish a directly-observed fact from a
-  // documented threshold. Never defaulted when absent.
-  confidence?: "observed" | "heuristic" | string;
+  // documented threshold. Never defaulted when absent. Kept as an exact
+  // union (no `| string` widening, Codex review): an unrecognized value
+  // must never be silently rendered as "constat observé".
+  confidence?: "observed" | "heuristic";
   scoreInfluence: boolean;
 }
 

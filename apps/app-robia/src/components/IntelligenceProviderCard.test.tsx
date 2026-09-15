@@ -94,6 +94,21 @@ describe('IntelligenceProviderCard', () => {
     expect(screen.getByRole('link', { name: 'Configurer' })).toHaveAttribute('href', '/google-data')
   })
 
+  it('never offers a Configurer CTA when a provider is merely "unavailable" (connected/configured, transient read failure) — only shows the reason (Codex review)', () => {
+    renderCard(
+      signal({
+        provider: 'meta',
+        status: 'unavailable',
+        scoreInfluence: false,
+        data: null,
+        unavailableReason: 'temporarily_unavailable',
+      }),
+    )
+    expect(screen.getByText('Temporairement indisponible')).toBeInTheDocument()
+    expect(screen.getByTestId('intelligence-reason-meta')).toHaveTextContent(/temporairement indisponible/i)
+    expect(screen.queryByRole('link', { name: 'Configurer' })).not.toBeInTheDocument()
+  })
+
   it('renders GBP as a placeholder with no fake network CTA, whatever its status', () => {
     renderCard(
       signal({

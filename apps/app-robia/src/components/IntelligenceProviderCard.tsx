@@ -61,6 +61,10 @@ export function IntelligenceProviderCard({
   // CTA, whatever its status is (always 'not_connected' today, but this
   // guard holds even if that ever changes without a real connector).
   const isGbp = signal.provider === "gbp";
+  // 'unavailable' means connected/configured but the read itself failed
+  // transiently — there is nothing to "configure" in that state (Codex
+  // review). Only 'not_connected'/'not_configured' are actionable here.
+  const needsConfiguration = signal.status === "not_connected" || signal.status === "not_configured";
 
   return (
     <article
@@ -102,7 +106,7 @@ export function IntelligenceProviderCard({
         <Badge variant="gray">
           {signal.scoreInfluence ? "Contribue au score SEO" : "Hors score SEO"}
         </Badge>
-        {!isGbp && configureRoute && signal.status !== "ok" && (
+        {!isGbp && configureRoute && needsConfiguration && (
           <Link
             to={configureRoute}
             className="ml-auto rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-navy transition-colors hover:border-teal hover:text-teal-dark"
