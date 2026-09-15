@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import PageAnalyse from './pages/PageAnalyse.tsx'
+import PageCommandCenter from './pages/PageCommandCenter.tsx'
 import PageOpportunites from './pages/PageOpportunites'
 import PageExecution from './pages/PageExecution'
 import PageRapports from './pages/PageRapports'
@@ -40,6 +41,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<App />}>
             <Route index element={<Navigate to="/analyse" replace />} />
             <Route path="analyse" element={<PageAnalyse />} />
+            <Route path="command-center" element={<PageCommandCenter />} />
             <Route path="opportunites" element={<PageOpportunites />} />
             <Route path="execution" element={<PageExecution />} />
             <Route path="rapports" element={<PageRapports />} />

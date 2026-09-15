@@ -1294,3 +1294,160 @@ export async function rejectAutomationRun(runId: string, reason?: string) {
     },
   );
 }
+
+// ---------------------------------------------------------------------
+// RC-21 — Unified Intelligence Core (contracts consumed by RC-22's
+// Command Center). Strictly mirrors Robia-Back's
+// src/intelligence/intelligence.types.ts — do not add fields here that
+// the backend doesn't produce, and never widen a status/reason union
+// with a client-invented value.
+// ---------------------------------------------------------------------
+
+export type IntelligenceProvider =
+  | "seo"
+  | "pagespeed"
+  | "search_console"
+  | "ga4"
+  | "meta"
+  | "gbp"
+  | "ops";
+
+export type IntelligenceProviderStatus =
+  | "ok"
+  | "partial"
+  | "unavailable"
+  | "not_connected"
+  | "not_configured";
+
+// `data` is `null` whenever `status` is not `ok`/`partial` — RC-21's own
+// contract — so this is never coerced into a zero-shaped object here.
+export interface IntelligenceSignal<T = unknown> {
+  provider: IntelligenceProvider;
+  status: IntelligenceProviderStatus;
+  organizationId: string;
+  observedAt: string | null;
+  readOnly: boolean;
+  scoreInfluence: boolean;
+  data: T | null;
+  unavailableReason: string | null;
+}
+
+export interface IntelligenceFinding {
+  provider: IntelligenceProvider;
+  ruleCode: string;
+  title: string;
+  description: string;
+  category: string;
+  evidence: unknown[];
+  recommendation: string | string[];
+  impactScore: number;
+  effortScore: number;
+  confidenceScore: number;
+  // Optional (RC-19's MetaFinding.confidence) — only present for
+  // providers/findings that distinguish a directly-observed fact from a
+  // documented threshold. Never defaulted when absent. Kept as an exact
+  // union (no `| string` widening, Codex review): an unrecognized value
+  // must never be silently rendered as "constat observé".
+  confidence?: "observed" | "heuristic";
+  scoreInfluence: boolean;
+}
+
+export async function getIntelligenceStatus() {
+  return request<IntelligenceSignal[]>("/intelligence/status");
+}
+
+export async function getIntelligenceFindings(auditId: string) {
+  return request<IntelligenceFinding[]>("/intelligence/findings", {
+    query: { auditId },
+  });
+}
+
+// Canonical display order for the provider status grid — 'ops' is
+// intentionally absent: RC-21 registers no 'ops' adapter, so the backend
+// never returns it, and the Command Center must never fabricate a card
+// for a provider it did not actually receive (see intelligenceCards()).
+export const INTELLIGENCE_PROVIDER_ORDER: IntelligenceProvider[] = [
+  "seo",
+  "pagespeed",
+  "search_console",
+  "ga4",
+  "meta",
+  "gbp",
+];
+
+export const INTELLIGENCE_PROVIDER_LABELS: Record<IntelligenceProvider, string> = {
+  seo: "SEO",
+  pagespeed: "PageSpeed",
+  search_console: "Search Console",
+  ga4: "Google Analytics 4",
+  meta: "Meta",
+  gbp: "Google Business Profile",
+  ops: "Automatisations",
+};
+
+// Orders whatever the backend actually returned by the canonical display
+// order above, appending any unlisted provider (e.g. a future 'ops'
+// signal) at the end rather than dropping it — purely a sort, never a
+// filter: a provider absent from `signals` never gets a synthesized card.
+export function orderIntelligenceSignals(
+  signals: IntelligenceSignal[],
+): IntelligenceSignal[] {
+  const rank = (provider: IntelligenceProvider) => {
+    const index = INTELLIGENCE_PROVIDER_ORDER.indexOf(provider);
+    return index === -1 ? INTELLIGENCE_PROVIDER_ORDER.length : index;
+  };
+  return [...signals].sort((a, b) => rank(a.provider) - rank(b.provider));
+}
+
+export function intelligenceStatusLabel(status: IntelligenceProviderStatus): {
+  label: string;
+  badge: "teal" | "blue" | "gray" | "orange" | "red";
+} {
+  switch (status) {
+    case "ok":
+      return { label: "Disponible", badge: "teal" };
+    case "partial":
+      return { label: "Partiel", badge: "blue" };
+    case "not_connected":
+      return { label: "Non connecté", badge: "gray" };
+    case "not_configured":
+      return { label: "Configuration requise", badge: "orange" };
+    case "unavailable":
+      return { label: "Temporairement indisponible", badge: "red" };
+    default:
+      return { label: status, badge: "gray" };
+  }
+}
+
+const INTELLIGENCE_REASON_LABELS: Record<string, string> = {
+  not_connected: "non connecté",
+  not_configured: "configuration requise",
+  no_property_selected: "aucune propriété sélectionnée",
+  analytics_scope_not_granted: "autorisation Google Analytics non accordée",
+  temporarily_unavailable: "temporairement indisponible",
+  no_audit: "aucun audit disponible pour cette organisation",
+  no_pagespeed_data: "aucune donnée PageSpeed disponible sur ce audit",
+  legacy_audit_result: "cet audit précède le score SEO v2",
+  unavailable: "indisponible",
+};
+
+// Reason codes are a closed, backend-owned enum (never a raw error
+// message or stack trace), so surfacing them is safe — this only turns
+// the snake_case code into a readable French phrase, it never invents
+// detail the backend didn't provide.
+export function intelligenceReasonLabel(reason: string | null): string {
+  if (!reason) return "raison non précisée";
+  return INTELLIGENCE_REASON_LABELS[reason] ?? reason.replace(/_/g, " ");
+}
+
+// Where the Command Center sends the user to act on a provider that
+// needs configuration — null means "no configuration surface exists yet"
+// (SEO/PageSpeed derive from an audit, not a connection; GBP has no real
+// backend integration in RC-21, so it must never offer a CTA at all).
+export function intelligenceConfigureRoute(
+  provider: IntelligenceProvider,
+): string | null {
+  if (provider === "search_console" || provider === "ga4") return "/google-data";
+  if (provider === "meta") return "/meta-data";
+  return null;
+}

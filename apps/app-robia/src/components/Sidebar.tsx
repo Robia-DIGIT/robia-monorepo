@@ -5,6 +5,7 @@ import {
   BarChart3,
   FileText,
   HelpCircle,
+  LayoutDashboard,
   Layers,
   type LucideIcon,
   MessageSquare,
@@ -42,6 +43,7 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
+  { to: "/command-center", label: "Command Center", icon: LayoutDashboard },
   { to: "/analyse", label: "Visibilité", icon: Search },
   { to: "/opportunites", label: "Opportunités", icon: Zap },
   { to: "/execution", label: "Actions", icon: Layers },

@@ -1,4 +1,4 @@
-import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from 'react'
+import { type ReactNode, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes } from 'react'
 import { Search, X, AlertCircle, CheckCircle, Info, AlertTriangle, Loader2 } from 'lucide-react'
 
 // ── Buttons ──────────────────────────────────────────────────────────────────
@@ -76,15 +76,18 @@ export function Badge({ variant = 'gray', children, className = '' }: BadgeProps
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
   className?: string
   hover?: boolean
 }
 
-export function Card({ children, className = '', hover = false }: CardProps) {
+export function Card({ children, className = '', hover = false, ...rest }: CardProps) {
   return (
-    <div className={`bg-white rounded-xl border border-border shadow-[0_1px_2px_rgba(31,58,95,0.04)] ${hover ? 'hover:border-teal/35 transition-all duration-200 cursor-pointer' : ''} ${className}`}>
+    <div
+      className={`bg-white rounded-xl border border-border shadow-[0_1px_2px_rgba(31,58,95,0.04)] ${hover ? 'hover:border-teal/35 transition-all duration-200 cursor-pointer' : ''} ${className}`}
+      {...rest}
+    >
       {children}
     </div>
   )
