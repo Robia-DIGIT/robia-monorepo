@@ -132,6 +132,7 @@ export default function PageOpsAutomationRun() {
 
   const status = runStatusLabel(run.status)
   const steps = run.steps ?? []
+  const plannedSteps = run.plannedSteps ?? []
   const isWaitingApproval = run.status === 'waiting_approval'
 
   return (
@@ -165,6 +166,31 @@ export default function PageOpsAutomationRun() {
           <p className="mb-3 text-xs leading-relaxed text-dark">
             Cette exécution respecte ses conditions mais nécessite une validation humaine avant de lancer la moindre
             étape — aucune action n'a encore été exécutée.
+          </p>
+          <div className="mb-3">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-orange-dark">Étapes prévues</h3>
+            {plannedSteps.length === 0 ? (
+              <p className="text-xs text-muted">Aucune étape planifiée.</p>
+            ) : (
+              <ul className="space-y-2">
+                {plannedSteps.map((step, index) => (
+                  <li key={`${step.actionType}-${index}`} className="rounded-lg bg-white/70 px-3 py-2">
+                    <span className="text-xs font-semibold text-dark">
+                      {index + 1}. {step.actionType}
+                    </span>
+                    {step.input && Object.keys(step.input).length > 0 && (
+                      <pre className="mt-1 overflow-x-auto rounded-lg bg-slate-bg px-2 py-1 text-[11px] text-dark">
+                        {JSON.stringify(step.input, null, 2)}
+                      </pre>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <p className="mb-3 text-xs leading-relaxed text-dark">
+            L'approbation exécutera exactement ce plan, même si l'automation a été modifiée depuis le déclenchement de
+            ce run.
           </p>
           <textarea
             value={reason}

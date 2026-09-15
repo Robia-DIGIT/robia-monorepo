@@ -1098,6 +1098,11 @@ export interface AutomationRun {
   finishedAt: string | null;
   errorMessage: string | null;
   context: Record<string, unknown> | null;
+  // Immutable snapshot of the steps (action + canonical/allowlisted input)
+  // taken at trigger time — this is what executeSteps() actually runs, not
+  // the automation's current (possibly since-edited) steps. Shown before
+  // approval so the approver sees exactly what will execute.
+  plannedSteps?: AutomationStep[] | null;
   createdAt: string;
   steps?: AutomationStepRun[];
 }
@@ -1147,9 +1152,16 @@ export function automationModeLabel(automation: Automation): {
   label: string;
   variant: "teal" | "orange";
 } {
-  return automation.requiresApproval
-    ? { label: "Validation requise", variant: "orange" }
-    : { label: "Automatique", variant: "teal" };
+  if (automation.requiresApproval) {
+    return { label: "Validation requise", variant: "orange" };
+  }
+  // A scheduled trigger isn't actually executed by anything yet (no cron
+  // engine is wired up in RC20) — "Automatique" alone would wrongly imply
+  // it already runs unattended in production.
+  if (automation.trigger.type === "scheduled") {
+    return { label: "Automatique (planification à venir)", variant: "teal" };
+  }
+  return { label: "Automatique", variant: "teal" };
 }
 
 export function automationTriggerLabel(trigger: AutomationTrigger): string {

@@ -131,6 +131,32 @@ describe('PageOpsAutomationRun', () => {
     expect(screen.getByRole('button', { name: /Rejeter/ })).toBeInTheDocument()
   })
 
+  it('renders the exact immutable planned steps before approval, not the empty executed-steps list', async () => {
+    mockedApi.getAutomationRun.mockResolvedValue(
+      baseRun({
+        status: 'waiting_approval',
+        requiresApproval: true,
+        approvalStatus: 'pending',
+        plannedSteps: [
+          {
+            actionType: 'robia.action_items.create_internal_task',
+            input: { title: 'Vérifier le certificat SSL' },
+          },
+        ],
+        steps: [],
+      }),
+    )
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Étapes prévues')).toBeInTheDocument())
+    expect(screen.getByText(/robia.action_items.create_internal_task/)).toBeInTheDocument()
+    expect(screen.getByText(/Vérifier le certificat SSL/)).toBeInTheDocument()
+    // The approval CTA is present alongside the visible plan — never shown
+    // without it.
+    expect(screen.getByRole('button', { name: /Approuver et exécuter/ })).toBeInTheDocument()
+  })
+
   it('never shows approve/reject actions for an already-succeeded run', async () => {
     mockedApi.getAutomationRun.mockResolvedValue(baseRun({ status: 'succeeded' }))
 
