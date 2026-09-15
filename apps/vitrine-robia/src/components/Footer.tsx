@@ -60,7 +60,7 @@ export function Footer() {
           <p className="font-[Roboto] text-[clamp(3.5rem,7vw,6rem)] font-black leading-[.84] tracking-[-.065em] text-white/10 sm:col-span-2 lg:col-span-1">
             BE FOUND.
             <br />
-            <span className="text-[#14B8A6]">BE GROW.</span>
+            <span className="text-[#14B8A6]">GROW.</span>
           </p>
           {columns.map((column) => (
             <div key={column.title}>
