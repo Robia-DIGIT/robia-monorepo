@@ -90,9 +90,9 @@ export default function AuthScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={s.hero}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
+          {/* <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
             <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
-          </Pressable>
+          </Pressable> */}
           <View style={s.brandMark}>
             <Image
               source={require("@/assets/images/logo-robia-copilot.svg")}
