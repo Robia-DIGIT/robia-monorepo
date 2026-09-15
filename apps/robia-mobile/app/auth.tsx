@@ -60,7 +60,7 @@ export default function AuthScreen() {
           password,
         });
       else await login(email, password);
-      router.replace('/(tabs)/dashboard');
+      router.replace("/(tabs)/dashboard");
     } catch (cause) {
       setError(
         cause instanceof ApiError
@@ -108,7 +108,11 @@ export default function AuthScreen() {
           <Text style={s.heroTitle}>Votre croissance, guidée par l’IA</Text>
           <Text style={s.heroSubtitle}>Analysez. Décidez. Agissez.</Text>
         </View>
-        {sessionError ? <Pressable accessibilityRole="button" onPress={() => void restore()}><Text style={s.errorText}>{sessionError} · Réessayer</Text></Pressable> : null}
+        {sessionError ? (
+          <Pressable accessibilityRole="button" onPress={() => void restore()}>
+            <Text style={s.errorText}>{sessionError} · Réessayer</Text>
+          </Pressable>
+        ) : null}
         <View style={s.sheet}>
           <View style={s.handle} />
           <View style={s.modeSwitch}>
@@ -300,7 +304,17 @@ function AuthPage({
           </>
         )}
       </Pressable>
-      {!registration ? <Pressable accessibilityRole="button" onPress={() => router.push("/password")} style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ color: Brand.tealDark, textAlign: "center" }}>Mot de passe oubli? ?</Text></Pressable> : null}
+      {!registration ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/password")}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text style={{ color: Brand.tealDark, textAlign: "center" }}>
+            Mot de passe oubli? ?
+          </Text>
+        </Pressable>
+      ) : null}
       <Text style={s.legal}>
         En continuant, vous acceptez les conditions d’utilisation et la
         politique de confidentialité de RobIA.
@@ -357,7 +371,19 @@ function Field({
 const s = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Brand.slate50 },
   flex: { flex: 1 },
-  backButton: { position: "absolute", left: 20, top: 10, zIndex: 2, width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: Brand.white, borderWidth: 0, },
+  backButton: {
+    position: "absolute",
+    left: 20,
+    top: 10,
+    zIndex: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Brand.white,
+    borderWidth: 0,
+  },
   hero: {
     height: "25%",
     minHeight: 168,
@@ -524,7 +550,12 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: Brand.navyDark,
   },
-  submitText: { color: Brand.white, fontFamily: Fonts?.sans, fontSize: 14, fontWeight: "800" },
+  submitText: {
+    color: Brand.white,
+    fontFamily: Fonts?.sans,
+    fontSize: 14,
+    fontWeight: "800",
+  },
   submitIcon: {
     width: 40,
     height: 40,
