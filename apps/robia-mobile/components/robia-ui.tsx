@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Children, type PropsWithChildren, type ReactNode } from "react";
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,10 +23,14 @@ export function RobiaScreen({
   scroll = true,
   contentStyle,
   fixedHeader = false,
+  refreshing = false,
+  onRefresh,
 }: PropsWithChildren<{
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   fixedHeader?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => Promise<unknown>;
 }>) {
   const items = Children.toArray(children);
   const header = fixedHeader ? items.shift() : null;
@@ -53,6 +58,10 @@ export function RobiaScreen({
       {scroll ? (
         <ScrollView
           style={styles.scroll}
+          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
@@ -87,7 +96,7 @@ export function RobiaHeader({
             accessibilityRole="button"
             accessibilityLabel="Revenir à l’écran précédent"
             hitSlop={8}
-            onPress={() => router.back()}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
             style={({ pressed }) => [
               styles.headerButton,
               pressed && styles.pressed,

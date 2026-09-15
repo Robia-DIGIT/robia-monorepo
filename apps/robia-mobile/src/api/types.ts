@@ -3,6 +3,8 @@ export type User = {
   name: string | null;
   email: string;
   company: string | null;
+  phone?: string | null;
+  bio?: string | null;
 };
 export type Organization = {
   id: string;
@@ -16,6 +18,7 @@ export type Website = {
   url: string;
   domain: string | null;
   status: string;
+  archivedAt?: string | null;
   lastCheckedAt: string | null;
   createdAt: string;
 };
@@ -47,7 +50,7 @@ export type RobiaDocument = {
   type: string;
   title: string;
   content: string;
-  status: "draft" | "edited" | "validated";
+  status: "draft" | "edited" | "validated" | "needs_review" | "rejected" | "approved";
   createdAt: string;
   updatedAt: string;
 };
@@ -63,6 +66,8 @@ export type ActionItem = {
   documentId: string | null;
   title: string;
   status: ActionStatus;
+  approvalStatus?: "draft" | "pending" | "approved" | "rejected";
+  executionStatus?: string;
   dueDate: string | null;
   createdAt: string;
 };

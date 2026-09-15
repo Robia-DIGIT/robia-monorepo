@@ -1,3 +1,7 @@
+import { DOCUMENT_STATUS_LABELS } from '@/src/api/presentation';
+import { router } from 'expo-router';
+import { AsyncButton, LoadState } from '@/components/api-ui';
+import { SiteSelector } from '@/components/site-selector';
 import {
   IconBadge,
   RobiaCard,
@@ -21,15 +25,17 @@ const TYPE_LABELS: Record<string, string> = {
   checklist: "Checklist d’exécution",
 };
 export default function ExecutionPackScreen() {
-  const { documents, opportunities, isLoading } = useRobiaData();
-  const ready = documents.filter((item) => item.status !== "draft").length;
+  const { documents, opportunities, isLoading, error, refresh } = useRobiaData();
+  const ready = documents.filter((item) => ["edited", "approved", "validated"].includes(item.status)).length;
   return (
-    <RobiaScreen fixedHeader>
+    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <RobiaHeader compact
         eyebrow="CENTRE DE PRODUCTION"
         title="Documents"
         subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."
       />
+      <SiteSelector /><LoadState loading={isLoading} error={error} retry={refresh} />
+      <AsyncButton label="Historique des validations" action={async () => router.push("/validations")} />
       <View style={styles.progressCard}>
         <IconBadge name="task-alt" />
         <View style={styles.progressCopy}>
@@ -69,19 +75,14 @@ export default function ExecutionPackScreen() {
               {TYPE_LABELS[doc.type] ?? doc.type}
             </Text>
             <Text style={robiaStyles.cardTitle}>{doc.title}</Text>
+            <AsyncButton label="Ouvrir et modifier" action={async () => router.push({ pathname: "/document", params: { id: doc.id } })} />
             <Text numberOfLines={2} style={robiaStyles.body}>
               {doc.content}
             </Text>
           </View>
           <StatusPill
-            label={
-              doc.status === "draft"
-                ? "Brouillon"
-                : doc.status === "edited"
-                  ? "Modifié"
-                  : "Validé"
-            }
-            tone={doc.status === "validated" ? "teal" : "neutral"}
+            label={DOCUMENT_STATUS_LABELS[doc.status] ?? doc.status}
+            tone={["validated", "approved"].includes(doc.status) ? "teal" : ["needs_review", "rejected"].includes(doc.status) ? "orange" : "neutral"}
           />
         </RobiaCard>
       ))}

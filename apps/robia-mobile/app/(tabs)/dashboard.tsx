@@ -1,3 +1,6 @@
+import { auditScore } from '@/src/api/presentation';
+import { SiteSelector } from '@/components/site-selector';
+import { AsyncButton } from '@/components/api-ui';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
@@ -10,15 +13,16 @@ import { useSession } from '@/src/auth/session';
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 export default function HomeScreen() {
-  const { user, organization } = useSession();
-  const { latestAudit, opportunities, documents, actions, error, } = useRobiaData();
-  const score = latestAudit?.globalScore ?? 0;
+  const { user, organization, sessionError, refreshOrganization } = useSession();
+  const { latestAudit, opportunities, documents, actions, error, refresh, isLoading } = useRobiaData();
+  const displayScore = auditScore(latestAudit);
+  const score = displayScore.value;
   const done = actions.filter((item) => item.status === 'done').length;
   const progress = actions.length ? Math.round((done / actions.length) * 100) : 0;
   const firstName = user?.name?.split(' ')[0] ?? organization?.name ?? 'Entreprise';
 
   return (
-    <RobiaScreen fixedHeader>
+    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bonjour, {firstName}</Text>
@@ -32,12 +36,16 @@ export default function HomeScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
+      <SiteSelector />
+      {!organization ? <AsyncButton label="Compléter mon organisation" action={async () => router.push("/settings")} /> : null}
+      {sessionError ? <AsyncButton label={sessionError + " · Réessayer"} action={refreshOrganization} /> : null}
+      <AsyncButton label={isLoading ? "Actualisation…" : "Actualiser mes données"} disabled={isLoading} action={refresh} />
       <RobiaCard style={styles.balanceCard}>
         <View style={styles.cardHeading}>
           <View>
-            <Text style={styles.balanceLabel}>Score de visibilité</Text>
+            <Text style={styles.balanceLabel}>{displayScore.label}</Text>
             <View style={styles.scoreRow}>
-              <Text style={styles.score}>{score}</Text>
+              <Text style={styles.score}>{score ?? '—'}</Text>
               <Text style={styles.scoreSuffix}>/100</Text>
             </View>
           </View>
@@ -47,7 +55,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.track}>
-          <View style={[styles.fill, { width: (Math.max(0, Math.min(score, 100)) + '%') as DimensionValue }]} />
+          <View style={[styles.fill, { width: (Math.max(0, Math.min(score ?? 0, 100)) + '%') as DimensionValue }]} />
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push('/audit')} style={({ pressed }) => [styles.auditButton, pressed && styles.pressed]}>
           <Text style={styles.auditButtonText}>{latestAudit ? 'Relancer mon audit' : 'Lancer mon premier audit'}</Text>
@@ -57,7 +65,7 @@ export default function HomeScreen() {
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Votre activité</Text>
-        <Text style={styles.sectionAction}>Vue d’ensemble</Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/intelligence")}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
       </View>
       <View style={styles.metrics}>
         <Metric icon="track-changes" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
@@ -73,7 +81,7 @@ export default function HomeScreen() {
         {opportunities.length ? opportunities.slice(0, 3).map((item, index) => (
           <Pressable
             key={item.id}
-            onPress={() => router.navigate('/(tabs)/opportunities')}
+            onPress={() => router.push({ pathname: "/opportunity", params: { id: item.id } })}
             style={({ pressed }) => [styles.priorityRow, index > 0 && styles.rowBorder, pressed && styles.pressed]}>
             <View style={[styles.priorityIcon, { backgroundColor: index === 0 ? Brand.orangeLight : Brand.tealLight }]}>
               <MaterialIcons name={index === 0 ? 'bolt' : 'auto-awesome'} size={19} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />

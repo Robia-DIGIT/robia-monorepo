@@ -34,7 +34,7 @@ function AppLayout() {
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
   const pathname = usePathname();
-  const { token, isLoading } = useSession();
+  const { token, user, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
   const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
   const [showLaunchAnimation, setShowLaunchAnimation] = useState(true);
@@ -43,7 +43,7 @@ function AppLayout() {
   useEffect(() => {
     if (isLoading || !rootNavigationState?.key) return;
     const section = segments[0];
-    if (!token && section === '(tabs)') router.replace('/auth');
+    if (!token && !['index', 'auth', 'password', 'support', '+not-found'].includes(section ?? 'index')) router.replace('/auth');
     if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/dashboard');
   }, [isLoading, rootNavigationState?.key, segments, token]);
 
@@ -70,6 +70,7 @@ function AppLayout() {
     headerTintColor: Brand.navyDark,
     headerShadowVisible: false,
     headerTitleStyle: { fontFamily: Fonts?.rounded, fontWeight: '800' as const },
+    headerShown: false,
     contentStyle: { backgroundColor: Brand.slate50 },
   };
 
@@ -222,11 +223,11 @@ function AppLayout() {
     inputRange: [0, 0.88, 1],
     outputRange: [1, 1, 0],
   });
-  const showAssistantButton = Boolean(token) && !isLoading && pathname !== '/chat';
+  const showAssistantButton = Boolean(token) && !isLoading && (pathname === '/dashboard' || pathname === '/profile');
 
   return (
     <ThemeProvider value={navigationTheme}>
-      <Stack screenOptions={screenOptions}>
+      <Stack key={user?.id ?? "guest"} screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
           name="auth"

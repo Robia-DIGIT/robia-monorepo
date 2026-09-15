@@ -20,7 +20,7 @@ import PagerView from "react-native-pager-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AuthScreen() {
-  const { login, register } = useSession();
+  const { login, register, sessionError, restore } = useSession();
   const pager = useRef<PagerView>(null);
   const [page, setPage] = useState(0);
   const [name, setName] = useState("");
@@ -28,6 +28,7 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const submitLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   function selectPage(next: number) {
@@ -36,16 +37,18 @@ export default function AuthScreen() {
     pager.current?.setPage(next);
   }
   async function submit(registration: boolean) {
+    if (submitLock.current) return;
     if (
-      !email.trim() ||
-      password.length < 8 ||
-      (registration && (!name.trim() || !company.trim()))
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+      (registration ? password.length < 8 : !password) ||
+      (registration && (name.trim().length < 2 || !company.trim()))
     ) {
       setError(
         "Complétez les champs requis. Le mot de passe doit contenir au moins 8 caractères.",
       );
       return;
     }
+    submitLock.current = true;
     setIsSubmitting(true);
     setError("");
     try {
@@ -65,6 +68,7 @@ export default function AuthScreen() {
           : "Connexion impossible. Vérifiez votre réseau.",
       );
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   }
@@ -104,6 +108,7 @@ export default function AuthScreen() {
           <Text style={s.heroTitle}>Votre croissance, guidée par l’IA</Text>
           <Text style={s.heroSubtitle}>Analysez. Décidez. Agissez.</Text>
         </View>
+        {sessionError ? <Pressable accessibilityRole="button" onPress={() => void restore()}><Text style={s.errorText}>{sessionError} · Réessayer</Text></Pressable> : null}
         <View style={s.sheet}>
           <View style={s.handle} />
           <View style={s.modeSwitch}>
@@ -295,6 +300,7 @@ function AuthPage({
           </>
         )}
       </Pressable>
+      {!registration ? <Pressable accessibilityRole="button" onPress={() => router.push("/password")} style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ color: Brand.tealDark, textAlign: "center" }}>Mot de passe oubli? ?</Text></Pressable> : null}
       <Text style={s.legal}>
         En continuant, vous acceptez les conditions d’utilisation et la
         politique de confidentialité de RobIA.

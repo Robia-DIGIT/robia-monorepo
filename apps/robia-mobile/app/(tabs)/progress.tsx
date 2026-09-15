@@ -1,3 +1,8 @@
+import { router } from 'expo-router';
+import { AsyncButton, LoadState } from '@/components/api-ui';
+import { SiteSelector } from '@/components/site-selector';
+import { useSession } from '@/src/auth/session';
+import { shareActionPdf } from '@/src/api/export';
 import {
   PrimaryButton,
   RobiaCard,
@@ -19,7 +24,7 @@ import {
   Text,
   View,
 } from "react-native";
-const CYCLE: ActionStatus[] = ["todo", "in_progress", "done"];
+
 const LABEL: Record<ActionStatus, string> = {
   todo: "À faire",
   in_progress: "En cours",
@@ -38,8 +43,10 @@ const ICON: Record<
   ignored: "visibility-off",
 };
 export default function ProgressScreen() {
-  const { actions, isLoading, generatePlan, updateActionStatus } =
+  const { actions, isLoading, error, refresh, selectedWebsiteId, generatePlan } =
     useRobiaData();
+  const { request } = useSession();
+  const [planError, setPlanError] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
   const { done, percent } = useMemo(() => {
     const count = actions.filter((item) => item.status === "done").length;
@@ -49,20 +56,23 @@ export default function ProgressScreen() {
     };
   }, [actions]);
   async function plan() {
-    setPlanning(true);
+    if (planning) return;
+    setPlanError(null); setPlanning(true);
     try {
       await generatePlan();
-    } finally {
+    } catch (error) { setPlanError(error instanceof Error ? error.message : "Planification impossible."); } finally {
       setPlanning(false);
     }
   }
   return (
-    <RobiaScreen fixedHeader>
+    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <RobiaHeader compact
         eyebrow="PLAN D’ACTION"
         title="Suivi"
         subtitle="Pilotez les actions générées par RobIA et leurs échéances."
       />
+      <SiteSelector /><LoadState loading={isLoading} error={error ?? planError} retry={refresh} />
+      <AsyncButton label="Partager le plan PDF" disabled={!actions.length} action={() => shareActionPdf(request, selectedWebsiteId)} />
       <RobiaCard style={styles.hero} accent={Brand.teal}>
         <View style={styles.progressHeader}>
           <View>
@@ -84,7 +94,7 @@ export default function ProgressScreen() {
       </RobiaCard>
       {actions.length ? (
         <PrimaryButton
-          label={planning ? "Planification…" : "Planifier sur 30 jours"}
+          label={planning ? "Planification…" : "Planifier les actions de l’entreprise"}
           icon="event"
           disabled={planning}
           onPress={() => void plan()}
@@ -106,11 +116,7 @@ export default function ProgressScreen() {
       {actions.map((task) => (
         <Pressable
           key={task.id}
-          onPress={() => {
-            const index = CYCLE.indexOf(task.status);
-            const next = index < 0 ? "todo" : CYCLE[(index + 1) % CYCLE.length];
-            void updateActionStatus(task.id, next);
-          }}
+          onPress={() => router.push({ pathname: "/action", params: { id: task.id } })}
         >
           <RobiaCard style={styles.task}>
             <MaterialIcons
