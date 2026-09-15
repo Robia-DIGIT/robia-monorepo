@@ -260,7 +260,7 @@ describe('PageCommandCenter — resilience', () => {
     renderPage()
 
     await waitFor(() => expect(screen.getByTestId('intelligence-status-error')).toBeInTheDocument())
-    expect(screen.getByText('Aucun compte Instagram professionnel lié')).toBeInTheDocument()
+    expect(await screen.findByText('Aucun compte Instagram professionnel lié')).toBeInTheDocument()
   })
 })
 

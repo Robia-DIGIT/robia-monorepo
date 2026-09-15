@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Activity,
   MapPin,
@@ -92,6 +93,7 @@ function competitorStatusLabel(status: string): string {
 }
 
 export default function PageAnalyse() {
+  const navigate = useNavigate()
   const [organization, setOrganization] = useState<Organization | null>(null)
   const { websites, activeWebsite, activeWebsiteId: selectedWebsiteId, setActiveWebsiteId: setSelectedWebsiteId, refreshWebsites } = useWebsiteContext()
   const [latestAudit, setLatestAudit] = useState<Audit | null>(null)
@@ -498,6 +500,7 @@ export default function PageAnalyse() {
                             size="sm"
                             className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity"
                             icon={<ArrowRight size={12} />}
+                            onClick={() => navigate('/opportunites')}
                           >
                             Exécuter
                           </Button>
