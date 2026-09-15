@@ -2,9 +2,12 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
+  Animated,
   FlatList,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -54,6 +57,49 @@ export default function OnboardingScreen() {
   const { width, height } = useWindowDimensions();
   const listRef = useRef<FlatList<Slide>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    let receivedChange = false;
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+      receivedChange = true;
+      setReduceMotion(enabled);
+    });
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted && !receivedChange) setReduceMotion(enabled);
+    }).catch(() => {});
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  // Keep interpolation aligned with the restored page when the viewport changes.
+  const previousWidth = useRef(width);
+  useEffect(() => {
+    if (previousWidth.current !== width) {
+      scrollX.setValue(activeIndex * width);
+      previousWidth.current = width;
+    }
+  }, [activeIndex, scrollX, width]);
+
+  const interpolatePage = (index: number, outputRange: number[]) => scrollX.interpolate({
+    inputRange: [(index - 1) * width, index * width, (index + 1) * width],
+    outputRange,
+    extrapolate: 'clamp',
+  });
+
+  const pageMotion = (index: number, distance: number, scale = 1) => reduceMotion ? {} : {
+    opacity: interpolatePage(index, [0.15, 1, 0.15]),
+    transform: [
+      { translateX: interpolatePage(index, [distance, 0, -distance]) },
+      { translateY: interpolatePage(index, [12, 0, 12]) },
+      { scale: interpolatePage(index, [scale, 1, scale]) },
+    ],
+  };
+
   const compact = height < 720;
   const stageWidth = Math.min(width - 40, 360);
   const stageHeight = stageWidth * (compact ? 0.88 : 1.02);
@@ -66,7 +112,7 @@ export default function OnboardingScreen() {
 
   const finish = () => router.replace('/auth');
   const goToSlide = (index: number) => {
-    listRef.current?.scrollToIndex({ index, animated: true });
+    listRef.current?.scrollToIndex({ index, animated: !reduceMotion });
   };
 
   return (
@@ -82,13 +128,18 @@ export default function OnboardingScreen() {
         <Text style={styles.brandName}>RobIA <Text style={styles.brandAccent}>Copilot</Text></Text>
       </View>
 
-      <FlatList
+      <Animated.FlatList
         key={width}
         ref={listRef}
         data={SLIDES}
         style={styles.carousel}
         horizontal
         pagingEnabled
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: Platform.OS !== 'web' },
+        )}
         initialScrollIndex={activeIndex}
         getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         bounces={false}
@@ -104,20 +155,28 @@ export default function OnboardingScreen() {
             accessible={false}
             importantForAccessibility={index === activeIndex ? 'auto' : 'no-hide-descendants'}
             accessibilityElementsHidden={index !== activeIndex}>
-            <View
+            <Animated.View
               pointerEvents="none"
               accessible={false}
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
-              style={[styles.visual, { width: stageWidth, height: stageHeight }]}>
+              style={[styles.visual, { width: stageWidth, height: stageHeight }, pageMotion(index, 28, 0.94)]}>
               <View style={[styles.backdrop, index % 2 === 1 && styles.backdropAlternate]} />
               <View style={[styles.photo, styles.backPhoto, index % 2 === 1 && styles.backPhotoAlternate]}>
-                <Image source={item.secondaryImage} contentFit="cover" style={styles.photoImage} />
+                <Animated.View style={[styles.photoImage, reduceMotion ? undefined : {
+                  transform: [{ translateY: interpolatePage(index, [18, 0, -18]) }, { scale: 1.12 }],
+                }]}>
+                  <Image source={item.secondaryImage} contentFit="cover" style={styles.photoImage} />
+                </Animated.View>
               </View>
               <View style={[styles.photo, styles.frontPhoto, index % 2 === 1 && styles.frontPhotoAlternate]}>
-                <Image source={item.image} contentFit="cover" style={styles.photoImage} />
+                <Animated.View style={[styles.photoImage, reduceMotion ? undefined : {
+                  transform: [{ translateY: interpolatePage(index, [-12, 0, 12]) }, { scale: 1.1 }],
+                }]}>
+                  <Image source={item.image} contentFit="cover" style={styles.photoImage} />
+                </Animated.View>
               </View>
-            </View>
+            </Animated.View>
 
             <View style={styles.pagination} accessibilityLabel={'Étape ' + (index + 1) + ' sur 4'}>
               {SLIDES.map((slide, dotIndex) => (
@@ -128,16 +187,24 @@ export default function OnboardingScreen() {
                   accessibilityState={{ selected: dotIndex === index }}
                   onPress={() => goToSlide(dotIndex)}
                   style={styles.dotTarget}>
-                  <View style={[styles.dot, dotIndex === index && styles.activeDot]} />
+                  <View style={styles.dot}>
+                    <Animated.View style={[
+                      styles.dotHighlight,
+                      reduceMotion ? { opacity: dotIndex === activeIndex ? 1 : 0, transform: [{ scaleX: 1 }] } : {
+                        opacity: interpolatePage(dotIndex, [0, 1, 0]),
+                        transform: [{ scaleX: interpolatePage(dotIndex, [0.2, 1, 0.2]) }],
+                      },
+                    ]} />
+                  </View>
                 </Pressable>
               ))}
             </View>
 
             <View style={[styles.copy, compact && styles.copyCompact]}>
-              <Text accessibilityRole="header" style={[styles.title, compact && styles.titleCompact]}>
+              <Animated.Text accessibilityRole="header" style={[styles.title, compact && styles.titleCompact, pageMotion(index, 48)]}>
                 {item.title}
-              </Text>
-              <Text style={styles.description}>{item.description}</Text>
+              </Animated.Text>
+              <Animated.Text style={[styles.description, pageMotion(index, 68)]}>{item.description}</Animated.Text>
             </View>
           </ScrollView>
         )}
@@ -211,7 +278,7 @@ const styles = StyleSheet.create({
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   dotTarget: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#E9ECE4' },
-  activeDot: { width: 26, backgroundColor: '#B9E463' },
+  dotHighlight: { position: 'absolute', left: -10.5, top: 0, width: 26, height: 5, borderRadius: 3, backgroundColor: '#B9E463' },
   copy: { alignItems: 'center', paddingHorizontal: 30, paddingTop: 14, maxWidth: 410 },
   copyCompact: { paddingTop: 4 },
   title: {
