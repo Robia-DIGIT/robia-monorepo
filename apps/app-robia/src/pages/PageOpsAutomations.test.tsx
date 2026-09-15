@@ -74,7 +74,7 @@ describe('PageOpsAutomations', () => {
       ).toBeInTheDocument(),
     )
     expect(screen.getByText('Activée')).toBeInTheDocument()
-    expect(screen.getByText('Automatique')).toBeInTheDocument()
+    expect(screen.getByText('Sans validation')).toBeInTheDocument()
     expect(screen.getByText(/audit.completed/)).toBeInTheDocument()
   })
 

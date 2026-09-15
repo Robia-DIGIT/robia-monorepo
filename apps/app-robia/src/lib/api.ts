@@ -1148,20 +1148,19 @@ export const AUTOMATION_ACTION_TYPES: Array<{
   },
 ];
 
+// This describes the APPROVAL mode only — never the trigger/execution mode.
+// "Automatique" would wrongly conflate the two: a manual-trigger automation
+// with requiresApproval=false still needs a human to click "run", and an
+// event-trigger one isn't actually autonomous either since RC20 wires up no
+// automatic event emission yet. automationTriggerLabel() below is the only
+// place that describes Manuel/Événement/Planifié — keep these separate.
 export function automationModeLabel(automation: Automation): {
   label: string;
   variant: "teal" | "orange";
 } {
-  if (automation.requiresApproval) {
-    return { label: "Validation requise", variant: "orange" };
-  }
-  // A scheduled trigger isn't actually executed by anything yet (no cron
-  // engine is wired up in RC20) — "Automatique" alone would wrongly imply
-  // it already runs unattended in production.
-  if (automation.trigger.type === "scheduled") {
-    return { label: "Automatique (planification à venir)", variant: "teal" };
-  }
-  return { label: "Automatique", variant: "teal" };
+  return automation.requiresApproval
+    ? { label: "Validation requise", variant: "orange" }
+    : { label: "Sans validation", variant: "teal" };
 }
 
 export function automationTriggerLabel(trigger: AutomationTrigger): string {

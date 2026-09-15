@@ -157,6 +157,33 @@ describe('PageOpsAutomationRun', () => {
     expect(screen.getByRole('button', { name: /Approuver et exécuter/ })).toBeInTheDocument()
   })
 
+  it('shows the resolved {{event.<key>}} value in plannedSteps for an event-driven run, never the raw placeholder', async () => {
+    mockedApi.getAutomationRun.mockResolvedValue(
+      baseRun({
+        status: 'waiting_approval',
+        requiresApproval: true,
+        approvalStatus: 'pending',
+        triggerType: 'event',
+        plannedSteps: [
+          {
+            actionType: 'robia.opportunities.regenerate',
+            // The backend resolves {{event.auditId}} at trigger time, so this
+            // is always already the literal value by the time it reaches the
+            // frontend — never a template string.
+            input: { auditId: 'audit-123' },
+          },
+        ],
+        steps: [],
+      }),
+    )
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Étapes prévues')).toBeInTheDocument())
+    expect(screen.getByText(/audit-123/)).toBeInTheDocument()
+    expect(screen.queryByText(/\{\{event\./)).not.toBeInTheDocument()
+  })
+
   it('never shows approve/reject actions for an already-succeeded run', async () => {
     mockedApi.getAutomationRun.mockResolvedValue(baseRun({ status: 'succeeded' }))
 
