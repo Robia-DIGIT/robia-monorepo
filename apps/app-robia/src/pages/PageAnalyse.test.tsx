@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import PageAnalyse from './PageAnalyse'
 import * as api from '../lib/api'
-import type { Opportunity } from '../lib/api'
+import type { Competitor, Opportunity } from '../lib/api'
 import { useWebsiteContext } from '../components/WebsiteContext'
 
 vi.mock('../lib/api')
@@ -45,6 +45,7 @@ beforeEach(() => {
   } as Awaited<ReturnType<typeof api.getCurrentOrganization>>)
   mockedApi.listAudits.mockResolvedValue([])
   mockedApi.listOpportunities.mockResolvedValue([])
+  mockedApi.listCompetitors.mockResolvedValue([])
 })
 
 // This page has no PSI-specific loading/error state of its own: PageSpeed
@@ -152,5 +153,123 @@ describe('PageAnalyse — Recommandations tab "Exécuter" CTA', () => {
     fireEvent.click(executeButton)
 
     expect(navigateMock).toHaveBeenCalledWith('/opportunites')
+  })
+})
+
+describe('PageAnalyse — Concurrents tab', () => {
+  function competitor(overrides: Partial<Competitor> = {}): Competitor {
+    return {
+      id: 'comp-1',
+      organizationId: 'o1',
+      websiteId: 'w1',
+      url: 'https://concurrent.example.com',
+      name: null,
+      status: 'completed',
+      globalScore: 80,
+      resultJson: null,
+      errorMessage: null,
+      createdAt: '2026-09-14T00:00:00Z',
+      completedAt: '2026-09-14T00:00:00Z',
+      ...overrides,
+    }
+  }
+
+  async function renderOnConcurrentsTab() {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Concurrents' }))
+  }
+
+  beforeEach(async () => {
+    // vi.mock('../lib/api') auto-mocks every export, including the pure
+    // helpers competitorScore and auditScore — wire the real
+    // implementations back in since this tab's rendering path actually
+    // calls both (same auto-mock gap as oppImpact/oppPriorityLabel
+    // elsewhere in this file: no earlier test in this file exercises the
+    // full "hasAnalyzed" success view with real numbers).
+    const actualApi = await vi.importActual<typeof api>('../lib/api')
+    mockedApi.competitorScore.mockImplementation(actualApi.competitorScore)
+    mockedApi.auditScore.mockImplementation(actualApi.auditScore)
+
+    mockedApi.getLatestAudit.mockResolvedValue({
+      id: 'a1',
+      organizationId: 'o1',
+      websiteId: 'w1',
+      status: 'completed',
+      globalScore: 62,
+      resultJson: {
+        summary: '',
+        subscores: { local: 0, content: 0, technical: 0, performance: 0, ai_readiness: 0 },
+        global_score: 62,
+        missing_data: [],
+      },
+      errorMessage: null,
+      createdAt: '2026-09-14T00:00:00Z',
+      completedAt: '2026-09-14T00:00:00Z',
+    })
+  })
+
+  it('shows an empty state when no competitor is tracked yet', async () => {
+    await renderOnConcurrentsTab()
+
+    expect(await screen.findByText('Aucun concurrent suivi')).toBeInTheDocument()
+  })
+
+  it('adds a competitor and shows its score compared to the own site', async () => {
+    mockedApi.createCompetitor.mockResolvedValue(competitor({ status: 'completed', globalScore: 80 }))
+
+    await renderOnConcurrentsTab()
+
+    const input = await screen.findByRole('textbox', { name: /URL du site concurrent/i })
+    fireEvent.change(input, { target: { value: 'https://concurrent.example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /Ajouter un concurrent/i }))
+
+    await waitFor(() =>
+      expect(mockedApi.createCompetitor).toHaveBeenCalledWith({
+        websiteId: 'w1',
+        url: 'https://concurrent.example.com',
+      }),
+    )
+    expect((await screen.findAllByText('https://concurrent.example.com')).length).toBeGreaterThan(0)
+    // Own score is 62, competitor's is 80 — a real, unfabricated delta.
+    // Text is split across sibling JSX expressions ('+', 18, ' vs vous'),
+    // so match on the element's full textContent rather than exact text.
+    expect(
+      await screen.findByText((_, element) => element?.textContent === '+18 vs vous'),
+    ).toBeInTheDocument()
+  })
+
+  it('never fabricates a score for a competitor that hasn’t completed an audit yet', async () => {
+    mockedApi.listCompetitors.mockResolvedValue([competitor({ status: 'pending', globalScore: null })])
+
+    await renderOnConcurrentsTab()
+
+    expect(await screen.findByText('En attente')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('runs a competitor benchmark and updates its score from the real result', async () => {
+    mockedApi.listCompetitors.mockResolvedValue([competitor({ status: 'pending', globalScore: null })])
+    mockedApi.runCompetitor.mockResolvedValue(competitor({ status: 'completed', globalScore: 55 }))
+
+    await renderOnConcurrentsTab()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Analyser' }))
+
+    await waitFor(() => expect(mockedApi.runCompetitor).toHaveBeenCalledWith('comp-1'))
+    expect(await screen.findByText('55')).toBeInTheDocument()
+  })
+
+  it('removes a competitor when "Retirer" is clicked', async () => {
+    mockedApi.listCompetitors.mockResolvedValue([competitor()])
+    mockedApi.deleteCompetitor.mockResolvedValue({ deleted: true })
+
+    await renderOnConcurrentsTab()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retirer' }))
+
+    await waitFor(() => expect(mockedApi.deleteCompetitor).toHaveBeenCalledWith('comp-1'))
+    await waitFor(() =>
+      expect(screen.queryByText('https://concurrent.example.com')).not.toBeInTheDocument(),
+    )
   })
 })

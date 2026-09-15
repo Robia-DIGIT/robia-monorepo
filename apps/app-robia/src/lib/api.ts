@@ -845,6 +845,65 @@ export async function getAudit(id: string) {
   return request<Audit>(`/audits/${encodeURIComponent(id)}`);
 }
 
+// RC-24: a Competitor is a benchmark of an external URL against the
+// organization's own site — not an Audit/Website of the organization's
+// own. Its score comes only from a real run of the same audit engine
+// (Robia-Back's CompetitorsService.run() → AuditRunnerService), never
+// fabricated: a pending/failed competitor has globalScore/resultJson at
+// null, never a 0 fallback.
+export type CompetitorStatus = "pending" | "running" | "completed" | "failed" | string;
+
+export interface Competitor {
+  id: string;
+  organizationId: string;
+  websiteId: string;
+  url: string;
+  name: string | null;
+  status: CompetitorStatus;
+  globalScore: number | null;
+  resultJson: AuditResultJson | null;
+  errorMessage: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export async function listCompetitors(websiteId: string) {
+  return request<Competitor[]>("/competitors", {
+    query: { website_id: websiteId },
+  });
+}
+
+export async function createCompetitor(payload: {
+  websiteId: string;
+  url: string;
+  name?: string;
+}) {
+  return request<Competitor>("/competitors", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function runCompetitor(id: string) {
+  return request<Competitor>(`/competitors/${encodeURIComponent(id)}/run`, {
+    method: "POST",
+  });
+}
+
+export async function deleteCompetitor(id: string) {
+  return request<{ deleted: boolean }>(
+    `/competitors/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function competitorScore(competitor: Competitor): number | null {
+  if (competitor.globalScore !== null) return competitor.globalScore;
+  const fromResult = competitor.resultJson?.global_score;
+  return typeof fromResult === "number" ? fromResult : null;
+}
+
 export async function generateOpportunities(payload: { auditId: string }) {
   return request<Opportunity[]>("/opportunities/generate", {
     method: "POST",
