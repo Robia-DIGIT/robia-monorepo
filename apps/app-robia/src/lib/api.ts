@@ -981,3 +981,316 @@ export function createBillingPortalSession(): Promise<{ url: string }> {
     method: "POST",
   });
 }
+
+// ---------------------------------------------------------------------
+// RC-20 — Ops Automation Core
+// ---------------------------------------------------------------------
+
+export type AutomationTriggerType = "manual" | "scheduled" | "event";
+
+export interface AutomationTrigger {
+  id: string;
+  automationId: string;
+  type: AutomationTriggerType;
+  cronExpression: string | null;
+  eventType: string | null;
+  config: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ConditionOperator =
+  | "eq"
+  | "ne"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "in"
+  | "notIn"
+  | "exists"
+  | "notExists";
+
+export interface ConditionLeaf {
+  field: string;
+  operator: ConditionOperator;
+  value?: string | number | boolean | Array<string | number>;
+}
+
+export interface ConditionGroup {
+  all?: ConditionNode[];
+  any?: ConditionNode[];
+  not?: ConditionNode;
+}
+
+export type ConditionNode = ConditionLeaf | ConditionGroup;
+
+export interface AutomationStep {
+  actionType: string;
+  input?: Record<string, unknown>;
+}
+
+export interface Automation {
+  id: string;
+  organizationId: string;
+  scope: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  conditions: ConditionNode | null;
+  steps: AutomationStep[];
+  requiresApproval: boolean;
+  createdById: string;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  trigger: AutomationTrigger;
+}
+
+export type AutomationRunStatus =
+  | "queued"
+  | "running"
+  | "waiting_approval"
+  | "succeeded"
+  | "failed"
+  | "cancelled"
+  | "skipped";
+
+export type AutomationStepRunStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "skipped"
+  | "cancelled";
+
+export interface AutomationStepRun {
+  id: string;
+  runId: string;
+  sequence: number;
+  actionType: string;
+  input: Record<string, unknown> | null;
+  status: AutomationStepRunStatus;
+  evidence: Record<string, unknown> | null;
+  error: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+}
+
+export interface AutomationRun {
+  id: string;
+  organizationId: string;
+  automationId: string;
+  status: AutomationRunStatus;
+  triggerType: AutomationTriggerType;
+  sourceEventId: string | null;
+  dedupKey: string;
+  triggeredById: string | null;
+  requiresApproval: boolean;
+  approvalStatus: "pending" | "approved" | "rejected" | null;
+  approvedById: string | null;
+  approvalReason: string | null;
+  approvedAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  context: Record<string, unknown> | null;
+  // Immutable snapshot of the steps (action + canonical/allowlisted input)
+  // taken at trigger time — this is what executeSteps() actually runs, not
+  // the automation's current (possibly since-edited) steps. Shown before
+  // approval so the approver sees exactly what will execute.
+  plannedSteps?: AutomationStep[] | null;
+  createdAt: string;
+  steps?: AutomationStepRun[];
+}
+
+export interface CreateAutomationPayload {
+  name: string;
+  description?: string;
+  trigger: {
+    type: AutomationTriggerType;
+    cronExpression?: string;
+    eventType?: string;
+  };
+  conditions?: ConditionNode;
+  steps: AutomationStep[];
+  requiresApproval?: boolean;
+  enabled?: boolean;
+}
+
+export type UpdateAutomationPayload = Partial<CreateAutomationPayload>;
+
+// RC-20: the exact allowlist ops-actions-registry.service.ts enforces on
+// the backend — kept here only for the form's dropdown, never trusted as
+// the source of truth (the backend re-validates every actionType).
+export const AUTOMATION_ACTION_TYPES: Array<{
+  type: string;
+  label: string;
+}> = [
+  {
+    type: "robia.audit.run_diagnostic",
+    label: "Lancer un diagnostic (audit) sur un site",
+  },
+  {
+    type: "robia.opportunities.regenerate",
+    label: "Générer/compléter les opportunités pour un audit",
+  },
+  {
+    type: "robia.report.prepare_organization_summary",
+    label: "Préparer un résumé de l'organisation (lecture seule)",
+  },
+  {
+    type: "robia.action_items.create_internal_task",
+    label: "Créer une tâche ROBIA interne (brouillon)",
+  },
+];
+
+// This describes the APPROVAL mode only — never the trigger/execution mode.
+// "Automatique" would wrongly conflate the two: a manual-trigger automation
+// with requiresApproval=false still needs a human to click "run", and an
+// event-trigger one isn't actually autonomous either since RC20 wires up no
+// automatic event emission yet. automationTriggerLabel() below is the only
+// place that describes Manuel/Événement/Planifié — keep these separate.
+export function automationModeLabel(automation: Automation): {
+  label: string;
+  variant: "teal" | "orange";
+} {
+  return automation.requiresApproval
+    ? { label: "Validation requise", variant: "orange" }
+    : { label: "Sans validation", variant: "teal" };
+}
+
+export function automationTriggerLabel(trigger: AutomationTrigger): string {
+  if (trigger.type === "manual") return "Manuel";
+  if (trigger.type === "scheduled")
+    return `Planifié${trigger.cronExpression ? ` (${trigger.cronExpression})` : ""}`;
+  return `Événement${trigger.eventType ? ` : ${trigger.eventType}` : ""}`;
+}
+
+export function runStatusLabel(status: AutomationRunStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue";
+} {
+  switch (status) {
+    case "succeeded":
+      return { label: "Succès", variant: "teal" };
+    case "failed":
+      return { label: "Échec", variant: "red" };
+    case "waiting_approval":
+      return { label: "Validation requise", variant: "orange" };
+    case "running":
+      return { label: "En cours", variant: "blue" };
+    case "queued":
+      return { label: "En file", variant: "gray" };
+    case "cancelled":
+      return { label: "Rejeté", variant: "gray" };
+    case "skipped":
+      return { label: "Ignoré", variant: "gray" };
+    default:
+      return { label: status, variant: "gray" };
+  }
+}
+
+export function stepStatusLabel(status: AutomationStepRunStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue";
+} {
+  switch (status) {
+    case "succeeded":
+      return { label: "Succès", variant: "teal" };
+    case "failed":
+      return { label: "Échec", variant: "red" };
+    case "running":
+      return { label: "En cours", variant: "blue" };
+    case "queued":
+      return { label: "En file", variant: "gray" };
+    case "skipped":
+      return { label: "Ignoré", variant: "gray" };
+    case "cancelled":
+      return { label: "Annulé", variant: "gray" };
+    default:
+      return { label: status, variant: "gray" };
+  }
+}
+
+export async function listAutomations() {
+  return request<Automation[]>("/ops/automations");
+}
+
+export async function getAutomation(id: string) {
+  return request<Automation>(`/ops/automations/${encodeURIComponent(id)}`);
+}
+
+export async function createAutomation(payload: CreateAutomationPayload) {
+  return request<Automation>("/ops/automations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAutomation(
+  id: string,
+  payload: UpdateAutomationPayload,
+) {
+  return request<Automation>(`/ops/automations/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function setAutomationEnabled(id: string, enabled: boolean) {
+  return request<Automation>(
+    `/ops/automations/${encodeURIComponent(id)}/enabled`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    },
+  );
+}
+
+export async function triggerAutomation(id: string) {
+  return request<AutomationRun>(
+    `/ops/automations/${encodeURIComponent(id)}/run`,
+    { method: "POST" },
+  );
+}
+
+export async function listAutomationRuns(id: string) {
+  return request<AutomationRun[]>(
+    `/ops/automations/${encodeURIComponent(id)}/runs`,
+  );
+}
+
+export async function getAutomationRun(runId: string) {
+  return request<AutomationRun>(
+    `/ops/automations/runs/${encodeURIComponent(runId)}`,
+  );
+}
+
+export async function approveAutomationRun(runId: string, reason?: string) {
+  return request<AutomationRun>(
+    `/ops/automations/runs/${encodeURIComponent(runId)}/approve`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
+
+export async function rejectAutomationRun(runId: string, reason?: string) {
+  return request<AutomationRun>(
+    `/ops/automations/runs/${encodeURIComponent(runId)}/reject`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}

@@ -20,6 +20,10 @@ import GoogleDataPage from './pages/GoogleDataPage'
 import MetaDataPage from './pages/MetaDataPage'
 import CreateOrganizationPage from './pages/OrganisationPage.tsx'
 import BillingPage from './pages/BillingPage.tsx'
+import PageOpsAutomations from './pages/PageOpsAutomations.tsx'
+import PageOpsAutomationDetail from './pages/PageOpsAutomationDetail.tsx'
+import PageOpsAutomationForm from './pages/PageOpsAutomationForm.tsx'
+import PageOpsAutomationRun from './pages/PageOpsAutomationRun.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -45,6 +49,11 @@ createRoot(document.getElementById('root')!).render(
             <Route path="google-data" element={<GoogleDataPage />} />
             <Route path="meta-data" element={<MetaDataPage />} />
             <Route path="billing" element={<BillingPage />} />
+            <Route path="ops/automations" element={<PageOpsAutomations />} />
+            <Route path="ops/automations/new" element={<PageOpsAutomationForm />} />
+            <Route path="ops/automations/runs/:runId" element={<PageOpsAutomationRun />} />
+            <Route path="ops/automations/:id" element={<PageOpsAutomationDetail />} />
+            <Route path="ops/automations/:id/edit" element={<PageOpsAutomationForm />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
