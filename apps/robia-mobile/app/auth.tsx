@@ -357,7 +357,7 @@ function Field({
 const s = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Brand.slate50 },
   flex: { flex: 1 },
-  backButton: { position: "absolute", left: 20, top: 10, zIndex: 2, width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: Brand.white, borderWidth: 1, borderColor: "#E8ECEF" },
+  backButton: { position: "absolute", left: 20, top: 10, zIndex: 2, width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: Brand.white, borderWidth: 0, },
   hero: {
     height: "25%",
     minHeight: 168,
@@ -488,8 +488,8 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     backgroundColor: Brand.slate50,
-    borderWidth: 1,
-    borderColor: Brand.slate200,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Brand.borderSubtle,
   },
   input: {
     flex: 1,

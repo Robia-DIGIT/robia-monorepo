@@ -168,8 +168,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     backgroundColor: Brand.slate50,
-    borderWidth: 1,
-    borderColor: Brand.slate200,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Brand.borderSubtle,
   },
   input: { flex: 1, color: Brand.slate800, fontSize: 15 },
   notice: {

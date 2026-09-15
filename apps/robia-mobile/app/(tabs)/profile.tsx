@@ -84,7 +84,7 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      <RobiaCard style={styles.infoCard}>
+      <RobiaCard variant="plain" style={styles.infoCard}>
         <View style={styles.cardTitleRow}>
           <Text style={styles.cardTitle}>Informations</Text>
           <Pressable onPress={() => router.push("/settings")}>
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
         />
       </RobiaCard>
 
-      <RobiaCard style={styles.linksCard}>
+      <RobiaCard variant="plain" style={styles.linksCard}>
         <Text style={styles.cardTitle}>Compte</Text>
         {LINKS.map((item, index) => (
           <Pressable
@@ -206,8 +206,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Brand.white,
-    borderWidth: 1,
-    borderColor: "#E8ECEF",
+    borderWidth: 0,
   },
   identity: { alignItems: "center", marginTop: -2, marginBottom: 2 },
   avatarRing: {
@@ -216,8 +215,8 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 46,
     backgroundColor: Brand.white,
-    borderWidth: 1,
-    borderColor: Brand.slate200,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Brand.borderSubtle,
   },
   avatar: {
     flex: 1,
@@ -286,7 +285,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  infoBorder: { borderBottomWidth: 1, borderBottomColor: Brand.slate100 },
+  infoBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Brand.borderSubtle },
   infoCopy: { flex: 1, gap: 2 },
   infoLabel: {
     color: Brand.slate400,
@@ -308,7 +307,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 11,
   },
-  linkBorder: { borderTopWidth: 1, borderTopColor: Brand.slate100 },
+  linkBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Brand.borderSubtle },
   linkIcon: {
     width: 38,
     height: 38,
@@ -332,13 +331,12 @@ const styles = StyleSheet.create({
   logout: {
     minHeight: 48,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Brand.orangeLight,
+    borderWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#FFFDFC",
+    backgroundColor: "#FFF4EB",
   },
   logoutText: {
     color: Brand.orangeDark,

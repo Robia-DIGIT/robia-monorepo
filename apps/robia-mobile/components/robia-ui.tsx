@@ -137,12 +137,14 @@ export function RobiaCard({
   children,
   style,
   accent,
-}: PropsWithChildren<{ style?: StyleProp<ViewStyle>; accent?: string }>) {
+  variant = "surface",
+}: PropsWithChildren<{ style?: StyleProp<ViewStyle>; accent?: string; variant?: "surface" | "plain" }>) {
   return (
     <View
       style={[
         styles.card,
-        accent ? { borderTopColor: accent, borderTopWidth: 3 } : null,
+        accent ? { borderLeftColor: accent, borderLeftWidth: 2 } : null,
+        variant === "plain" && styles.plainSection,
         style,
       ]}
     >
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 112,
-    gap: 18,
+    gap: 22,
   },
   header: { gap: 5, marginBottom: 4 },
   headerCompact: { marginBottom: 0, gap: 0 },
@@ -372,14 +374,12 @@ const styles = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 20,
-    backgroundColor: Brand.white,
-    borderWidth: 1,
-    borderColor: "#E8ECEF",
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.025,
-    shadowRadius: 12,
-    elevation: 1,
+    backgroundColor: Brand.surfaceSoft,
+  },
+  plainSection: {
+    paddingHorizontal: 0,
+    backgroundColor: "transparent",
+    borderRadius: 0,
   },
   iconBadge: {
     width: 42,

@@ -41,7 +41,7 @@ export function Choices<T extends string>({ value, options, onChange }: { value:
 }
 export const apiStyles = StyleSheet.create({ stack: { gap: 14 }, title: robiaStyles.cardTitle, body: robiaStyles.body });
 const s = StyleSheet.create({
-  input: { minHeight: 48, padding: 12, borderWidth: 1, borderColor: Brand.slate200, borderRadius: 12, backgroundColor: 'white', color: Brand.navyDark, fontSize: 15 },
+  input: { minHeight: 48, padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Brand.borderSubtle, borderRadius: 14, backgroundColor: Brand.slate50, color: Brand.navyDark, fontSize: 15 },
   button: { minHeight: 48, padding: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealDark },
   buttonText: { color: 'white', fontWeight: '700', fontSize: 14 }, error: { color: '#B42318', lineHeight: 21 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { minHeight: 44, padding: 12, borderRadius: 12, backgroundColor: Brand.slate100 }, selected: { backgroundColor: Brand.tealLight },
