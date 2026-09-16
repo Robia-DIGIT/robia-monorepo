@@ -4,6 +4,7 @@ import { SiteSelector } from '@/components/site-selector';
 import { useSession } from '@/src/auth/session';
 import { shareActionPdf } from '@/src/api/export';
 import {
+  FilterChips,
   PrimaryButton,
   RobiaCard,
   RobiaHeader,
@@ -48,6 +49,14 @@ export default function ProgressScreen() {
   const { request } = useSession();
   const [planError, setPlanError] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
+  const [filter, setFilter] = useState("Toutes");
+  const filters = ["Toutes", "À faire", "En cours", "Terminées"] as const;
+  const visibleActions = actions.filter((item) => {
+    if (filter === "À faire") return item.status === "todo";
+    if (filter === "En cours") return item.status === "in_progress";
+    if (filter === "Terminées") return item.status === "done";
+    return true;
+  });
   const { done, percent } = useMemo(() => {
     const count = actions.filter((item) => item.status === "done").length;
     return {
@@ -71,7 +80,9 @@ export default function ProgressScreen() {
         title="Suivi"
         subtitle="Pilotez les actions générées par RobIA et leurs échéances."
       />
-      <SiteSelector /><LoadState loading={isLoading} error={error ?? planError} retry={refresh} />
+      <SiteSelector />
+      <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      <LoadState loading={isLoading} error={error ?? planError} retry={refresh} />
       <AsyncButton label="Partager le plan PDF" disabled={!actions.length} action={() => shareActionPdf(request, selectedWebsiteId)} />
       <RobiaCard style={styles.hero} accent={Brand.teal}>
         <View style={styles.progressHeader}>
@@ -118,7 +129,7 @@ export default function ProgressScreen() {
           </Text>
         </RobiaCard>
       ) : null}
-      {actions.map((task) => (
+      {visibleActions.map((task) => (
         <Pressable
           key={task.id}
           accessibilityRole="button"
@@ -166,6 +177,12 @@ export default function ProgressScreen() {
           </RobiaCard>
         </Pressable>
       ))}
+      {!isLoading && actions.length > 0 && !visibleActions.length ? (
+        <RobiaCard>
+          <Text style={robiaStyles.cardTitle}>Aucune action dans ce filtre</Text>
+          <Text style={robiaStyles.body}>Choisissez un autre statut pour afficher votre plan.</Text>
+        </RobiaCard>
+      ) : null}
     </RobiaScreen>
   );
 }
