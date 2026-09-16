@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:api": "node --test tests/api-contracts.test.cjs",
+    "test:navigation": "node --test tests/tab-navigation.test.cjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
