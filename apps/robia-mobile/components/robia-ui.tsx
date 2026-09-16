@@ -187,6 +187,34 @@ export function SectionTitle({
   );
 }
 
+export function FilterChips({
+  options,
+  selected,
+  onChange,
+}: {
+  options: readonly string[];
+  selected: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips} accessibilityRole="tablist">
+      {options.map((option) => {
+        const active = option === selected;
+        return (
+          <Pressable
+            key={option}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            onPress={() => onChange(option)}
+            style={[styles.filterChip, active && styles.filterChipActive]}>
+            <Text style={[styles.filterChipLabel, active && styles.filterChipLabelActive]}>{option}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 export function StatusPill({
   label,
   tone = "teal",
@@ -405,6 +433,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "800",
   },
+  filterChips: { gap: 8, paddingVertical: 2 },
+  filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: "center", backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
+  filterChipActive: { backgroundColor: Brand.navyDark, borderColor: Brand.navyDark },
+  filterChipLabel: { color: Brand.slate500, fontFamily: Fonts?.sans, fontSize: 12, fontWeight: "700" },
+  filterChipLabelActive: { color: Brand.white },
   pill: {
     alignSelf: "flex-start",
     borderRadius: 999,

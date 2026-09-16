@@ -5,6 +5,7 @@ import { SiteSelector } from '@/components/site-selector';
 import { useSession } from '@/src/auth/session';
 import {
   IconBadge,
+  FilterChips,
   RobiaCard,
   RobiaHeader,
   RobiaScreen,
@@ -36,6 +37,13 @@ export default function OpportunitiesScreen() {
   const { request } = useSession();
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [filter, setFilter] = useState("Toutes");
+  const filters = ["Toutes", "Prioritaires", "Faible effort"] as const;
+  const visibleOpportunities = opportunities.filter((item) => {
+    if (filter === "Prioritaires") return item.impactScore >= 7;
+    if (filter === "Faible effort") return item.effortScore <= 4;
+    return true;
+  });
   async function act(id: string, kind: "document" | "actions") {
     if (busyId) return;
     setActionError(null);
@@ -55,10 +63,11 @@ export default function OpportunitiesScreen() {
         subtitle="Les actions les plus utiles détectées à partir de votre dernier audit."
       />
       <SiteSelector />
+      <FilterChips options={filters} selected={filter} onChange={setFilter} />
       {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
       {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null}
       <View style={styles.summary}>
-        <Text style={styles.summaryCount}>{opportunities.length}</Text>
+        <Text style={styles.summaryCount}>{visibleOpportunities.length}</Text>
         <Text style={robiaStyles.body}>opportunités classées par impact.</Text>
       </View>
       {isLoading && !opportunities.length ? (
@@ -81,7 +90,7 @@ export default function OpportunitiesScreen() {
           </Text>
         </RobiaCard>
       ) : null}
-      {opportunities.map((item, index) => (
+      {visibleOpportunities.map((item, index) => (
         <OpportunityCard
           key={item.id}
           item={item}
@@ -90,6 +99,12 @@ export default function OpportunitiesScreen() {
           onAction={act}
         />
       ))}
+      {!isLoading && latestAudit && !visibleOpportunities.length ? (
+        <RobiaCard>
+          <Text style={robiaStyles.cardTitle}>Aucune opportunité dans ce filtre</Text>
+          <Text style={robiaStyles.body}>Essayez un autre filtre pour voir les recommandations disponibles.</Text>
+        </RobiaCard>
+      ) : null}
     </RobiaScreen>
   );
 }
