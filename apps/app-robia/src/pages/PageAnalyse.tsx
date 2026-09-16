@@ -581,6 +581,8 @@ export default function PageAnalyse() {
                                   </div>
                                 )}
                               </>
+                            ) : competitor.status === 'failed' ? (
+                              <div className="text-xs text-muted">Analyse indisponible</div>
                             ) : (
                               <div className="text-xs text-muted">—</div>
                             )}

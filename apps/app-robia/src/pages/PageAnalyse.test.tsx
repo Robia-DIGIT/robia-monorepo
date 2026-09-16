@@ -247,6 +247,28 @@ describe('PageAnalyse — Concurrents tab', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
+  // Real-world case (Novotel, RC-24 follow-up): the backend engine can
+  // return global_score: 0 as a placeholder when it couldn't actually read
+  // the page — never a real score. A failed competitor must show that
+  // explicitly, not a bare "—" that reads the same as "not run yet".
+  it('shows "Analyse indisponible" — not a 0 score — for a competitor whose audit failed to read the page', async () => {
+    mockedApi.listCompetitors.mockResolvedValue([
+      competitor({
+        status: 'failed',
+        globalScore: null,
+        errorMessage: 'Site inaccessible : redirection non suivie par le scraper',
+      }),
+    ])
+
+    await renderOnConcurrentsTab()
+
+    expect(await screen.findByText('Échec')).toBeInTheDocument()
+    expect(screen.getByText('Analyse indisponible')).toBeInTheDocument()
+    expect(
+      screen.getByText('Site inaccessible : redirection non suivie par le scraper'),
+    ).toBeInTheDocument()
+  })
+
   it('runs a competitor benchmark and updates its score from the real result', async () => {
     mockedApi.listCompetitors.mockResolvedValue([competitor({ status: 'pending', globalScore: null })])
     mockedApi.runCompetitor.mockResolvedValue(competitor({ status: 'completed', globalScore: 55 }))
