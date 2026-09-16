@@ -8,33 +8,8 @@ import { useRobiaData } from "@/src/api/data";
 import { useSession } from "@/src/auth/session";
 
 const LINKS = [
-  { label: "Vue d’ensemble", description: "État des sources et constats", icon: "insights", href: "/intelligence" },
-  { label: "Mes sites", description: "Sélection, archivage et restauration", icon: "language", href: "/websites" },
-  { label: "Mes établissements", description: "Coordonnées et météo", icon: "storefront", href: "/locations" },
-  { label: "Mes connexions", description: "Google, Facebook et Instagram", icon: "hub", href: "/integrations" },
-  { label: "Abonnement", description: "Offre et facturation", icon: "credit-card", href: "/billing" },
-  { label: "Automatisations", description: "Déclencheurs et validations", icon: "auto-awesome", href: "/automations" },
-  { label: "Validations", description: "Historique des décisions", icon: "fact-check", href: "/validations" },
-  { label: "Contacter RobIA", description: "Une question ou un besoin", icon: "support-agent", href: "/support" },
   { label: "Mot de passe", description: "Recevoir un lien de réinitialisation", icon: "lock", href: "/password" },
-  {
-    label: "Historique des audits",
-    description: "Toutes vos analyses",
-    icon: "history",
-    href: "/history",
-  },
-  {
-    label: "Rapports",
-    description: "Mesurer les performances",
-    icon: "assessment",
-    href: "/reports",
-  },
-  {
-    label: "Paramètres du compte",
-    description: "Sécurité et préférences",
-    icon: "settings",
-    href: "/settings",
-  },
+  { label: "Paramètres du compte", description: "Sécurité et préférences", icon: "settings", href: "/settings" },
 ] as const;
 
 export default function ProfileScreen() {
@@ -122,7 +97,7 @@ export default function ProfileScreen() {
       </RobiaCard>
 
       <RobiaCard variant="plain" style={styles.linksCard}>
-        <Text style={styles.cardTitle}>Compte</Text>
+        <Text style={styles.cardTitle}>Compte et sécurité</Text>
         {LINKS.map((item, index) => (
           <Pressable
             key={item.href}

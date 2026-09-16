@@ -12,6 +12,19 @@ import { useSession } from '@/src/auth/session';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
+const TOOLS = [
+  { label: 'Vue d’ensemble', description: 'Sources et constats', icon: 'insights', href: '/intelligence' },
+  { label: 'Mes sites', description: 'Présences connectées', icon: 'language', href: '/websites' },
+  { label: 'Connexions', description: 'Google, Meta et autres', icon: 'hub', href: '/integrations' },
+  { label: 'Rapports', description: 'Mesurer les performances', icon: 'assessment', href: '/reports' },
+  { label: 'Automatisations', description: 'Déclencheurs et contrôles', icon: 'auto-awesome', href: '/automations' },
+  { label: 'Validations', description: 'Décisions à confirmer', icon: 'fact-check', href: '/validations' },
+  { label: 'Historique', description: 'Tous vos audits', icon: 'history', href: '/history' },
+  { label: 'Établissements', description: 'Coordonnées et météo', icon: 'storefront', href: '/locations' },
+  { label: 'Abonnement', description: 'Offre et facturation', icon: 'credit-card', href: '/billing' },
+  { label: 'Support', description: 'Besoin d’aide ?', icon: 'support-agent', href: '/support' },
+] as const;
+
 export default function HomeScreen() {
   const { user, organization, sessionError, refreshOrganization } = useSession();
   const { latestAudit, opportunities, documents, actions, error, refresh, isLoading } = useRobiaData();
@@ -76,6 +89,31 @@ export default function HomeScreen() {
         <Metric icon="track-changes" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
         <Metric icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
         <Metric icon="checklist" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
+      </View>
+
+      <View style={styles.sectionHeading}>
+        <Text style={styles.sectionTitle}>Outils</Text>
+        <Text style={styles.sectionAction}>Accès rapide</Text>
+      </View>
+      <View style={styles.toolsGrid}>
+        {TOOLS.map((tool) => (
+          <Pressable
+            key={tool.href}
+            accessibilityRole="button"
+            accessibilityLabel={tool.label}
+            accessibilityHint={tool.description}
+            onPress={() => router.push(tool.href)}
+            style={({ pressed }) => [styles.tool, pressed && styles.pressed]}>
+            <View style={styles.toolIcon}>
+              <MaterialIcons name={tool.icon} size={19} color={Brand.tealDark} />
+            </View>
+            <View style={styles.toolCopy}>
+              <Text style={styles.toolTitle} numberOfLines={1}>{tool.label}</Text>
+              <Text style={styles.toolDescription} numberOfLines={1}>{tool.description}</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={18} color={Brand.slate400} />
+          </Pressable>
+        ))}
       </View>
 
       <View style={styles.sectionHeading}>
@@ -151,6 +189,12 @@ const styles = StyleSheet.create({
   metricIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   metricValue: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, fontWeight: '900' },
   metricLabel: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 12, lineHeight: 16, fontWeight: '600' },
+  toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  tool: { width: '48.5%', minHeight: 70, padding: 10, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Brand.white },
+  toolIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealLight },
+  toolCopy: { flex: 1, gap: 2 },
+  toolTitle: { color: Brand.navyDark, fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800' },
+  toolDescription: { color: Brand.slate400, fontFamily: Fonts.sans, fontSize: 10, lineHeight: 14, fontWeight: '600' },
   listCard: { paddingVertical: 3 },
   priorityRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 10 },
   rowBorder: { borderTopWidth: 1, borderTopColor: Brand.slate100 },
