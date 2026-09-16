@@ -31,6 +31,8 @@ export default function HistoryScreen() {
         <Pressable
           key={a.id}
           accessibilityRole="button"
+          accessibilityLabel={`Audit du ${new Date(a.createdAt).toLocaleString("fr-FR")}. ${a.status === "completed" ? "Terminé" : a.status === "failed" ? "Échec" : "En cours"}. ${auditScore(a).label} : ${auditScore(a).value ?? "non mesuré"} sur 100`}
+          accessibilityHint="Ouvre le détail de cet audit"
           onPress={() =>
             router.push({ pathname: "/audit-detail", params: { id: a.id } })
           }

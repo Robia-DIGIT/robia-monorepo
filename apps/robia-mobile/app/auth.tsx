@@ -279,6 +279,9 @@ function AuthPage({
         </View>
       ) : null}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={registration ? "Créer mon espace RobIA" : "Continuer avec RobIA"}
+        accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
         disabled={isSubmitting}
         onPress={() => void submit(registration)}
         style={({ pressed }) => [
@@ -311,7 +314,7 @@ function AuthPage({
           style={{ minHeight: 44, justifyContent: "center" }}
         >
           <Text style={{ color: Brand.tealDark, textAlign: "center" }}>
-            Mot de passe oubli? ?
+            Mot de passe oublié ?
           </Text>
         </Pressable>
       ) : null}
@@ -358,6 +361,7 @@ function Field({
       <View style={s.field}>
         <MaterialIcons name={icon} size={20} color={Brand.tealDark} />
         <TextInput
+          accessibilityLabel={label}
           placeholderTextColor={Brand.slate400}
           style={s.input}
           {...props}
@@ -434,7 +438,7 @@ const s = StyleSheet.create({
   heroSubtitle: {
     marginTop: 5,
     color: Brand.tealDark,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700",
   },
   sheet: {
@@ -469,13 +473,13 @@ const s = StyleSheet.create({
   },
   modeButton: {
     flex: 1,
-    minHeight: 39,
+    minHeight: 48,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
   modeButtonActive: { backgroundColor: Brand.white, elevation: 2 },
-  modeLabel: { color: Brand.slate400, fontSize: 12, fontWeight: "800" },
+  modeLabel: { color: Brand.slate400, fontSize: 14, fontWeight: "800" },
   modeLabelActive: { color: Brand.navyDark },
   pager: { flex: 1 },
   page: { flex: 1 },
@@ -502,10 +506,10 @@ const s = StyleSheet.create({
     lineHeight: 28,
     fontWeight: "900",
   },
-  subtitle: { color: Brand.slate500, fontSize: 12.5, lineHeight: 18 },
+  subtitle: { color: Brand.slate500, fontSize: 14, lineHeight: 20 },
   form: { gap: 14 },
   fieldGroup: { gap: 7 },
-  fieldLabel: { color: Brand.slate500, fontSize: 11, fontWeight: "800" },
+  fieldLabel: { color: Brand.navyDark, fontSize: 13, fontWeight: "800" },
   field: {
     minHeight: 54,
     paddingHorizontal: 14,
@@ -522,7 +526,7 @@ const s = StyleSheet.create({
     minHeight: 50,
     paddingVertical: 0,
     color: Brand.slate800,
-    fontSize: 14,
+    fontSize: 16,
   },
   error: {
     marginTop: 15,
@@ -535,8 +539,8 @@ const s = StyleSheet.create({
   errorText: {
     flex: 1,
     color: Brand.orangeDark,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: "600",
   },
   submit: {
@@ -569,8 +573,8 @@ const s = StyleSheet.create({
     alignSelf: "center",
     marginTop: 14,
     color: Brand.slate400,
-    fontSize: 9.5,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: "center",
   },
   pressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },

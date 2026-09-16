@@ -88,7 +88,12 @@ export default function ProgressScreen() {
             color={Brand.tealDark}
           />
         </View>
-        <View style={styles.track}>
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel="Progression du plan d’action"
+          accessibilityValue={{ min: 0, max: 100, now: percent, text: `${done} actions terminées sur ${actions.length}` }}
+          style={styles.track}>
           <View style={[styles.fill, { width: `${percent}%` }]} />
         </View>
       </RobiaCard>
@@ -116,6 +121,9 @@ export default function ProgressScreen() {
       {actions.map((task) => (
         <Pressable
           key={task.id}
+          accessibilityRole="button"
+          accessibilityLabel={`${task.title}. Statut : ${LABEL[task.status]}. ${task.dueDate ? `Échéance le ${new Date(task.dueDate).toLocaleDateString('fr-FR')}` : 'Échéance à planifier'}`}
+          accessibilityHint="Ouvre le détail de cette action"
           onPress={() => router.push({ pathname: "/action", params: { id: task.id } })}
         >
           <RobiaCard style={styles.task}>

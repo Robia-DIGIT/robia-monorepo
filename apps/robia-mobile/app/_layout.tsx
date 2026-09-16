@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { RobiaDataProvider } from '@/src/api/data';
 import { SessionProvider, useSession } from '@/src/auth/session';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ export default function RootLayout() {
 
 function AppLayout() {
   const colorScheme = useColorScheme();
+  const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
@@ -61,8 +63,8 @@ function AppLayout() {
   };
 
   const screenOptions = {
-    animation: 'slide_from_right' as const,
-    animationDuration: 260,
+    animation: reduceMotion ? 'none' as const : 'slide_from_right' as const,
+    animationDuration: reduceMotion ? 0 : 260,
     gestureEnabled: true,
     fullScreenGestureEnabled: true,
     animationMatchesGesture: true,
@@ -79,6 +81,13 @@ function AppLayout() {
   }, []);
 
   useEffect(() => {
+    if (reduceMotion) {
+      launchProgress.setValue(1);
+      finishLaunchAnimation();
+      SplashScreen.hideAsync().catch(() => {});
+      return;
+    }
+
     const animation = Animated.timing(launchProgress, {
       toValue: 1,
       duration: 3800,
@@ -96,7 +105,7 @@ function AppLayout() {
       animation.stop();
       clearTimeout(fallbackTimer);
     };
-  }, [finishLaunchAnimation, launchProgress]);
+  }, [finishLaunchAnimation, launchProgress, reduceMotion]);
 
   const revealAnimation = useCallback(() => {
     SplashScreen.hideAsync().catch(() => {
@@ -254,6 +263,7 @@ function AppLayout() {
           accessibilityLabel="Ouvrir l'assistant RobIA"
           accessibilityRole="button"
           onPress={() => router.push('/chat')}
+          accessibilityHint={'Ouvre votre synthèse et les prochaines actions recommandées'}
           style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
           <View pointerEvents="none" style={styles.assistantHalo} />
           <View pointerEvents="none" style={styles.assistantCore}>

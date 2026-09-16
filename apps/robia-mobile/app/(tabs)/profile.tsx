@@ -56,7 +56,7 @@ export default function ProfileScreen() {
     <RobiaScreen fixedHeader>
       <View style={styles.topBar}>
         <View style={styles.topSpacer} />
-        <Text style={styles.pageTitle}>Profil</Text>
+        <Text accessibilityRole="header" style={styles.pageTitle}>Profil</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Modifier le profil"
@@ -67,7 +67,10 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.identity}>
+      <View
+        accessible
+        accessibilityLabel={`${user?.name ?? organization?.name ?? "Mon entreprise"}. ${organization?.name ?? user?.company ?? "Espace RobIA"}`}
+        style={styles.identity}>
         <View style={styles.avatarRing}>
           <View style={styles.avatar}>
             <Text style={styles.initials}>{initials}</Text>
@@ -87,7 +90,7 @@ export default function ProfileScreen() {
       <RobiaCard variant="plain" style={styles.infoCard}>
         <View style={styles.cardTitleRow}>
           <Text style={styles.cardTitle}>Informations</Text>
-          <Pressable onPress={() => router.push("/settings")}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Modifier les informations" hitSlop={10} onPress={() => router.push("/settings")}>
             <Text style={styles.editText}>Modifier</Text>
           </Pressable>
         </View>
@@ -123,6 +126,9 @@ export default function ProfileScreen() {
         {LINKS.map((item, index) => (
           <Pressable
             key={item.href}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            accessibilityHint={item.description}
             onPress={() => router.push(item.href)}
             style={({ pressed }) => [
               styles.linkRow,
@@ -200,8 +206,8 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   editButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
@@ -256,7 +262,7 @@ const styles = StyleSheet.create({
   role: {
     color: Brand.slate500,
     fontFamily: Fonts.sans,
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 3,
   },
   infoCard: { paddingTop: 17, paddingBottom: 4 },
@@ -276,7 +282,7 @@ const styles = StyleSheet.create({
   editText: {
     color: Brand.tealDark,
     fontFamily: Fonts.sans,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "800",
   },
   infoRow: {
@@ -290,14 +296,14 @@ const styles = StyleSheet.create({
   infoLabel: {
     color: Brand.slate400,
     fontFamily: Fonts.sans,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "600",
   },
   infoValue: {
     color: Brand.navyDark,
     fontFamily: Fonts.sans,
-    fontSize: 12.5,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: "700",
   },
   linksCard: { paddingTop: 17, paddingBottom: 3 },
@@ -320,13 +326,14 @@ const styles = StyleSheet.create({
   linkTitle: {
     color: Brand.navyDark,
     fontFamily: Fonts.sans,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
   },
   linkDescription: {
     color: Brand.slate400,
     fontFamily: Fonts.sans,
-    fontSize: 10.5,
+    fontSize: 12,
+    lineHeight: 17,
   },
   logout: {
     minHeight: 48,
@@ -347,7 +354,7 @@ const styles = StyleSheet.create({
   version: {
     textAlign: "center",
     color: Brand.slate400,
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.8,
   },

@@ -85,6 +85,13 @@ export default function OnboardingScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    const slide = SLIDES[activeIndex];
+    AccessibilityInfo.announceForAccessibility(
+      `Étape ${activeIndex + 1} sur ${SLIDES.length}. ${slide.title}`,
+    );
+  }, [activeIndex]);
+
   // Keep interpolation aligned with the restored page when the viewport changes.
   const previousWidth = useRef(width);
   useEffect(() => {
@@ -454,8 +461,8 @@ const styles = StyleSheet.create({
   description: {
     color: "#63686B",
     fontFamily: Fonts.sans,
-    fontSize: 13,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 23,
     textAlign: "center",
     marginTop: 14,
     maxWidth: 330,
@@ -480,7 +487,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  skipText: { fontFamily: Fonts.sans, fontSize: 12, color: "#33383B" },
+  skipText: { fontFamily: Fonts.sans, fontSize: 14, fontWeight: "700", color: "#33383B" },
   nextButton: {
     width: 58,
     height: 58,

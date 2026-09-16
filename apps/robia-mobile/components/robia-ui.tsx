@@ -57,6 +57,7 @@ export function RobiaScreen({
       ) : null}
       {scroll ? (
         <ScrollView
+          accessibilityRole={'none'}
           style={styles.scroll}
           refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
           keyboardShouldPersistTaps="handled"
@@ -114,7 +115,7 @@ export function RobiaHeader({
         )}
         {back || compact ? (
           <View pointerEvents="none" style={styles.navigationTitleGroup}>
-            <Text style={styles.navigationTitle} numberOfLines={1}>
+            <Text accessibilityRole={'header'} style={styles.navigationTitle} numberOfLines={2}>
               {title}
             </Text>
           </View>
@@ -124,7 +125,7 @@ export function RobiaHeader({
       {!compact && eyebrow ? (
         <Text style={styles.eyebrow}>{eyebrow}</Text>
       ) : null}
-      {!back && !compact ? <Text style={styles.title}>{title}</Text> : null}
+      {!back && !compact ? <Text accessibilityRole={'header'} style={styles.title}>{title}</Text> : null}
       {!compact && subtitle ? (
         <Text style={[styles.subtitle, back && styles.subtitleAfterNavigation]}>
           {subtitle}
@@ -202,6 +203,8 @@ export function StatusPill({
 
   return (
     <View
+      accessible
+      accessibilityLabel={'Statut : ' + label}
       style={[styles.pill, { backgroundColor: tones[tone].backgroundColor }]}
     >
       <Text style={[styles.pillText, { color: tones[tone].color }]}>
@@ -226,6 +229,7 @@ export function PrimaryButton({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled }}
+      accessibilityLabel={label}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -258,8 +262,8 @@ export const robiaStyles = StyleSheet.create({
   caption: {
     color: Brand.slate400,
     fontFamily: Fonts?.sans,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 
@@ -319,15 +323,15 @@ const styles = StyleSheet.create({
   logoCompact: { width: 62, height: 32 },
   brandRowCompact: { minHeight: 48, marginBottom: 0 },
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     alignItems: "flex-start",
     justifyContent: "center",
   },
   navigationTitleGroup: {
     position: "absolute",
-    left: 66,
-    right: 66,
+    left: 58,
+    right: 58,
     top: 8,
     bottom: 7,
     alignItems: "center",
@@ -336,8 +340,8 @@ const styles = StyleSheet.create({
   navigationTitle: {
     color: Brand.navyDark,
     fontFamily: Fonts?.rounded,
-    fontSize: 15.5,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: "900",
     letterSpacing: -0.25,
     textAlign: "center",
@@ -352,7 +356,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     color: Brand.tealDark,
     fontFamily: Fonts?.sans,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1.3,
   },
@@ -409,7 +413,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontFamily: Fonts?.sans,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "800",
   },
   primaryButton: {

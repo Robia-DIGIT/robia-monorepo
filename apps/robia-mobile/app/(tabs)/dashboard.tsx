@@ -34,7 +34,7 @@ export default function HomeScreen() {
         </Pressable> */}
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
 
       <SiteSelector />
       {!organization ? <AsyncButton label="Compléter mon organisation" action={async () => router.push("/settings")} /> : null}
@@ -54,10 +54,15 @@ export default function HomeScreen() {
             <Text style={styles.trendText}>Diagnostic</Text>
           </View>
         </View>
-        <View style={styles.track}>
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={displayScore.label}
+          accessibilityValue={{ min: 0, max: 100, now: score ?? 0, text: score == null ? "Non mesuré" : `${score} sur 100` }}
+          style={styles.track}>
           <View style={[styles.fill, { width: (Math.max(0, Math.min(score ?? 0, 100)) + '%') as DimensionValue }]} />
         </View>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/audit')} style={({ pressed }) => [styles.auditButton, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={latestAudit ? "Relancer mon audit" : "Lancer mon premier audit"} onPress={() => router.push('/audit')} style={({ pressed }) => [styles.auditButton, pressed && styles.pressed]}>
           <Text style={styles.auditButtonText}>{latestAudit ? 'Relancer mon audit' : 'Lancer mon premier audit'}</Text>
           <MaterialIcons name="arrow-forward" size={18} color={Brand.white} />
         </Pressable>
@@ -65,7 +70,7 @@ export default function HomeScreen() {
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Votre activité</Text>
-        <Pressable accessibilityRole="button" onPress={() => router.push("/intelligence")}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir la vue d’ensemble" onPress={() => router.push("/intelligence")} style={styles.sectionLink}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
       </View>
       <View style={styles.metrics}>
         <Metric icon="track-changes" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
@@ -75,12 +80,15 @@ export default function HomeScreen() {
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Priorités</Text>
-        <Pressable onPress={() => router.navigate('/(tabs)/opportunities')}><Text style={styles.seeAll}>Tout voir</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voir toutes les opportunités" onPress={() => router.navigate('/(tabs)/opportunities')} style={styles.sectionLink}><Text style={styles.seeAll}>Tout voir</Text></Pressable>
       </View>
       <RobiaCard style={styles.listCard}>
         {opportunities.length ? opportunities.slice(0, 3).map((item, index) => (
           <Pressable
             key={item.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.title}. ${item.category ?? 'Recommandation'}. Impact ${item.impactScore} sur 10`}
+            accessibilityHint="Ouvre le détail de cette opportunité"
             onPress={() => router.push({ pathname: "/opportunity", params: { id: item.id } })}
             style={({ pressed }) => [styles.priorityRow, index > 0 && styles.rowBorder, pressed && styles.pressed]}>
             <View style={[styles.priorityIcon, { backgroundColor: index === 0 ? Brand.orangeLight : Brand.tealLight }]}>
@@ -107,7 +115,7 @@ export default function HomeScreen() {
 }
 
 function Metric({ icon, value, label, color, tint }: { icon: IconName; value: string | number; label: string; color: string; tint: string }) {
-  return <View style={styles.metric}>
+  return <View accessible accessibilityLabel={`${label} : ${value}`} style={styles.metric}>
     <View style={[styles.metricIcon, { backgroundColor: tint }]}><MaterialIcons name={icon} size={18} color={color} /></View>
     <Text style={styles.metricValue}>{value}</Text>
     <Text style={styles.metricLabel}>{label}</Text>
@@ -117,38 +125,39 @@ function Metric({ icon, value, label, color, tint }: { icon: IconName; value: st
 const styles = StyleSheet.create({
   header: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   greeting: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, lineHeight: 28, fontWeight: '900', letterSpacing: -0.4 },
-  context: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 12, marginTop: 2 },
+  context: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 14, lineHeight: 20, marginTop: 2 },
   roundButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.surfaceSoft, borderWidth: 0, },
   notificationDot: { position: 'absolute', right: 8, top: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: Brand.orange, borderWidth: 1.5, borderColor: Brand.white },
   error: { padding: 12, borderRadius: 14, color: Brand.orangeDark, backgroundColor: Brand.orangeLight, fontWeight: '700' },
   balanceCard: { gap: 14, padding: 18, borderRadius: 22 },
   cardHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  balanceLabel: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 12, fontWeight: '600' },
+  balanceLabel: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 14, fontWeight: '600' },
   scoreRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 3 },
   score: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 42, lineHeight: 47, fontWeight: '900', letterSpacing: -1.2 },
   scoreSuffix: { color: Brand.slate400, fontSize: 14, fontWeight: '700' },
   trend: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 12, backgroundColor: Brand.tealLight },
-  trendText: { color: Brand.tealDark, fontSize: 10, fontWeight: '800' },
+  trendText: { color: Brand.tealDark, fontSize: 12, fontWeight: '800' },
   track: { height: 7, borderRadius: 4, overflow: 'hidden', backgroundColor: Brand.slate100 },
   fill: { height: '100%', borderRadius: 4, backgroundColor: Brand.teal },
-  auditButton: { minHeight: 46, paddingHorizontal: 17, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Brand.navyDark },
-  auditButtonText: { color: Brand.white, fontFamily: Fonts.sans, fontSize: 13, fontWeight: '800' },
+  auditButton: { minHeight: 50, paddingHorizontal: 17, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Brand.navyDark },
+  auditButtonText: { color: Brand.white, fontFamily: Fonts.sans, fontSize: 14, fontWeight: '800' },
   sectionHeading: { minHeight: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 17, fontWeight: '900' },
   sectionAction: { color: Brand.slate400, fontSize: 11, fontWeight: '600' },
-  seeAll: { color: Brand.tealDark, fontSize: 11, fontWeight: '800' },
+  sectionLink: { minHeight: 48, paddingHorizontal: 4, justifyContent: 'center' },
+  seeAll: { color: Brand.tealDark, fontSize: 13, fontWeight: '800' },
   metrics: { flexDirection: 'row', gap: 9 },
   metric: { flex: 1, minHeight: 116, padding: 12, borderRadius: 19, justifyContent: 'space-between', backgroundColor: Brand.white, borderWidth: 0, },
   metricIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   metricValue: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, fontWeight: '900' },
-  metricLabel: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 10, lineHeight: 14, fontWeight: '600' },
+  metricLabel: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 12, lineHeight: 16, fontWeight: '600' },
   listCard: { paddingVertical: 3 },
   priorityRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 10 },
   rowBorder: { borderTopWidth: 1, borderTopColor: Brand.slate100 },
   priorityIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealLight },
   priorityCopy: { flex: 1, gap: 4 },
-  priorityTitle: { color: Brand.navyDark, fontFamily: Fonts.sans, fontSize: 13, fontWeight: '800' },
-  priorityMeta: { color: Brand.slate400, fontFamily: Fonts.sans, fontSize: 10.5, fontWeight: '600' },
+  priorityTitle: { color: Brand.navyDark, fontFamily: Fonts.sans, fontSize: 14, fontWeight: '800' },
+  priorityMeta: { color: Brand.slate400, fontFamily: Fonts.sans, fontSize: 12, lineHeight: 17, fontWeight: '600' },
   empty: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11 },
   pressed: { opacity: 0.7 },
 });

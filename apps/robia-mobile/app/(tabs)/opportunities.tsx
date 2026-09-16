@@ -65,7 +65,7 @@ export default function OpportunitiesScreen() {
         <ActivityIndicator color={Brand.teal} />
       ) : null}
       {error ? (
-        <Pressable onPress={() => void refresh()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Réessayer le chargement des opportunités" onPress={() => void refresh()}>
           <RobiaCard>
             <Text style={styles.error}>{error}</Text>
             <Text style={styles.retry}>Toucher pour réessayer</Text>
@@ -141,6 +141,9 @@ function OpportunityCard({
       </View>
       <View style={styles.actions}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Ajouter ${item.title} au plan`}
+          accessibilityState={{ disabled: busy, busy }}
           disabled={busy}
           onPress={() => void onAction(item.id, "actions")}
           style={styles.secondaryButton}
@@ -153,6 +156,9 @@ function OpportunityCard({
           <Text style={styles.secondaryLabel}>Ajouter au plan</Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Créer un document pour ${item.title}`}
+          accessibilityState={{ disabled: busy, busy }}
           disabled={busy}
           onPress={() => void onAction(item.id, "document")}
           style={styles.primaryButton}
@@ -206,28 +212,28 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "row", gap: 9 },
   secondaryButton: {
     flex: 1,
-    minHeight: 43,
+    minHeight: 48,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Brand.teal,
+    borderColor: Brand.tealDark,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
-  secondaryLabel: { color: Brand.tealDark, fontSize: 12, fontWeight: "800" },
+  secondaryLabel: { color: Brand.tealDark, fontSize: 13, fontWeight: "800" },
   primaryButton: {
     minWidth: 98,
-    minHeight: 43,
+    minHeight: 48,
     paddingHorizontal: 13,
     borderRadius: 14,
-    backgroundColor: Brand.teal,
+    backgroundColor: Brand.tealDark,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
   },
-  primaryLabel: { color: Brand.white, fontSize: 12, fontWeight: "800" },
+  primaryLabel: { color: Brand.white, fontSize: 13, fontWeight: "800" },
   error: { color: Brand.orangeDark, fontWeight: "700" },
   retry: { marginTop: 5, color: Brand.tealDark, fontSize: 12 },
 });

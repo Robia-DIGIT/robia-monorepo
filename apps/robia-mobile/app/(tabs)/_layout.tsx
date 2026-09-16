@@ -1,6 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import {
   createMaterialTopTabNavigator,
   MaterialTopTabNavigationEventMap,
@@ -47,14 +48,19 @@ function AnimatedTabIcon({
   color: string;
   focused: boolean;
 }) {
+  const reduceMotion = useReducedMotion();
   const progress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
+    if (reduceMotion) {
+      progress.value = focused ? 1 : 0;
+      return;
+    }
     progress.value = withTiming(focused ? 1 : 0, {
       duration: focused ? 240 : 180,
       easing: Easing.out(Easing.cubic),
     });
-  }, [focused, progress]);
+  }, [focused, progress, reduceMotion]);
 
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [
@@ -67,8 +73,8 @@ function AnimatedTabIcon({
     <View style={styles.iconContainer}>
       {focused ? (
         <Animated.View
-          entering={FadeIn.duration(0)}
-          exiting={FadeOut.duration(140)}
+          entering={reduceMotion ? undefined : FadeIn.duration(0)}
+          exiting={reduceMotion ? undefined : FadeOut.duration(140)}
           style={styles.iconContainerActive}
         />
       ) : null}
@@ -76,7 +82,7 @@ function AnimatedTabIcon({
         <IconSymbol size={22} name={name} color={color} />
       </Animated.View>
       {focused ? (
-        <Animated.View entering={FadeIn.delay(80).duration(180)} style={styles.activeDot} />
+        <Animated.View entering={reduceMotion ? undefined : FadeIn.delay(80).duration(180)} style={styles.activeDot} />
       ) : null}
     </View>
   );
@@ -89,16 +95,8 @@ function createTabIcon(name: RobiaIconName) {
 }
 
 function createTabLabel(label: string) {
-  return function TabBarLabel({ focused, color }: { focused: boolean; color: string }) {
-    return focused ? (
-      <Animated.Text
-        entering={FadeIn.duration(180)}
-        exiting={FadeOut.duration(120)}
-        style={[styles.tabBarLabel, { color }]}
-      >
-        {label}
-      </Animated.Text>
-    ) : null;
+  return function TabBarLabel({ color }: { focused: boolean; color: string }) {
+    return <Animated.Text style={[styles.tabBarLabel, { color }]}>{label}</Animated.Text>;
   };
 }
 
@@ -110,6 +108,7 @@ const tabListeners = {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const reduceMotion = useReducedMotion();
   const palette = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const bottomSpacing = Math.max(insets.bottom, 10);
@@ -118,7 +117,7 @@ export default function TabLayout() {
       initialRouteName="dashboard"
       tabBarPosition="bottom"
       screenOptions={{
-        animationEnabled: true,
+        animationEnabled: !reduceMotion,
         swipeEnabled: true,
         lazy: false,
         tabBarActiveTintColor: Brand.tealDark,
@@ -191,7 +190,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 72,
+    height: 78,
     marginHorizontal: 16,
     marginTop: 8,
     paddingTop: 5,
@@ -205,15 +204,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   tabBarItem: {
-    minHeight: 62,
+    minHeight: 68,
     paddingHorizontal: 1,
     paddingVertical: 2,
   },
   tabBarLabel: {
     margin: 0,
     fontFamily: Fonts?.sans,
-    fontSize: 9.5,
-    lineHeight: 12,
+    fontSize: 10.5,
+    lineHeight: 14,
     fontWeight: '700',
     textTransform: 'none',
   },

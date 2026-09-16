@@ -24,6 +24,7 @@ export function AsyncButton({ label, action, disabled = false, confirm, onSucces
         if (Platform.OS === 'web') { if (globalThis.confirm(confirm)) void run(); return; }
         Alert.alert(label, confirm, [{ text: 'Annuler', style: 'cancel' }, { text: 'Confirmer', onPress: () => void run() }]);
       }}
+      accessibilityLabel={label}
       style={({ pressed }) => [s.button, (pressed || disabled || busy) && { opacity: 0.5 }]}>
       {busy ? <ActivityIndicator color="white" /> : <Text style={s.buttonText}>{label}</Text>}
     </Pressable>
@@ -41,8 +42,8 @@ export function Choices<T extends string>({ value, options, onChange }: { value:
 }
 export const apiStyles = StyleSheet.create({ stack: { gap: 14 }, title: robiaStyles.cardTitle, body: robiaStyles.body });
 const s = StyleSheet.create({
-  input: { minHeight: 48, padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Brand.borderSubtle, borderRadius: 14, backgroundColor: Brand.slate50, color: Brand.navyDark, fontSize: 15 },
-  button: { minHeight: 48, padding: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealDark },
-  buttonText: { color: 'white', fontWeight: '700', fontSize: 14 }, error: { color: '#B42318', lineHeight: 21 },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { minHeight: 44, padding: 12, borderRadius: 12, backgroundColor: Brand.slate100 }, selected: { backgroundColor: Brand.tealLight },
+  input: { minHeight: 52, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: Brand.borderSubtle, borderRadius: 14, backgroundColor: Brand.slate50, color: Brand.navyDark, fontSize: 16 },
+  button: { minHeight: 52, padding: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealDark },
+  buttonText: { color: 'white', fontWeight: '700', fontSize: 15 }, error: { color: '#9F2D20', lineHeight: 21 },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { minHeight: 48, padding: 12, borderRadius: 12, backgroundColor: Brand.slate100, justifyContent: 'center' }, selected: { backgroundColor: Brand.tealLight },
 });
