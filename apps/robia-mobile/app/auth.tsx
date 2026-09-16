@@ -20,7 +20,7 @@ import PagerView from "react-native-pager-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AuthScreen() {
-  const { login, register } = useSession();
+  const { login, register, sessionError, restore } = useSession();
   const pager = useRef<PagerView>(null);
   const [page, setPage] = useState(0);
   const [name, setName] = useState("");
@@ -28,6 +28,7 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const submitLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   function selectPage(next: number) {
@@ -36,16 +37,18 @@ export default function AuthScreen() {
     pager.current?.setPage(next);
   }
   async function submit(registration: boolean) {
+    if (submitLock.current) return;
     if (
-      !email.trim() ||
-      password.length < 8 ||
-      (registration && (!name.trim() || !company.trim()))
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+      (registration ? password.length < 8 : !password) ||
+      (registration && (name.trim().length < 2 || !company.trim()))
     ) {
       setError(
         "Complétez les champs requis. Le mot de passe doit contenir au moins 8 caractères.",
       );
       return;
     }
+    submitLock.current = true;
     setIsSubmitting(true);
     setError("");
     try {
@@ -57,7 +60,7 @@ export default function AuthScreen() {
           password,
         });
       else await login(email, password);
-      router.replace('/(tabs)/dashboard');
+      router.replace("/(tabs)/dashboard");
     } catch (cause) {
       setError(
         cause instanceof ApiError
@@ -65,6 +68,7 @@ export default function AuthScreen() {
           : "Connexion impossible. Vérifiez votre réseau.",
       );
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   }
@@ -90,6 +94,9 @@ export default function AuthScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={s.hero}>
+          {/* <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
+            <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
+          </Pressable> */}
           <View style={s.brandMark}>
             <Image
               source={require("@/assets/images/logo-robia-copilot.svg")}
@@ -101,6 +108,11 @@ export default function AuthScreen() {
           <Text style={s.heroTitle}>Votre croissance, guidée par l’IA</Text>
           <Text style={s.heroSubtitle}>Analysez. Décidez. Agissez.</Text>
         </View>
+        {sessionError ? (
+          <Pressable accessibilityRole="button" onPress={() => void restore()}>
+            <Text style={s.errorText}>{sessionError} · Réessayer</Text>
+          </Pressable>
+        ) : null}
         <View style={s.sheet}>
           <View style={s.handle} />
           <View style={s.modeSwitch}>
@@ -292,6 +304,17 @@ function AuthPage({
           </>
         )}
       </Pressable>
+      {!registration ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/password")}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text style={{ color: Brand.tealDark, textAlign: "center" }}>
+            Mot de passe oubli? ?
+          </Text>
+        </Pressable>
+      ) : null}
       <Text style={s.legal}>
         En continuant, vous acceptez les conditions d’utilisation et la
         politique de confidentialité de RobIA.
@@ -346,16 +369,29 @@ function Field({
 }
 
 const s = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#EAF8F6" },
+  safeArea: { flex: 1, backgroundColor: Brand.slate50 },
   flex: { flex: 1 },
+  backButton: {
+    position: "absolute",
+    left: 20,
+    top: 10,
+    zIndex: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Brand.white,
+    borderWidth: 0,
+  },
   hero: {
-    height: "34%",
-    minHeight: 210,
-    maxHeight: 295,
+    height: "25%",
+    minHeight: 168,
+    maxHeight: 220,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: "#EAF8F6",
+    backgroundColor: Brand.slate50,
   },
   orb: { position: "absolute", borderRadius: 999, opacity: 0.7 },
   orbTeal: {
@@ -381,9 +417,9 @@ const s = StyleSheet.create({
     opacity: 0.55,
   },
   brandMark: {
-    width: 106,
-    height: 74,
-    marginBottom: 13,
+    width: 100,
+    height: 58,
+    marginBottom: 8,
     borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
@@ -403,17 +439,18 @@ const s = StyleSheet.create({
   },
   sheet: {
     flex: 1,
-    marginTop: -12,
-    paddingTop: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingTop: 10,
     overflow: "hidden",
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     backgroundColor: Brand.white,
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.045,
     shadowRadius: 24,
-    elevation: 12,
+    elevation: 5,
   },
   handle: {
     alignSelf: "center",
@@ -424,7 +461,7 @@ const s = StyleSheet.create({
     backgroundColor: Brand.slate200,
   },
   modeSwitch: {
-    marginHorizontal: 24,
+    marginHorizontal: 18,
     flexDirection: "row",
     padding: 4,
     borderRadius: 16,
@@ -442,7 +479,7 @@ const s = StyleSheet.create({
   modeLabelActive: { color: Brand.navyDark },
   pager: { flex: 1 },
   page: { flex: 1 },
-  pageContent: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 26 },
+  pageContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28 },
   heading: {
     marginBottom: 20,
     flexDirection: "row",
@@ -466,19 +503,19 @@ const s = StyleSheet.create({
     fontWeight: "900",
   },
   subtitle: { color: Brand.slate500, fontSize: 12.5, lineHeight: 18 },
-  form: { gap: 15 },
+  form: { gap: 14 },
   fieldGroup: { gap: 7 },
   fieldLabel: { color: Brand.slate500, fontSize: 11, fontWeight: "800" },
   field: {
-    minHeight: 52,
+    minHeight: 54,
     paddingHorizontal: 14,
     borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     backgroundColor: Brand.slate50,
-    borderWidth: 1,
-    borderColor: Brand.slate200,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Brand.borderSubtle,
   },
   input: {
     flex: 1,
@@ -513,7 +550,12 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: Brand.navyDark,
   },
-  submitText: { color: Brand.white, fontSize: 14, fontWeight: "800" },
+  submitText: {
+    color: Brand.white,
+    fontFamily: Fonts?.sans,
+    fontSize: 14,
+    fontWeight: "800",
+  },
   submitIcon: {
     width: 40,
     height: 40,

@@ -5,7 +5,7 @@ import { router, Stack, usePathname, useRootNavigationState, useSegments } from 
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
@@ -34,7 +34,7 @@ function AppLayout() {
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
   const pathname = usePathname();
-  const { token, isLoading } = useSession();
+  const { token, user, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
   const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
   const [showLaunchAnimation, setShowLaunchAnimation] = useState(true);
@@ -43,7 +43,7 @@ function AppLayout() {
   useEffect(() => {
     if (isLoading || !rootNavigationState?.key) return;
     const section = segments[0];
-    if (!token && section === '(tabs)') router.replace('/auth');
+    if (!token && !['index', 'auth', 'password', 'support', '+not-found'].includes(section ?? 'index')) router.replace('/auth');
     if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/dashboard');
   }, [isLoading, rootNavigationState?.key, segments, token]);
 
@@ -70,6 +70,7 @@ function AppLayout() {
     headerTintColor: Brand.navyDark,
     headerShadowVisible: false,
     headerTitleStyle: { fontFamily: Fonts?.rounded, fontWeight: '800' as const },
+    headerShown: false,
     contentStyle: { backgroundColor: Brand.slate50 },
   };
 
@@ -222,11 +223,11 @@ function AppLayout() {
     inputRange: [0, 0.88, 1],
     outputRange: [1, 1, 0],
   });
-  const showAssistantButton = Boolean(token) && !isLoading && pathname !== '/chat';
+  const showAssistantButton = Boolean(token) && !isLoading && (pathname === '/dashboard' || pathname === '/profile');
 
   return (
     <ThemeProvider value={navigationTheme}>
-      <Stack screenOptions={screenOptions}>
+      <Stack key={user?.id ?? "guest"} screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
           name="auth"
@@ -238,14 +239,14 @@ function AppLayout() {
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen
           name="audit"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Nouvel audit' }}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom', headerShown: false }}
         />
-        <Stack.Screen name="history" options={{ title: 'Historique' }} />
-        <Stack.Screen name="reports" options={{ title: 'Rapports' }} />
-        <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+        <Stack.Screen name="history" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
 
       {showAssistantButton ? (
@@ -254,9 +255,13 @@ function AppLayout() {
           accessibilityRole="button"
           onPress={() => router.push('/chat')}
           style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
-          <View pointerEvents="none" style={styles.assistantRing} />
-          <MaterialIcons name="android" size={28} color={Brand.white} />
-          <Text style={styles.assistantBadge}>IA</Text>
+          <View pointerEvents="none" style={styles.assistantHalo} />
+          <View pointerEvents="none" style={styles.assistantCore}>
+            <MaterialIcons name="chat-bubble-outline" size={27} color={Brand.tealDark} />
+            <View style={styles.assistantRobot}>
+              <MaterialIcons name="smart-toy" size={12} color={Brand.white} />
+            </View>
+          </View>
         </Pressable>
       ) : null}
 
@@ -306,34 +311,42 @@ const styles = StyleSheet.create({
     borderRadius: 31,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Brand.navyDark,
-    borderWidth: 3,
-    borderColor: Brand.teal,
+    backgroundColor: Brand.white,
+    borderWidth: 0,
     shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 5,
   },
-  assistantRing: {
+  assistantHalo: {
     position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: Brand.tealLight,
   },
-  assistantBadge: {
+  assistantCore: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ECFDF9',
+    borderWidth: 0,
+  },
+  assistantRobot: {
     position: 'absolute',
-    right: 5,
+    right: 3,
     bottom: 3,
-    color: Brand.navyDark,
-    fontSize: 8,
-    fontWeight: '900',
+    width: 20,
+    height: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Brand.teal,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Brand.white,
   },
   launchOverlay: {
     ...StyleSheet.absoluteFillObject,

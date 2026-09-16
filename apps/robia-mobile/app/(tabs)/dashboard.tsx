@@ -1,6 +1,9 @@
+import { auditScore } from '@/src/api/presentation';
+import { SiteSelector } from '@/components/site-selector';
+import { AsyncButton } from '@/components/api-ui';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
 import { RobiaCard, RobiaScreen } from '@/components/robia-ui';
 import { Brand, Fonts } from '@/constants/theme';
@@ -10,34 +13,39 @@ import { useSession } from '@/src/auth/session';
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 export default function HomeScreen() {
-  const { user, organization } = useSession();
-  const { latestAudit, opportunities, documents, actions, isLoading, error, refresh } = useRobiaData();
-  const score = latestAudit?.globalScore ?? 0;
+  const { user, organization, sessionError, refreshOrganization } = useSession();
+  const { latestAudit, opportunities, documents, actions, error, refresh, isLoading } = useRobiaData();
+  const displayScore = auditScore(latestAudit);
+  const score = displayScore.value;
   const done = actions.filter((item) => item.status === 'done').length;
   const progress = actions.length ? Math.round((done / actions.length) * 100) : 0;
   const firstName = user?.name?.split(' ')[0] ?? organization?.name ?? 'Entreprise';
 
   return (
-    <RobiaScreen>
+    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bonjour, {firstName}</Text>
           <Text style={styles.context}>{organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Actualiser" onPress={() => void refresh()} style={styles.roundButton}>
+        {/* <Pressable accessibilityRole="button" accessibilityLabel="Actualiser" onPress={() => void refresh()} style={styles.roundButton}>
           {isLoading ? <ActivityIndicator size="small" color={Brand.tealDark} /> : <MaterialIcons name="notifications-none" size={22} color={Brand.navyDark} />}
           {!isLoading && opportunities.length > 0 ? <View style={styles.notificationDot} /> : null}
-        </Pressable>
+        </Pressable> */}
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
+      <SiteSelector />
+      {!organization ? <AsyncButton label="Compléter mon organisation" action={async () => router.push("/settings")} /> : null}
+      {sessionError ? <AsyncButton label={sessionError + " · Réessayer"} action={refreshOrganization} /> : null}
+      <AsyncButton label={isLoading ? "Actualisation…" : "Actualiser mes données"} disabled={isLoading} action={refresh} />
       <RobiaCard style={styles.balanceCard}>
         <View style={styles.cardHeading}>
           <View>
-            <Text style={styles.balanceLabel}>Score de visibilité</Text>
+            <Text style={styles.balanceLabel}>{displayScore.label}</Text>
             <View style={styles.scoreRow}>
-              <Text style={styles.score}>{score}</Text>
+              <Text style={styles.score}>{score ?? '—'}</Text>
               <Text style={styles.scoreSuffix}>/100</Text>
             </View>
           </View>
@@ -47,7 +55,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.track}>
-          <View style={[styles.fill, { width: (Math.max(0, Math.min(score, 100)) + '%') as DimensionValue }]} />
+          <View style={[styles.fill, { width: (Math.max(0, Math.min(score ?? 0, 100)) + '%') as DimensionValue }]} />
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push('/audit')} style={({ pressed }) => [styles.auditButton, pressed && styles.pressed]}>
           <Text style={styles.auditButtonText}>{latestAudit ? 'Relancer mon audit' : 'Lancer mon premier audit'}</Text>
@@ -57,7 +65,7 @@ export default function HomeScreen() {
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Votre activité</Text>
-        <Text style={styles.sectionAction}>Vue d’ensemble</Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/intelligence")}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
       </View>
       <View style={styles.metrics}>
         <Metric icon="track-changes" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
@@ -73,7 +81,7 @@ export default function HomeScreen() {
         {opportunities.length ? opportunities.slice(0, 3).map((item, index) => (
           <Pressable
             key={item.id}
-            onPress={() => router.navigate('/(tabs)/opportunities')}
+            onPress={() => router.push({ pathname: "/opportunity", params: { id: item.id } })}
             style={({ pressed }) => [styles.priorityRow, index > 0 && styles.rowBorder, pressed && styles.pressed]}>
             <View style={[styles.priorityIcon, { backgroundColor: index === 0 ? Brand.orangeLight : Brand.tealLight }]}>
               <MaterialIcons name={index === 0 ? 'bolt' : 'auto-awesome'} size={19} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />
@@ -110,7 +118,7 @@ const styles = StyleSheet.create({
   header: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   greeting: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, lineHeight: 28, fontWeight: '900', letterSpacing: -0.4 },
   context: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 12, marginTop: 2 },
-  roundButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.white, borderWidth: 1, borderColor: '#E8ECEF' },
+  roundButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.surfaceSoft, borderWidth: 0, },
   notificationDot: { position: 'absolute', right: 8, top: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: Brand.orange, borderWidth: 1.5, borderColor: Brand.white },
   error: { padding: 12, borderRadius: 14, color: Brand.orangeDark, backgroundColor: Brand.orangeLight, fontWeight: '700' },
   balanceCard: { gap: 14, padding: 18, borderRadius: 22 },
@@ -130,7 +138,7 @@ const styles = StyleSheet.create({
   sectionAction: { color: Brand.slate400, fontSize: 11, fontWeight: '600' },
   seeAll: { color: Brand.tealDark, fontSize: 11, fontWeight: '800' },
   metrics: { flexDirection: 'row', gap: 9 },
-  metric: { flex: 1, minHeight: 116, padding: 12, borderRadius: 19, justifyContent: 'space-between', backgroundColor: Brand.white, borderWidth: 1, borderColor: '#E8ECEF' },
+  metric: { flex: 1, minHeight: 116, padding: 12, borderRadius: 19, justifyContent: 'space-between', backgroundColor: Brand.white, borderWidth: 0, },
   metricIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   metricValue: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, fontWeight: '900' },
   metricLabel: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 10, lineHeight: 14, fontWeight: '600' },

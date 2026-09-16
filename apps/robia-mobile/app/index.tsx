@@ -1,200 +1,356 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
+  Animated,
   FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  type ViewToken,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Brand, Fonts } from '@/constants/theme';
-
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+import { Brand, Fonts } from "@/constants/theme";
 
 const SLIDES = [
   {
-    id: 'analyse',
-    image: require('@/assets/images/splash.png'),
-    icon: 'travel-explore' as IconName,
-    eyebrow: 'INTELLIGENCE LOCALE',
-    title: 'Voyez ce que votre marché révèle.',
-    description: 'RobIA analyse votre présence locale et fait émerger les opportunités qui comptent vraiment.',
-    metric: '+24%',
-    metricLabel: 'de potentiel détecté',
-    signal: 'Analyse terminée',
-    accent: Brand.teal,
-    tint: Brand.tealLight,
+    id: "analyse",
+    image: require("@/assets/images/splash.png"),
+    secondaryImage: require("@/assets/images/splash2.png"),
+    title: "Analyse & détection",
+    description:
+      "Découvrez ce qui vous rend invisible sur le web. RobIA analyse votre présence en ligne et identifie vos opportunités de visibilité.",
   },
   {
-    id: 'creation',
-    image: require('@/assets/images/splash2.png'),
-    icon: 'auto-awesome' as IconName,
-    eyebrow: 'CRÉATION ASSISTÉE',
-    title: 'Transformez les idées en présence.',
-    description: 'Créez des contenus locaux, cohérents et multilingues avec votre copilote à vos côtés.',
-    metric: '3×',
-    metricLabel: 'plus rapide à publier',
-    signal: 'Contenu prêt',
-    accent: Brand.electric,
-    tint: Brand.electricLight,
+    id: "creation",
+    image: require("@/assets/images/splash2.png"),
+    secondaryImage: require("@/assets/images/splash3.png"),
+    title: "Création",
+    description:
+      "Donnez vie à votre présence locale. RobIA crée des contenus adaptés à votre entreprise, en plusieurs langues, pour vous aider à être trouvé.",
   },
   {
-    id: 'execution',
-    image: require('@/assets/images/splash3.png'),
-    icon: 'verified-user' as IconName,
-    eyebrow: 'VALIDATION HUMAINE',
-    title: 'Gardez toujours le dernier mot.',
-    description: 'RobIA prépare, traduit et vérifie. Rien n’est publié sans votre validation explicite.',
-    metric: '100%',
-    metricLabel: 'sous votre contrôle',
-    signal: 'À valider',
-    accent: Brand.orange,
-    tint: Brand.orangeLight,
+    id: "execution",
+    image: require("@/assets/images/splash3.png"),
+    secondaryImage: require("@/assets/images/splash.png"),
+    title: "Exécution",
+    description:
+      "Vous gardez le dernier mot. Vérifiez, modifiez et validez les contenus proposés : aucune publication sans votre validation.",
   },
   {
-    id: 'pilotage',
-    image: require('@/assets/images/spalsh4.png'),
-    icon: 'insights' as IconName,
-    eyebrow: 'PILOTAGE CONTINU',
-    title: 'Avancez avec une priorité claire.',
-    description: 'Actions, résultats et prochaines étapes restent réunis dans un espace simple à piloter.',
-    metric: '4/4',
-    metricLabel: 'actions centralisées',
-    signal: 'Tout est à jour',
-    accent: Brand.navy,
-    tint: '#E5EDF6',
+    id: "pilotage",
+    image: require("@/assets/images/spalsh4.png"),
+    secondaryImage: require("@/assets/images/splash2.png"),
+    title: "Pilotage",
+    description:
+      "Suivez vos sites et votre visibilité dans le temps. Retrouvez vos actions, vos résultats et vos prochaines priorités au même endroit.",
   },
 ] as const;
 
-const GRID_DOTS = Array.from({ length: 35 });
+type Slide = (typeof SLIDES)[number];
 
 export default function OnboardingScreen() {
   const { width, height } = useWindowDimensions();
-  const listRef = useRef<FlatList<(typeof SLIDES)[number]>>(null);
+  const listRef = useRef<FlatList<Slide>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const isLastSlide = activeIndex === SLIDES.length - 1;
-  const compact = height < 720;
-  const visualHeight = Math.min(390, Math.max(280, height * (compact ? 0.37 : 0.43)));
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(true);
 
-  const finish = () => router.replace('/auth');
+  useEffect(() => {
+    let mounted = true;
+    let receivedChange = false;
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (enabled) => {
+        receivedChange = true;
+        setReduceMotion(enabled);
+      },
+    );
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (mounted && !receivedChange) setReduceMotion(enabled);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
 
-  const goNext = () => {
-    if (isLastSlide) {
-      finish();
-      return;
+  // Keep interpolation aligned with the restored page when the viewport changes.
+  const previousWidth = useRef(width);
+  useEffect(() => {
+    if (previousWidth.current !== width) {
+      scrollX.setValue(activeIndex * width);
+      previousWidth.current = width;
     }
-    listRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
-  };
+  }, [activeIndex, scrollX, width]);
 
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setActiveIndex(Math.round(event.nativeEvent.contentOffset.x / width));
+  const interpolatePage = (index: number, outputRange: number[]) =>
+    scrollX.interpolate({
+      inputRange: [(index - 1) * width, index * width, (index + 1) * width],
+      outputRange,
+      extrapolate: "clamp",
+    });
+
+  const pageMotion = (index: number, distance: number, scale = 1) =>
+    reduceMotion
+      ? {}
+      : {
+          opacity: interpolatePage(index, [0.15, 1, 0.15]),
+          transform: [
+            { translateX: interpolatePage(index, [distance, 0, -distance]) },
+            { translateY: interpolatePage(index, [12, 0, 12]) },
+            { scale: interpolatePage(index, [scale, 1, scale]) },
+          ],
+        };
+
+  const compact = height < 720;
+  const stageWidth = Math.min(width - 40, 360);
+  const stageHeight = stageWidth * (compact ? 0.88 : 1.02);
+  const isLastSlide = activeIndex === SLIDES.length - 1;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken<Slide>[] }) => {
+      const index = viewableItems[0]?.index;
+      if (index != null) setActiveIndex(index);
+    },
+  ).current;
+
+  const finish = () => router.replace("/auth");
+  const goToSlide = (index: number) => {
+    listRef.current?.scrollToIndex({ index, animated: !reduceMotion });
   };
 
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="dark" />
-      <View style={styles.header}>
+      <View style={[styles.header, compact && styles.headerCompact]}>
         <Image
-          source={require('@/assets/images/logo-robia-copilot.svg')}
+          source={require("@/assets/images/logo-robia-copilot.png")}
           contentFit="contain"
           style={styles.logo}
           accessibilityLabel="RobIA Copilot"
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Passer la présentation"
-          hitSlop={10}
-          onPress={finish}
-          style={({ pressed }) => [styles.skipButton, pressed && styles.pressed]}>
-          <Text style={styles.skipText}>Passer</Text>
-        </Pressable>
+        <Text style={styles.brandName}>
+          RobIA <Text style={styles.brandAccent}>Copilot</Text>
+        </Text>
       </View>
 
-      <FlatList
+      <Animated.FlatList
+        key={width}
         ref={listRef}
         data={SLIDES}
+        style={styles.carousel}
         horizontal
         pagingEnabled
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: Platform.OS !== "web" },
+        )}
+        initialScrollIndex={activeIndex}
+        getItemLayout={(_, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
         bounces={false}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
-        onMomentumScrollEnd={handleScrollEnd}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
         renderItem={({ item, index }) => (
-          <View style={[styles.slide, { width }]}>
-            <View style={[styles.visual, { height: visualHeight, backgroundColor: item.tint }]}>
-              <View pointerEvents="none" style={styles.dotGrid}>
-                {GRID_DOTS.map((_, dotIndex) => <View key={dotIndex} style={styles.dot} />)}
+          <ScrollView
+            style={{ width }}
+            contentContainerStyle={[
+              styles.slide,
+              compact && styles.slideCompact,
+            ]}
+            showsVerticalScrollIndicator={false}
+            accessible={false}
+            importantForAccessibility={
+              index === activeIndex ? "auto" : "no-hide-descendants"
+            }
+            accessibilityElementsHidden={index !== activeIndex}
+          >
+            <Animated.View
+              pointerEvents="none"
+              accessible={false}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={[
+                styles.visual,
+                { width: stageWidth, height: stageHeight },
+                pageMotion(index, 28, 0.94),
+              ]}
+            >
+              <View
+                style={[
+                  styles.backdrop,
+                  index % 2 === 1 && styles.backdropAlternate,
+                ]}
+              />
+              <View
+                style={[
+                  styles.photo,
+                  styles.backPhoto,
+                  index % 2 === 1 && styles.backPhotoAlternate,
+                ]}
+              >
+                <Animated.View
+                  style={[
+                    styles.photoImage,
+                    reduceMotion
+                      ? undefined
+                      : {
+                          transform: [
+                            {
+                              translateY: interpolatePage(index, [18, 0, -18]),
+                            },
+                            { scale: 1.12 },
+                          ],
+                        },
+                  ]}
+                >
+                  <Image
+                    source={item.secondaryImage}
+                    contentFit="cover"
+                    style={styles.photoImage}
+                  />
+                </Animated.View>
               </View>
-              <View style={styles.orbitTop} />
-              <View style={styles.orbitBottom} />
+              <View
+                style={[
+                  styles.photo,
+                  styles.frontPhoto,
+                  index % 2 === 1 && styles.frontPhotoAlternate,
+                ]}
+              >
+                <Animated.View
+                  style={[
+                    styles.photoImage,
+                    reduceMotion
+                      ? undefined
+                      : {
+                          transform: [
+                            {
+                              translateY: interpolatePage(index, [-12, 0, 12]),
+                            },
+                            { scale: 1.1 },
+                          ],
+                        },
+                  ]}
+                >
+                  <Image
+                    source={item.image}
+                    contentFit="cover"
+                    style={styles.photoImage}
+                  />
+                </Animated.View>
+              </View>
+            </Animated.View>
 
-              <View style={styles.imageFrame}>
-                <Image
-                  source={item.image}
-                  contentFit="cover"
-                  contentPosition="center"
-                  transition={220}
-                  style={styles.heroImage}
-                  accessibilityLabel={'Illustration : ' + item.title}
-                />
-                <View style={styles.imageShade} />
-                <View style={styles.imageCaption}>
-                  <View style={[styles.captionIcon, { backgroundColor: item.accent }]}>
-                    <MaterialIcons name={item.icon} size={18} color={Brand.white} />
+            <View
+              style={styles.pagination}
+              accessibilityLabel={"Étape " + (index + 1) + " sur 4"}
+            >
+              {SLIDES.map((slide, dotIndex) => (
+                <Pressable
+                  key={slide.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    "Étape " + (dotIndex + 1) + " : " + slide.title
+                  }
+                  accessibilityState={{ selected: dotIndex === index }}
+                  onPress={() => goToSlide(dotIndex)}
+                  style={styles.dotTarget}
+                >
+                  <View style={styles.dot}>
+                    <Animated.View
+                      style={[
+                        styles.dotHighlight,
+                        reduceMotion
+                          ? {
+                              opacity: dotIndex === activeIndex ? 1 : 0,
+                              transform: [{ scaleX: 1 }],
+                            }
+                          : {
+                              opacity: interpolatePage(dotIndex, [0, 1, 0]),
+                              transform: [
+                                {
+                                  scaleX: interpolatePage(
+                                    dotIndex,
+                                    [0.2, 1, 0.2],
+                                  ),
+                                },
+                              ],
+                            },
+                      ]}
+                    />
                   </View>
-                  <View>
-                    <Text style={styles.captionOverline}>ROBIA COPILOT</Text>
-                    <Text style={styles.captionText}>{item.signal}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.metricCard}>
-                <View style={[styles.metricMark, { backgroundColor: item.accent }]} />
-                <Text style={styles.metricValue}>{item.metric}</Text>
-                <Text style={styles.metricLabel}>{item.metricLabel}</Text>
-              </View>
-
-              <View style={[styles.aiChip, { backgroundColor: item.accent }]}>
-                <MaterialIcons name="auto-awesome" size={15} color={Brand.white} />
-                <Text style={styles.aiChipText}>Insight {index + 1}</Text>
-              </View>
+                </Pressable>
+              ))}
             </View>
 
             <View style={[styles.copy, compact && styles.copyCompact]}>
-              <Text style={[styles.eyebrow, { color: item.accent }]}>{item.eyebrow}</Text>
-              <Text style={[styles.title, compact && styles.titleCompact]}>{item.title}</Text>
-              <Text style={[styles.description, compact && styles.descriptionCompact]}>{item.description}</Text>
+              <Animated.Text
+                accessibilityRole="header"
+                style={[
+                  styles.title,
+                  compact && styles.titleCompact,
+                  pageMotion(index, 48),
+                ]}
+              >
+                {item.title}
+              </Animated.Text>
+              <Animated.Text
+                style={[styles.description, pageMotion(index, 68)]}
+              >
+                {item.description}
+              </Animated.Text>
             </View>
-          </View>
+          </ScrollView>
         )}
       />
 
       <View style={styles.footer}>
-        <View style={styles.progress} accessibilityLabel={'Étape ' + (activeIndex + 1) + ' sur ' + SLIDES.length}>
-          {SLIDES.map((slide, index) => (
-            <View
-              key={slide.id}
-              style={[styles.progressTrack, index === activeIndex && styles.progressTrackActive]}
-            />
-          ))}
-        </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isLastSlide ? 'Commencer avec RobIA' : 'Continuer'}
-          onPress={goNext}
-          style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}>
-          <Text style={styles.nextText}>{isLastSlide ? 'Commencer' : 'Continuer'}</Text>
-          <View style={styles.nextIcon}>
-            <MaterialIcons name={isLastSlide ? 'check' : 'arrow-forward'} size={19} color={Brand.white} />
+          accessibilityLabel="Passer la présentation"
+          onPress={finish}
+          style={({ pressed }) => [
+            styles.skipButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.skipText}>Passer</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            isLastSlide ? "Commencer avec RobIA" : "Étape suivante"
+          }
+          onPress={() => (isLastSlide ? finish() : goToSlide(activeIndex + 1))}
+          style={({ pressed }) => [
+            styles.nextButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <View style={styles.nextCore}>
+            <MaterialIcons
+              name={isLastSlide ? "check" : "chevron-right"}
+              size={28}
+              color={Brand.navyDark}
+            />
           </View>
         </Pressable>
       </View>
@@ -203,211 +359,145 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Brand.slate50 },
+  screen: { flex: 1, backgroundColor: Brand.white },
   header: {
-    height: 62,
-    paddingHorizontal: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    height: 68,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
-  logo: { width: 74, height: 38 },
-  skipButton: {
-    minHeight: 38,
-    paddingHorizontal: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 19,
-    backgroundColor: Brand.white,
-    borderWidth: 1,
-    borderColor: Brand.slate200,
-  },
-  skipText: { color: Brand.navyDark, fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800' },
-  slide: { paddingHorizontal: 18 },
-  visual: {
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-    overflow: 'hidden',
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(15,118,110,0.08)',
-  },
-  dotGrid: {
-    position: 'absolute',
-    width: 170,
-    right: -8,
-    top: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 15,
-    opacity: 0.25,
-  },
-  dot: { width: 2, height: 2, borderRadius: 1, backgroundColor: Brand.navyDark },
-  orbitTop: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    left: -65,
-    top: -55,
-    borderWidth: 28,
-    borderColor: 'rgba(255,255,255,0.46)',
-  },
-  orbitBottom: {
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    borderRadius: 105,
-    right: -75,
-    bottom: -100,
-    borderWidth: 1,
-    borderColor: 'rgba(23,45,71,0.12)',
-  },
-  imageFrame: {
-    position: 'absolute',
-    width: '64%',
-    height: '78%',
-    right: '8%',
-    top: '9%',
-    overflow: 'hidden',
-    borderRadius: 28,
-    borderWidth: 4,
-    borderColor: Brand.white,
-    backgroundColor: Brand.slate200,
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-    transform: [{ rotate: '3deg' }],
-  },
-  heroImage: { width: '100%', height: '100%' },
-  imageShade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '40%',
-    backgroundColor: 'rgba(23,45,71,0.56)',
-  },
-  imageCaption: {
-    position: 'absolute',
-    left: 13,
-    right: 10,
-    bottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  captionIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  captionOverline: {
-    color: 'rgba(255,255,255,0.72)',
+  headerCompact: { height: 48 },
+  logo: { width: 37, height: 29 },
+  brandName: {
     fontFamily: Fonts.sans,
-    fontSize: 8,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  captionText: { color: Brand.white, fontFamily: Fonts.rounded, fontSize: 13, fontWeight: '900', marginTop: 2 },
-  metricCard: {
-    position: 'absolute',
-    left: '5%',
-    bottom: '10%',
-    width: 132,
-    minHeight: 108,
-    padding: 15,
-    borderRadius: 22,
-    backgroundColor: Brand.white,
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 9,
-    transform: [{ rotate: '-4deg' }],
-  },
-  metricMark: { width: 24, height: 4, borderRadius: 2, marginBottom: 9 },
-  metricValue: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 27, lineHeight: 30, fontWeight: '900' },
-  metricLabel: {
-    color: Brand.slate500,
-    fontFamily: Fonts.sans,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '700',
-    marginTop: 3,
-  },
-  aiChip: {
-    position: 'absolute',
-    left: '7%',
-    top: '12%',
-    minHeight: 38,
-    paddingHorizontal: 12,
-    borderRadius: 19,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 9,
-    elevation: 5,
-  },
-  aiChipText: { color: Brand.white, fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800' },
-  copy: { alignItems: 'flex-start', paddingHorizontal: 7, paddingTop: 24 },
-  copyCompact: { paddingTop: 16 },
-  eyebrow: {
-    fontFamily: Fonts.sans,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '900',
-    letterSpacing: 1.35,
-    marginBottom: 8,
-  },
-  title: {
+    fontSize: 16,
+    fontWeight: "700",
     color: Brand.navyDark,
-    fontFamily: Fonts.rounded,
-    fontSize: 30,
-    lineHeight: 35,
-    fontWeight: '900',
-    letterSpacing: -0.8,
-    maxWidth: 470,
   },
-  titleCompact: { fontSize: 26, lineHeight: 30 },
-  description: {
-    color: Brand.slate500,
+  brandAccent: { color: Brand.tealDark },
+  carousel: { flex: 1 },
+  slide: {
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  slideCompact: { paddingTop: 8, paddingBottom: 16 },
+  visual: { alignSelf: "center" },
+  backdrop: {
+    position: "absolute",
+    top: "13%",
+    left: "13%",
+    width: "74%",
+    height: "77%",
+    borderRadius: 30,
+    backgroundColor: "#F1F8E2",
+    transform: [{ rotate: "13deg" }],
+  },
+  backdropAlternate: { transform: [{ rotate: "-12deg" }] },
+  photo: {
+    position: "absolute",
+    width: "53%",
+    height: "68%",
+    overflow: "hidden",
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: Brand.white,
+    backgroundColor: "#EEF2EA",
+  },
+  backPhoto: { left: "6%", top: "19%", transform: [{ rotate: "-11deg" }] },
+  frontPhoto: { right: "5%", top: "8%", transform: [{ rotate: "7deg" }] },
+  backPhotoAlternate: { top: "6%", transform: [{ rotate: "-10deg" }] },
+  frontPhotoAlternate: { top: "24%", transform: [{ rotate: "9deg" }] },
+  photoImage: { width: "100%", height: "100%" },
+  pagination: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  dotTarget: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "#E9ECE4" },
+  dotHighlight: {
+    position: "absolute",
+    left: -10.5,
+    top: 0,
+    width: 26,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#B9E463",
+  },
+  copy: {
+    alignItems: "center",
+    paddingHorizontal: 30,
+    paddingTop: 14,
+    maxWidth: 410,
+  },
+  copyCompact: { paddingTop: 4 },
+  title: {
+    color: "#14181B",
     fontFamily: Fonts.sans,
-    fontSize: 14,
+    fontSize: 27,
+    lineHeight: 34,
+    fontWeight: "700",
+    letterSpacing: -0.7,
+    textAlign: "center",
+  },
+  titleCompact: { fontSize: 24, lineHeight: 30 },
+  description: {
+    color: "#63686B",
+    fontFamily: Fonts.sans,
+    fontSize: 13,
     lineHeight: 21,
-    marginTop: 10,
-    maxWidth: 470,
+    textAlign: "center",
+    marginTop: 14,
+    maxWidth: 330,
   },
-  descriptionCompact: { fontSize: 13, lineHeight: 18, marginTop: 7 },
-  footer: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 8, gap: 15 },
-  progress: { height: 4, flexDirection: 'row', gap: 6 },
-  progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Brand.slate200 },
-  progressTrackActive: { backgroundColor: Brand.teal },
+  footer: {
+    width: "100%",
+    maxWidth: 440,
+    alignSelf: "center",
+    paddingHorizontal: 28,
+    paddingTop: 12,
+    paddingBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  skipButton: {
+    minWidth: 72,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    backgroundColor: "#F6F6F6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  skipText: { fontFamily: Fonts.sans, fontSize: 12, color: "#33383B" },
   nextButton: {
-    minHeight: 56,
-    paddingLeft: 22,
-    paddingRight: 7,
-    borderRadius: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Brand.navyDark,
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 7,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 1,
+    borderColor: "#B3DB60",
+    padding: 5,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  nextText: { color: Brand.white, fontFamily: Fonts.sans, fontSize: 15, fontWeight: '800' },
-  nextIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Brand.teal,
+  nextCore: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#C2E970",
   },
-  pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
+  pressed: { opacity: 0.65 },
 });
