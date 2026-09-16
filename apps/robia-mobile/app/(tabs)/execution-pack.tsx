@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { AsyncButton, LoadState } from '@/components/api-ui';
 import { SiteSelector } from '@/components/site-selector';
 import {
+  FilterChips,
   IconBadge,
   RobiaCard,
   RobiaHeader,
@@ -13,6 +14,7 @@ import {
 import { Brand } from "@/constants/theme";
 import { useRobiaData } from "@/src/api/data";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -26,7 +28,14 @@ const TYPE_LABELS: Record<string, string> = {
 };
 export default function ExecutionPackScreen() {
   const { documents, opportunities, isLoading, error, refresh } = useRobiaData();
+  const [filter, setFilter] = useState("Tous");
   const ready = documents.filter((item) => ["edited", "approved", "validated"].includes(item.status)).length;
+  const filters = ["Tous", "À valider", "Validés"] as const;
+  const visibleDocuments = documents.filter((item) => {
+    if (filter === "À valider") return ["draft", "needs_review"].includes(item.status);
+    if (filter === "Validés") return ["approved", "validated"].includes(item.status);
+    return true;
+  });
   return (
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <RobiaHeader compact
@@ -34,13 +43,15 @@ export default function ExecutionPackScreen() {
         title="Documents"
         subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."
       />
-      <SiteSelector /><LoadState loading={isLoading} error={error} retry={refresh} />
+      <SiteSelector />
+      <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      <LoadState loading={isLoading} error={error} retry={refresh} />
       <AsyncButton label="Historique des validations" action={async () => router.push("/validations")} />
       <View style={styles.progressCard}>
         <IconBadge name="task-alt" />
         <View style={styles.progressCopy}>
           <Text style={robiaStyles.cardTitle}>
-            {documents.length} document{documents.length > 1 ? "s" : ""}
+            {visibleDocuments.length} document{visibleDocuments.length > 1 ? "s" : ""}
           </Text>
           <Text style={robiaStyles.body}>
             {ready} modifié{ready > 1 ? "s" : ""} ou validé
@@ -51,7 +62,7 @@ export default function ExecutionPackScreen() {
       {isLoading && !documents.length ? (
         <ActivityIndicator color={Brand.teal} />
       ) : null}
-      {!isLoading && !documents.length ? (
+      {!isLoading && !visibleDocuments.length ? (
         <RobiaCard>
           <Text style={robiaStyles.cardTitle}>Aucun document</Text>
           <Text style={robiaStyles.body}>
@@ -61,7 +72,7 @@ export default function ExecutionPackScreen() {
           </Text>
         </RobiaCard>
       ) : null}
-      {documents.map((doc) => (
+      {visibleDocuments.map((doc) => (
         <RobiaCard key={doc.id} style={styles.card}>
           <View style={styles.documentIcon}>
             <MaterialIcons
