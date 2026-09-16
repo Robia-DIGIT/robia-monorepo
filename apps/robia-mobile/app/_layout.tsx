@@ -243,7 +243,7 @@ function AppLayout() {
           options={{
             headerShown: false,
             presentation: 'fullScreenModal',
-            animation: 'slide_from_bottom',
+            animation: reduceMotion ? 'none' : 'slide_from_bottom',
           }}
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -251,7 +251,7 @@ function AppLayout() {
         <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen
           name="audit"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom', headerShown: false }}
+          options={{ presentation: 'modal', animation: reduceMotion ? 'none' : 'slide_from_bottom', headerShown: false }}
         />
         <Stack.Screen name="history" options={{ headerShown: false }} />
         <Stack.Screen name="reports" options={{ headerShown: false }} />

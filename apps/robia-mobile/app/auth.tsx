@@ -1,6 +1,7 @@
 import { Brand, Fonts } from "@/constants/theme";
 import { ApiError } from "@/src/api/client";
 import { useSession } from "@/src/auth/session";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -20,6 +21,7 @@ import PagerView from "react-native-pager-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AuthScreen() {
+  const reduceMotion = useReducedMotion();
   const { login, register, sessionError, restore } = useSession();
   const pager = useRef<PagerView>(null);
   const [page, setPage] = useState(0);
@@ -34,7 +36,8 @@ export default function AuthScreen() {
   function selectPage(next: number) {
     setPage(next);
     setError("");
-    pager.current?.setPage(next);
+    if (reduceMotion) pager.current?.setPageWithoutAnimation(next);
+    else pager.current?.setPage(next);
   }
   async function submit(registration: boolean) {
     if (submitLock.current) return;
@@ -137,10 +140,10 @@ export default function AuthScreen() {
               setError("");
             }}
           >
-            <View key="login" style={s.page}>
+            <View key="login" style={s.page} accessibilityElementsHidden={page !== 0} importantForAccessibility={page === 0 ? 'auto' : 'no-hide-descendants'}>
               <AuthPage registration={false} {...shared} />
             </View>
-            <View key="register" style={s.page}>
+            <View key="register" style={s.page} accessibilityElementsHidden={page !== 1} importantForAccessibility={page === 1 ? 'auto' : 'no-hide-descendants'}>
               <AuthPage registration {...shared} />
             </View>
           </PagerView>
@@ -257,6 +260,7 @@ function AuthPage({
                   : "Afficher le mot de passe"
               }
               hitSlop={10}
+              style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => setShowPassword((current) => !current)}
             >
               <MaterialIcons

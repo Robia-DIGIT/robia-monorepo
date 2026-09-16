@@ -115,7 +115,7 @@ export function RobiaHeader({
         )}
         {back || compact ? (
           <View pointerEvents="none" style={styles.navigationTitleGroup}>
-            <Text accessibilityRole={'header'} style={styles.navigationTitle} numberOfLines={2}>
+            <Text accessibilityRole="header" style={styles.navigationTitle}>
               {title}
             </Text>
           </View>
@@ -181,7 +181,7 @@ export function SectionTitle({
 }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
       {action}
     </View>
   );
@@ -196,7 +196,7 @@ export function StatusPill({
 }) {
   const tones = {
     teal: { backgroundColor: Brand.tealLight, color: Brand.tealDark },
-    orange: { backgroundColor: Brand.orangeLight, color: Brand.orangeDark },
+    orange: { backgroundColor: Brand.orangeLight, color: '#9A3412' },
     navy: { backgroundColor: Brand.electricLight, color: Brand.electricDark },
     neutral: { backgroundColor: Brand.slate100, color: Brand.slate500 },
   };
@@ -329,11 +329,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   navigationTitleGroup: {
-    position: "absolute",
-    left: 58,
-    right: 58,
-    top: 8,
-    bottom: 7,
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -395,6 +393,8 @@ const styles = StyleSheet.create({
   sectionHeader: {
     minHeight: 28,
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     alignItems: "center",
     justifyContent: "space-between",
   },
@@ -420,13 +420,16 @@ const styles = StyleSheet.create({
     minHeight: 50,
     borderRadius: 18,
     paddingHorizontal: 20,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 9,
-    backgroundColor: Brand.teal,
+    backgroundColor: Brand.tealDark,
   },
   primaryButtonLabel: {
+    flexShrink: 1,
+    textAlign: 'center',
     color: Brand.white,
     fontFamily: Fonts?.sans,
     fontSize: 15,
