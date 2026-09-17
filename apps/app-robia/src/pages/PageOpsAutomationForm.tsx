@@ -269,7 +269,7 @@ export default function PageOpsAutomationForm() {
             className="w-full rounded-xl border border-border px-4 py-2.5 text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
           >
             <option value="manual">Manuel</option>
-            <option value="scheduled">Planifié (préparé, pas encore exécuté automatiquement)</option>
+            <option value="scheduled">Planifié</option>
             <option value="event">Événement</option>
           </select>
         </div>

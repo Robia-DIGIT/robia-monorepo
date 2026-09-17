@@ -44,6 +44,13 @@ beforeEach(() => {
 })
 
 describe('PageOpsAutomationForm — create', () => {
+  it('offers the RC26 email notification action', () => {
+    renderCreate()
+    expect(
+      screen.getByRole('option', { name: 'Préparer un email à partir d’un modèle ROBIA' }),
+    ).toBeInTheDocument()
+  })
+
   it('requires a name before submitting', async () => {
     renderCreate()
     const submit = await screen.findByRole('button', { name: "Créer l'automatisation" })
