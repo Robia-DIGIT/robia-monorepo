@@ -1815,6 +1815,47 @@ export async function closeOdcProgram(id: string) {
   });
 }
 
+export type CreateOdcProgramPayload = {
+  slug: string;
+  name: string;
+  description?: string;
+  opensAt?: string;
+  closesAt?: string;
+  requireDualReview?: boolean;
+  decisionThreshold?: number;
+  fields?: Array<{
+    key: string;
+    label: string;
+    required?: boolean;
+    fieldType: "text" | "longtext" | "number" | "date" | "select";
+    options?: unknown;
+    sortOrder?: number;
+  }>;
+  criteria?: Array<{
+    key: string;
+    label: string;
+    description?: string;
+    weight?: number;
+    maxPoints?: number;
+    required?: boolean;
+    sortOrder?: number;
+  }>;
+  docTypes?: Array<{
+    key: string;
+    label: string;
+    required?: boolean;
+    mimeAllow?: string[];
+  }>;
+};
+
+export async function createOdcProgram(payload: CreateOdcProgramPayload) {
+  return request<OdcProgram>("/odc/programs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function listOdcApplications(programId: string) {
   return request<OdcApplication[]>(
     `/odc/programs/${encodeURIComponent(programId)}/applications`,
