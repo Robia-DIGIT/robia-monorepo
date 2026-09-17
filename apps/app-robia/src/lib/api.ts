@@ -150,11 +150,43 @@ export interface AuditSubscores {
   ai_readiness: number;
 }
 
+// PageSpeed Insights contract — mirrors Robia-Back's app.integrations.pagespeed
+// (RC-10, PR #24, SHA 79809b0). Do not add fields here that RC-10 doesn't
+// produce: absent Google fields stay absent/null, they are never invented
+// client-side.
+export interface PageSpeedMetrics {
+  lcpMs: number | null;
+  cls: number | null;
+  /** Lab proxy for interactivity (Total Blocking Time) — not a Core Web Vital. */
+  tbtMs: number | null;
+  fcpMs: number | null;
+}
+
+export type PageSpeedStatus = "ok" | "unavailable";
+
+export interface PageSpeedInsightsResult {
+  status: PageSpeedStatus;
+  strategy: "mobile";
+  performanceScore: number | null;
+  metrics: PageSpeedMetrics;
+  fetchedAt: string;
+  analyzedUrl: string;
+  finalUrl: string | null;
+  source: string;
+  unavailableReason: string | null;
+}
+
 export interface AuditResultJson {
   summary: string;
   subscores: AuditSubscores;
   global_score: number;
   missing_data: string[];
+  // Multi-page v2 audit payload (see Robia-Back audits.service.ts `run()`).
+  // Only pagespeed_insights is modeled here — that's all this dashboard
+  // slice needs today.
+  site_audit?: {
+    pagespeed_insights?: PageSpeedInsightsResult | null;
+  };
 }
 
 export type AuditStatus = "completed" | "pending" | "failed" | string;
@@ -443,6 +475,12 @@ export function auditSummary(audit: Audit | null | undefined): string {
 
 export function auditMissingData(audit: Audit | null | undefined): string[] {
   return audit?.resultJson?.missing_data ?? [];
+}
+
+export function auditPageSpeedInsights(
+  audit: Audit | null | undefined,
+): PageSpeedInsightsResult | null {
+  return audit?.resultJson?.site_audit?.pagespeed_insights ?? null;
 }
 
 export function oppImpact(opp: Opportunity | null | undefined): number {

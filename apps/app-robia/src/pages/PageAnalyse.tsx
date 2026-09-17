@@ -23,6 +23,7 @@ import {
 } from 'recharts'
 
 import { Alert, Badge, Button, Card, EmptyState, ProgressBar, SearchBar, Tabs } from '../components/ui'
+import { PageSpeedInsightsCard } from '../components/PageSpeedInsightsCard'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import {
   createWebsite,
@@ -34,6 +35,7 @@ import {
   runAudit,
   auditScore,
   auditSubscores,
+  auditPageSpeedInsights,
   oppImpact,
   oppPriorityLabel,
   type Audit,
@@ -81,6 +83,7 @@ export default function PageAnalyse() {
   const scoreLabel = summaryScore >= 75 ? 'Bon' : summaryScore >= 50 ? 'À améliorer' : 'Faible'
   const radialData = [{ name: 'Score', value: summaryScore, fill: '#14B8A6' }]
   const subscores = auditSubscores(latestAudit)
+  const pageSpeedInsights = auditPageSpeedInsights(latestAudit)
 
   const filteredRecommendations = useMemo(() => {
     return opportunities
@@ -361,6 +364,12 @@ export default function PageAnalyse() {
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "Vue d'ensemble" && (
+              <div className="mt-6">
+                <PageSpeedInsightsCard psi={pageSpeedInsights} />
               </div>
             )}
 
