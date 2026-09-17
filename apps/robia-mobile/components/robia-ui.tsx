@@ -3,14 +3,14 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Children, type PropsWithChildren, type ReactNode } from "react";
 import {
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-    type StyleProp,
-    type ViewStyle,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 

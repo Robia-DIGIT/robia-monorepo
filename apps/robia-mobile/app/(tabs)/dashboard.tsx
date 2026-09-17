@@ -49,28 +49,22 @@ export default function HomeScreen() {
         void start('normal');
         void SecureStore.setItemAsync(GUIDE_SEEN_KEY, 'true');
       }, 700);
-    }).catch(() => {});
+    }).catch(() => { });
     return () => {
       mounted = false;
       if (timer) clearTimeout(timer);
     };
   }, [start]);
 
-  const launchGuide = () => {
-    void start('normal');
-  };
 
   return (
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <CopilotStep order={1} name="welcome" text="Votre tableau de bord rassemble les indicateurs et les prochaines actions de votre entreprise.">
         <CopilotTarget style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Bonjour, {firstName}</Text>
-          <Text style={styles.context}>{organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui</Text>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir le guide RobIA" onPress={launchGuide} style={styles.guideButton}>
-          <MaterialIcons name="help-outline" size={21} color={Brand.tealDark} />
-        </Pressable>
+          <View>
+            <Text style={styles.greeting}>Bonjour, {firstName}</Text>
+            <Text style={styles.context}>{organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui</Text>
+          </View>
         </CopilotTarget>
       </CopilotStep>
 
@@ -83,49 +77,49 @@ export default function HomeScreen() {
       {sessionError ? <AsyncButton label={sessionError + " · Réessayer"} action={refreshOrganization} /> : null}
       <AsyncButton label={isLoading ? "Actualisation…" : "Actualiser mes données"} disabled={isLoading} action={refresh} />
       <CopilotStep order={3} name="audit-score" text="Votre score de visibilité résume le dernier diagnostic. Lancez un audit pour obtenir vos premières recommandations.">
-      <CopilotTarget>
-      <RobiaCard style={styles.balanceCard}>
-        <View style={styles.cardHeading}>
-          <View>
-            <Text style={styles.balanceLabel}>{displayScore.label}</Text>
-            <View style={styles.scoreRow}>
-              <Text style={styles.score}>{score ?? '—'}</Text>
-              <Text style={styles.scoreSuffix}>/100</Text>
+        <CopilotTarget>
+          <RobiaCard style={styles.balanceCard}>
+            <View style={styles.cardHeading}>
+              <View>
+                <Text style={styles.balanceLabel}>{displayScore.label}</Text>
+                <View style={styles.scoreRow}>
+                  <Text style={styles.score}>{score ?? '—'}</Text>
+                  <Text style={styles.scoreSuffix}>/100</Text>
+                </View>
+              </View>
+              <View style={styles.trend}>
+                <MaterialIcons name="trending-up" size={15} color={Brand.tealDark} />
+                <Text style={styles.trendText}>Diagnostic</Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.trend}>
-            <MaterialIcons name="trending-up" size={15} color={Brand.tealDark} />
-            <Text style={styles.trendText}>Diagnostic</Text>
-          </View>
-        </View>
-        <View
-          accessible
-          accessibilityRole="progressbar"
-          accessibilityLabel={displayScore.label}
-          accessibilityValue={{ min: 0, max: 100, now: score ?? 0, text: score == null ? "Non mesuré" : `${score} sur 100` }}
-          style={styles.track}>
-          <View style={[styles.fill, { width: (Math.max(0, Math.min(score ?? 0, 100)) + '%') as DimensionValue }]} />
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={latestAudit ? "Relancer mon audit" : "Lancer mon premier audit"} onPress={() => router.push('/audit')} style={({ pressed }) => [styles.auditButton, pressed && styles.pressed]}>
-          <Text style={styles.auditButtonText}>{latestAudit ? 'Relancer mon audit' : 'Lancer mon premier audit'}</Text>
-          <MaterialIcons name="arrow-forward" size={18} color={Brand.white} />
-        </Pressable>
-      </RobiaCard>
-      </CopilotTarget>
+            <View
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={displayScore.label}
+              accessibilityValue={{ min: 0, max: 100, now: score ?? 0, text: score == null ? "Non mesuré" : `${score} sur 100` }}
+              style={styles.track}>
+              <View style={[styles.fill, { width: (Math.max(0, Math.min(score ?? 0, 100)) + '%') as DimensionValue }]} />
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={latestAudit ? "Relancer mon audit" : "Lancer mon premier audit"} onPress={() => router.push('/audit')} style={({ pressed }) => [styles.auditButton, pressed && styles.pressed]}>
+              <Text style={styles.auditButtonText}>{latestAudit ? 'Relancer mon audit' : 'Lancer mon premier audit'}</Text>
+              <MaterialIcons name="arrow-forward" size={18} color={Brand.white} />
+            </Pressable>
+          </RobiaCard>
+        </CopilotTarget>
       </CopilotStep>
 
       <CopilotStep order={4} name="activity" text="Retrouvez ici vos opportunités, vos documents et l'avancement de votre plan d'action.">
-      <CopilotTarget style={styles.guideTarget}>
-      <View style={styles.sectionHeading}>
-        <Text style={styles.sectionTitle}>Votre activité</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir la vue d’ensemble" onPress={() => router.push("/intelligence")} style={styles.sectionLink}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
-      </View>
-      <View style={styles.metrics}>
-        <Metric icon="track-changes" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
-        <Metric icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
-        <Metric icon="checklist" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
-      </View>
-      </CopilotTarget>
+        <CopilotTarget style={styles.guideTarget}>
+          <View style={styles.sectionHeading}>
+            <Text style={styles.sectionTitle}>Votre activité</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir la vue d’ensemble" onPress={() => router.push("/intelligence")} style={styles.sectionLink}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
+          </View>
+          <View style={styles.metrics}>
+            <Metric icon="track-changes" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
+            <Metric icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
+            <Metric icon="checklist" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
+          </View>
+        </CopilotTarget>
       </CopilotStep>
 
       <View style={styles.sectionHeading}>
