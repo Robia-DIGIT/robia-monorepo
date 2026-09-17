@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, Plus } from 'lucide-react'
 
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from '../components/ui'
 import {
   closeOdcProgram,
+  createOdcProgram,
   listOdcPrograms,
   odcProgramStatusLabel,
   openOdcProgram,
   type OdcProgram,
 } from '../lib/api'
+import { ODC_DEFAULT_PROGRAM, ODC_DEFAULT_PROGRAM_SLUG } from '../lib/odc-default-program'
 
 export default function PageOdcPrograms() {
   const [programs, setPrograms] = useState<OdcProgram[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+
+  const hasDefaultProgram = programs.some((program) => program.slug === ODC_DEFAULT_PROGRAM_SLUG)
 
   const load = async () => {
     setLoading(true)
@@ -32,6 +37,24 @@ export default function PageOdcPrograms() {
   useEffect(() => {
     void load()
   }, [])
+
+  const handleCreateDefault = async () => {
+    setCreating(true)
+    setError('')
+    try {
+      const created = await createOdcProgram(ODC_DEFAULT_PROGRAM)
+      const opened = await openOdcProgram(created.id)
+      setPrograms((current) => [opened, ...current.filter((item) => item.id !== opened.id)])
+    } catch (createError) {
+      setError(
+        createError instanceof Error
+          ? createError.message
+          : 'Impossible de créer le programme ODC.',
+      )
+    } finally {
+      setCreating(false)
+    }
+  }
 
   const handleOpen = async (id: string) => {
     setBusyId(id)
@@ -64,6 +87,19 @@ export default function PageOdcPrograms() {
       <PageHeader
         title="Candidatures ODC"
         subtitle="Programmes et dossiers. La décision d’acceptation reste humaine."
+        actions={
+          !loading && programs.length > 0 && !hasDefaultProgram ? (
+            <Button
+              size="sm"
+              icon={<Plus size={14} />}
+              loading={creating}
+              onClick={() => void handleCreateDefault()}
+              data-testid="odc-create-default-program"
+            >
+              Créer le programme ODC
+            </Button>
+          ) : null
+        }
       />
       {error && (
         <div className="mb-4">
@@ -78,7 +114,17 @@ export default function PageOdcPrograms() {
         <EmptyState
           icon={<ClipboardList size={28} />}
           title="Aucun programme"
-          description="Créez un appel à candidatures depuis l’API ODC (POST /odc/programs). Le formulaire de création arrive dans un lot suivant."
+          description="Un clic crée l’appel Orange Digital Center 2026 (champs, critères, pièces) et l’ouvre aux candidatures. La décision reste humaine."
+          action={
+            <Button
+              icon={<Plus size={14} />}
+              loading={creating}
+              onClick={() => void handleCreateDefault()}
+              data-testid="odc-create-default-program-empty"
+            >
+              Créer le programme ODC
+            </Button>
+          }
         />
       ) : (
         <div className="space-y-3">
