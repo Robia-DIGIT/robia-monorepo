@@ -14,6 +14,7 @@ import {
   type Automation,
   type AutomationRun,
 } from '../lib/api'
+import { SCHEDULER_RESOLUTION_NOTE, describeCronHuman, formatNextRunAt } from '../lib/cron-schedule'
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -148,6 +149,25 @@ export default function PageOpsAutomationDetail() {
             <dt className="text-[10px] font-bold uppercase tracking-wide text-muted">Étapes</dt>
             <dd className="mt-1 text-dark">{automation.steps.length} action(s) : {automation.steps.map((s) => s.actionType).join(', ')}</dd>
           </div>
+          {automation.trigger.type === 'scheduled' && (
+            <>
+              <div>
+                <dt className="text-[10px] font-bold uppercase tracking-wide text-muted">Fréquence</dt>
+                <dd className="mt-1 text-dark">{describeCronHuman(automation.trigger.cronExpression)}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-bold uppercase tracking-wide text-muted">Fuseau horaire</dt>
+                <dd className="mt-1 text-dark">{automation.trigger.timezone ?? 'UTC'}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-bold uppercase tracking-wide text-muted">Prochaine exécution</dt>
+                <dd className="mt-1 text-dark">
+                  {formatNextRunAt(automation.nextRunAt, automation.trigger.timezone)}
+                </dd>
+                <dd className="mt-1 text-xs text-muted">{SCHEDULER_RESOLUTION_NOTE}</dd>
+              </div>
+            </>
+          )}
         </dl>
       </Card>
 

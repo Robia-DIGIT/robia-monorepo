@@ -11,6 +11,7 @@ import {
   triggerAutomation,
   type Automation,
 } from '../lib/api'
+import { formatNextRunAt } from '../lib/cron-schedule'
 
 function formatDate(value: string | null) {
   if (!value) return 'Jamais exécutée'
@@ -54,7 +55,15 @@ function AutomationCard({
           )}
         </div>
       </div>
-      <div className="mb-4 text-xs text-muted">Dernière exécution : {formatDate(automation.lastRunAt)}</div>
+      <div className={automation.trigger.type === 'scheduled' ? 'mb-1' : 'mb-4'}>
+        <span className="text-xs text-muted">Dernière exécution : {formatDate(automation.lastRunAt)}</span>
+      </div>
+      {automation.trigger.type === 'scheduled' && (
+        <div className="mb-4 space-y-0.5 text-xs text-muted">
+          <div>Fuseau : {automation.trigger.timezone ?? 'UTC'}</div>
+          <div>Prochaine exécution : {formatNextRunAt(automation.nextRunAt, automation.trigger.timezone)}</div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
