@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import PageOdcProgramKanban from './PageOdcProgramKanban'
 import * as api from '../lib/api'
+import * as demo from '../lib/odc-demo-applications'
 import type { OdcApplication, OdcProgram } from '../lib/api'
 
 vi.mock('../lib/api', async (importOriginal) => {
@@ -18,7 +19,12 @@ vi.mock('../lib/api', async (importOriginal) => {
   }
 })
 
+vi.mock('../lib/odc-demo-applications', () => ({
+  seedDemoApplicationsOnProgram: vi.fn(),
+}))
+
 const mockedApi = vi.mocked(api)
+const mockedDemo = vi.mocked(demo)
 
 const program: OdcProgram = {
   id: 'p1',
@@ -86,11 +92,33 @@ describe('PageOdcProgramKanban', () => {
         </Routes>
       </MemoryRouter>,
     )
-    await waitFor(() => expect(screen.getByText('Karim')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText('Karim').length).toBeGreaterThan(0))
     expect(screen.getByTestId('odc-column-draft')).toBeInTheDocument()
     expect(screen.getByTestId('odc-column-withdrawn')).toBeInTheDocument()
     expect(screen.getByText(/Score : Non figé/)).toBeInTheDocument()
     expect(screen.queryByText(/Score : 0/)).not.toBeInTheDocument()
     expect(screen.getByTestId('odc-cv-ranking')).toBeInTheDocument()
+  })
+
+  it('seeds three demo applications on the current open program', async () => {
+    mockedApi.getOdcProgram.mockResolvedValue(program)
+    mockedApi.listOdcApplications.mockResolvedValue([])
+    mockedApi.listOdcOutreach.mockResolvedValue([])
+    mockedDemo.seedDemoApplicationsOnProgram.mockResolvedValue([])
+
+    render(
+      <MemoryRouter initialEntries={['/odc/programmes/p1']}>
+        <Routes>
+          <Route path="/odc/programmes/:id" element={<PageOdcProgramKanban />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('odc-seed-demo-applications-empty')).toBeInTheDocument(),
+    )
+    fireEvent.click(screen.getByTestId('odc-seed-demo-applications-empty'))
+    await waitFor(() => {
+      expect(mockedDemo.seedDemoApplicationsOnProgram).toHaveBeenCalledWith(program)
+    })
   })
 })

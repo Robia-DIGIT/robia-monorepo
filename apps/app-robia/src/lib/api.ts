@@ -1881,6 +1881,73 @@ export async function createOdcProgram(payload: CreateOdcProgramPayload) {
   });
 }
 
+export async function createOdcApplicant(payload: {
+  displayName: string;
+  email?: string;
+  phone?: string;
+}) {
+  return request<OdcApplicant>("/odc/applicants", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createOdcApplication(
+  programId: string,
+  payload: { applicantId: string },
+) {
+  return request<OdcApplication>(
+    `/odc/programs/${encodeURIComponent(programId)}/applications`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateOdcApplicationAnswers(
+  applicationId: string,
+  answers: Record<string, unknown>,
+) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+    },
+  );
+}
+
+export async function addOdcDocument(
+  applicationId: string,
+  payload: {
+    documentTypeId: string;
+    originalName: string;
+    mimeType: string;
+    sizeBytes: number;
+    storageKey?: string;
+  },
+) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}/documents`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function submitOdcApplication(applicationId: string) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}/submit`,
+    { method: "POST" },
+  );
+}
+
 export async function listOdcApplications(programId: string) {
   return request<OdcApplication[]>(
     `/odc/programs/${encodeURIComponent(programId)}/applications`,
