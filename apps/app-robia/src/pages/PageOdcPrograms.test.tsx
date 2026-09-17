@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import PageOdcPrograms from './PageOdcPrograms'
@@ -71,7 +70,6 @@ describe('PageOdcPrograms', () => {
   })
 
   it('creates and opens the default ODC program', async () => {
-    const user = userEvent.setup()
     const draft = makeProgram({
       id: 'p-new',
       slug: ODC_DEFAULT_PROGRAM_SLUG,
@@ -88,13 +86,17 @@ describe('PageOdcPrograms', () => {
         <PageOdcPrograms />
       </MemoryRouter>,
     )
-    await waitFor(() => expect(screen.getByTestId('odc-create-default-program-empty')).toBeInTheDocument())
-    await user.click(screen.getByTestId('odc-create-default-program-empty'))
+    await waitFor(() =>
+      expect(screen.getByTestId('odc-create-default-program-empty')).toBeInTheDocument(),
+    )
+    fireEvent.click(screen.getByTestId('odc-create-default-program-empty'))
 
     await waitFor(() => {
       expect(mockedApi.createOdcProgram).toHaveBeenCalledTimes(1)
       expect(mockedApi.openOdcProgram).toHaveBeenCalledWith('p-new')
-      expect(screen.getByText('Orange Digital Center — Appel à candidatures 2026')).toBeInTheDocument()
+      expect(
+        screen.getByText('Orange Digital Center — Appel à candidatures 2026'),
+      ).toBeInTheDocument()
       expect(screen.getByText('Ouvert')).toBeInTheDocument()
     })
   })
