@@ -1129,7 +1129,11 @@ export type AutomationStepRunStatus =
   | "succeeded"
   | "failed"
   | "skipped"
-  | "cancelled";
+  | "cancelled"
+  // RC-27 (backend) — a transient step failure with retries remaining. The
+  // parent AutomationRun stays "running" while a step sits here; it only
+  // reaches "failed" once this step's own retry budget is exhausted.
+  | "retry_scheduled";
 
 export interface AutomationStepRun {
   id: string;
@@ -1140,6 +1144,12 @@ export interface AutomationStepRun {
   status: AutomationStepRunStatus;
   evidence: Record<string, unknown> | null;
   error: string | null;
+  // RC-27 (backend) — how many attempts this step has made so far (the
+  // initial attempt counts as 1) and, only while status is
+  // "retry_scheduled", when the next one is due. nextAttemptAt is null once
+  // a step is no longer waiting on a retry.
+  attemptCount: number;
+  nextAttemptAt: string | null;
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
@@ -1284,6 +1294,8 @@ export function stepStatusLabel(status: AutomationStepRunStatus): {
       return { label: "Ignoré", variant: "gray" };
     case "cancelled":
       return { label: "Annulé", variant: "gray" };
+    case "retry_scheduled":
+      return { label: "Nouvelle tentative programmée", variant: "orange" };
     default:
       return { label: status, variant: "gray" };
   }

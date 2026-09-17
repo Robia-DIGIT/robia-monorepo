@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Circle, Loader2, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Circle, Loader2, RotateCw, XCircle } from 'lucide-react'
 
 import { Badge, Button, Card } from '../components/ui'
 import {
@@ -29,6 +29,10 @@ function StepIcon({ status }: { status: AutomationStepRun['status'] }) {
   if (status === 'succeeded') return <CheckCircle2 size={18} className="text-teal" />
   if (status === 'failed') return <XCircle size={18} className="text-red-500" />
   if (status === 'running') return <Loader2 size={18} className="animate-spin text-electric" />
+  // RC-28 — a retry-scheduled step is neither "running" (nothing is
+  // executing right now) nor "queued" (it already tried, and failed) — its
+  // own icon avoids implying either.
+  if (status === 'retry_scheduled') return <RotateCw size={18} className="text-orange" />
   return <Circle size={18} className="text-[#CBD5E1]" />
 }
 
@@ -44,10 +48,21 @@ function StepTimelineItem({ step }: { step: AutomationStepRun }) {
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-dark">{step.sequence}. {step.actionType}</span>
           <Badge variant={status.variant}>{status.label}</Badge>
+          {step.attemptCount > 1 && (
+            <span className="text-xs text-muted">
+              {step.attemptCount} tentatives
+            </span>
+          )}
         </div>
         <p className="text-xs text-muted">
           {formatDate(step.startedAt)} → {formatDate(step.finishedAt)}
         </p>
+        {step.status === 'retry_scheduled' && (
+          <p className="mt-2 rounded-lg bg-orange-light/20 px-3 py-2 text-xs text-orange-dark border border-orange/40">
+            Nouvelle tentative prévue{step.nextAttemptAt ? ` à ${formatDate(step.nextAttemptAt)}` : ''} — l'exécution
+            reprendra automatiquement, sans intervention nécessaire.
+          </p>
+        )}
         {step.evidence && (
           <pre className="mt-2 overflow-x-auto rounded-lg bg-slate-bg px-3 py-2 text-xs text-dark">
             {JSON.stringify(step.evidence, null, 2)}
@@ -55,6 +70,7 @@ function StepTimelineItem({ step }: { step: AutomationStepRun }) {
         )}
         {step.error && (
           <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 border border-red-200">
+            {step.status === 'retry_scheduled' ? 'Dernière erreur : ' : ''}
             {step.error}
           </p>
         )}
@@ -134,6 +150,12 @@ export default function PageOpsAutomationRun() {
   const steps = run.steps ?? []
   const plannedSteps = run.plannedSteps ?? []
   const isWaitingApproval = run.status === 'waiting_approval'
+  // RC-28 — a run stays "running" while one of its steps waits on an
+  // automatic retry (see AutomationsService.retryStep(), backend RC-27): it
+  // is neither stuck nor requiring any action, but "En cours" alone doesn't
+  // say that. At most one step is ever retry_scheduled at a time (steps run
+  // strictly in sequence), so this is never ambiguous about which one.
+  const retryingStep = steps.find((step) => step.status === 'retry_scheduled')
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto animate-slide-up">
@@ -158,6 +180,18 @@ export default function PageOpsAutomationRun() {
         <div className="mb-6">
           <Card className="p-4 text-sm text-red-700 bg-red-50 border-red-200">{error}</Card>
         </div>
+      )}
+
+      {retryingStep && (
+        <Card className="mb-6 flex items-start gap-3 p-4 border-orange/40 bg-orange-light/10">
+          <RotateCw size={18} className="mt-0.5 shrink-0 text-orange" />
+          <p className="text-xs leading-relaxed text-dark">
+            L'étape « {retryingStep.actionType} » a rencontré une erreur temporaire et sera retentée
+            automatiquement{retryingStep.nextAttemptAt ? ` à ${formatDate(retryingStep.nextAttemptAt)}` : ''}
+            {' '}(tentative {retryingStep.attemptCount + 1}). Cette exécution reste « En cours » : aucune action
+            n'est nécessaire.
+          </p>
+        </Card>
       )}
 
       {isWaitingApproval && (
