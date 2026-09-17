@@ -1,18 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 import { Alert, Badge, Button, Card, PageHeader } from '../components/ui'
 import {
   decideOdcApplication,
+  downloadBlob,
+  downloadOdcDocumentFile,
   formatOdcScore,
   getOdcApplication,
   odcApplicationStatusLabel,
+  uploadOdcDocument,
   type OdcApplication,
   type OdcDecision,
+  type OdcDocument,
 } from '../lib/api'
 
 const DECIDABLE = new Set(['in_review', 'waitlisted'])
+// Same statuses OdcApplicationsService/OdcDocumentsService enforce
+// server-side for adding a document — mirrored here only to avoid showing
+// an upload control that would just fail, never as the real guard.
+const UPLOADABLE_STATUSES = new Set(['draft', 'incomplete', 'in_review'])
 
 export default function PageOdcApplication() {
   const { id = '' } = useParams()
@@ -23,6 +31,13 @@ export default function PageOdcApplication() {
   const [busy, setBusy] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [pendingDecision, setPendingDecision] = useState<OdcDecision | null>(null)
+
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({})
+  const [uploadingDocTypeId, setUploadingDocTypeId] = useState<string | null>(null)
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({})
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [unavailableDocumentIds, setUnavailableDocumentIds] = useState<Set<string>>(new Set())
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const load = async () => {
     setLoading(true)
@@ -65,6 +80,53 @@ export default function PageOdcApplication() {
     }
   }
 
+  const handleFileChange = (documentTypeId: string, file: File | null) => {
+    setSelectedFiles((current) => ({ ...current, [documentTypeId]: file }))
+    setUploadErrors((current) => ({ ...current, [documentTypeId]: '' }))
+  }
+
+  const handleUpload = async (documentTypeId: string) => {
+    const file = selectedFiles[documentTypeId]
+    if (!file) return
+    setUploadingDocTypeId(documentTypeId)
+    setUploadErrors((current) => ({ ...current, [documentTypeId]: '' }))
+    try {
+      const updated = await uploadOdcDocument(id, documentTypeId, file)
+      setApplication(updated)
+      setSelectedFiles((current) => ({ ...current, [documentTypeId]: null }))
+      const input = fileInputRefs.current[documentTypeId]
+      if (input) input.value = ''
+    } catch (uploadError) {
+      setUploadErrors((current) => ({
+        ...current,
+        [documentTypeId]: uploadError instanceof Error ? uploadError.message : "L'envoi a échoué.",
+      }))
+    } finally {
+      setUploadingDocTypeId(null)
+    }
+  }
+
+  const handleDownload = async (doc: OdcDocument) => {
+    setDownloadingId(doc.id)
+    setUnavailableDocumentIds((current) => {
+      const next = new Set(current)
+      next.delete(doc.id)
+      return next
+    })
+    try {
+      const blob = await downloadOdcDocumentFile(doc.id)
+      if (!blob) {
+        setUnavailableDocumentIds((current) => new Set(current).add(doc.id))
+        return
+      }
+      downloadBlob(blob, doc.originalName)
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'Le téléchargement a échoué.')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
+
   if (loading && !application) {
     return (
       <div className="mx-auto max-w-4xl p-6 lg:p-8">
@@ -88,6 +150,14 @@ export default function PageOdcApplication() {
   const answers = application.answers ?? {}
   const events = application.events ?? []
   const program = application.program
+  const documents = application.documents ?? []
+  const canUpload = UPLOADABLE_STATUSES.has(application.status)
+  // A document whose type was removed from the program's definition since
+  // it was added (OdcProgramsService.update() wholesale-replaces docTypes) —
+  // kept visible here rather than silently dropped from view.
+  const orphanedDocuments = documents.filter(
+    (doc) => !program?.docTypes?.some((docType) => docType.id === doc.documentTypeId),
+  )
 
   return (
     <div className="mx-auto max-w-4xl p-6 lg:p-8">
@@ -140,13 +210,97 @@ export default function PageOdcApplication() {
           ) : (
             <p className="text-sm text-muted">Aucun champ manquant signalé.</p>
           )}
-          <ul className="mt-3 space-y-1 text-xs text-muted">
-            {(application.documents ?? []).map((doc) => (
-              <li key={doc.id}>
-                {doc.originalName} — {doc.status}
-              </li>
-            ))}
-          </ul>
+
+          <div className="mt-4 space-y-3">
+            {(program?.docTypes ?? []).map((docType) => {
+              const docsForType = documents.filter((doc) => doc.documentTypeId === docType.id)
+              const received = docsForType.find((doc) => doc.status === 'received')
+              const uploadError = uploadErrors[docType.id]
+              return (
+                <div key={docType.id} className="rounded-lg border border-border-light p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-navy">
+                      {docType.label}
+                      {docType.required && <span className="text-orange"> *</span>}
+                    </span>
+                    <Badge variant={received ? 'teal' : docsForType.length ? 'orange' : 'gray'}>
+                      {received ? 'Reçue' : docsForType.length ? 'En attente' : 'Aucune pièce'}
+                    </Badge>
+                  </div>
+
+                  {received && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted">{received.originalName}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={downloadingId === received.id}
+                        onClick={() => void handleDownload(received)}
+                      >
+                        Télécharger
+                      </Button>
+                      {unavailableDocumentIds.has(received.id) && (
+                        <span className="text-xs text-muted">
+                          Fichier non disponible — probablement une candidature de démonstration sans pièce réelle.
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {canUpload && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <input
+                        ref={(node) => {
+                          fileInputRefs.current[docType.id] = node
+                        }}
+                        type="file"
+                        accept={docType.mimeAllow.join(',')}
+                        onChange={(event) => handleFileChange(docType.id, event.target.files?.[0] ?? null)}
+                        data-testid={`odc-upload-input-${docType.key}`}
+                        className="text-xs"
+                      />
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        loading={uploadingDocTypeId === docType.id}
+                        disabled={!selectedFiles[docType.id]}
+                        onClick={() => void handleUpload(docType.id)}
+                      >
+                        Envoyer
+                      </Button>
+                    </div>
+                  )}
+                  {uploadError && <p className="mt-1 text-xs text-red-600">{uploadError}</p>}
+                </div>
+              )
+            })}
+
+            {orphanedDocuments.length > 0 && (
+              <div className="rounded-lg border border-border-light p-3">
+                <span className="text-xs font-semibold text-navy">Autres pièces</span>
+                <ul className="mt-2 space-y-2">
+                  {orphanedDocuments.map((doc) => (
+                    <li key={doc.id} className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted">{doc.originalName} — {doc.status}</span>
+                      {doc.status === 'received' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={downloadingId === doc.id}
+                          onClick={() => void handleDownload(doc)}
+                        >
+                          Télécharger
+                        </Button>
+                      )}
+                      {unavailableDocumentIds.has(doc.id) && (
+                        <span className="text-xs text-muted">Fichier non disponible.</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
 
