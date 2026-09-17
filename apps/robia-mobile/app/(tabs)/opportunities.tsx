@@ -1,4 +1,3 @@
-import { AsyncButton } from '@/components/api-ui';
 import {
   FilterChips,
   IconBadge,
@@ -11,9 +10,7 @@ import {
 import { SiteSelector } from '@/components/site-selector';
 import { Brand } from "@/constants/theme";
 import { useRobiaData } from "@/src/api/data";
-import { isSiteAudit } from '@/src/api/presentation';
 import type { Opportunity } from "@/src/api/types";
-import { useSession } from '@/src/auth/session';
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from 'expo-router';
 import { useState } from "react";
@@ -34,7 +31,7 @@ export default function OpportunitiesScreen() {
     refresh,
     generateActions,
   } = useRobiaData();
-  const { request } = useSession();
+  // const { request } = useSession();
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState("Toutes");
@@ -65,7 +62,7 @@ export default function OpportunitiesScreen() {
       <SiteSelector />
       <FilterChips options={filters} selected={filter} onChange={setFilter} />
       {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
-      {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null}
+      {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
       <View style={styles.summary}>
         <Text style={styles.summaryCount}>{visibleOpportunities.length}</Text>
         <Text style={robiaStyles.body}>opportunités classées par impact.</Text>
