@@ -20,6 +20,7 @@ import {
   WEEKDAY_OPTIONS,
   buildCronExpression,
   detectBrowserTimeZone,
+  ensureTimeZoneOption,
   isFiveFieldCron,
   listIanaTimeZones,
   parseCronPreset,
@@ -83,7 +84,15 @@ function stepsToFormValues(steps: AutomationStep[]): StepFormValue[] {
 // raw-cron fallback.
 type ScheduleMode = ScheduleFrequency | 'advanced'
 
-const IANA_TIME_ZONES = listIanaTimeZones()
+// Base list only — never rendered as-is. The runtime's own canonical IANA
+// database (or its static fallback) doesn't change during the page's
+// lifetime, so computing it once here is safe; what's rendered is always
+// ensureTimeZoneOption(BASE_IANA_TIME_ZONES, <the live current value>),
+// computed fresh from state on every render (see the timezone <select>
+// below) — never this constant directly, which on its own can't guarantee
+// the current create-time browser zone or an existing automation's own
+// timezone is actually present (Codex review fix).
+const BASE_IANA_TIME_ZONES = listIanaTimeZones()
 
 function pad2(value: number): string {
   return String(value).padStart(2, '0')
@@ -341,6 +350,14 @@ export default function PageOpsAutomationForm() {
     )
   }
 
+  // Recomputed from the live `timezone` state on every render (Codex
+  // review fix) — never a static, one-time list. Guarantees the currently
+  // selected value (the detected browser zone on create, or an existing
+  // automation's own trigger.timezone on edit) is always a selectable
+  // option, even if the runtime's own canonical IANA list doesn't happen
+  // to contain it.
+  const timeZoneOptions = ensureTimeZoneOption(BASE_IANA_TIME_ZONES, timezone)
+
   return (
     <div className="p-6 lg:p-8 max-w-3xl mx-auto animate-slide-up">
       <Link to="/ops/automations" className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-navy">
@@ -457,7 +474,7 @@ export default function PageOpsAutomationForm() {
                 onChange={(e) => setTimezone(e.target.value)}
                 className="w-full rounded-xl border border-border px-4 py-2.5 text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
               >
-                {IANA_TIME_ZONES.map((zone) => (
+                {timeZoneOptions.map((zone) => (
                   <option key={zone} value={zone}>
                     {zone}
                   </option>

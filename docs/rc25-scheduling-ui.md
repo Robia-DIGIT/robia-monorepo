@@ -76,6 +76,35 @@ pour un utilisateur non technique.
 `Intl.DateTimeFormat().resolvedOptions().timeZone` fournit le fuseau du
 navigateur, utilisé comme valeur initiale — modifiable ensuite librement.
 
+### Garantir que le fuseau courant est toujours une option (revue Codex)
+
+`Intl.supportedValuesOf('timeZone')` est un instantané de la base IANA
+canonique **de ce runtime précis** — rien ne garantit qu'elle contienne :
+
+- le fuseau détecté du navigateur (`detectBrowserTimeZone()`) ;
+- un fuseau déjà enregistré depuis un autre navigateur/OS ;
+- un alias IANA que le backend accepte mais que ce runtime ne liste pas
+  sous ce nom canonique.
+
+Un `<select>` construit uniquement à partir de `listIanaTimeZones()`
+pourrait donc silencieusement perdre la valeur courante au chargement — la
+prochaine sauvegarde enregistrerait alors un fuseau différent sans que
+l'utilisateur n'ait rien changé.
+
+`ensureTimeZoneOption(zones, current)` (helper pur, `cron-schedule.ts`)
+corrige ça : insère `current` en tête de liste s'il est absent, ne duplique
+jamais s'il est déjà présent. Le formulaire ne rend **jamais** la liste de
+base directement — toujours `ensureTimeZoneOption(BASE_IANA_TIME_ZONES,
+timezone)`, recalculé à chaque rendu à partir de l'état React courant
+(jamais une constante figée qui ignorerait la valeur courante) :
+
+- À la création : `timezone` vaut le fuseau du navigateur détecté.
+- À l'édition : `timezone` vaut `trigger.timezone` de l'automation
+  chargée.
+- Avec le repli statique (`Intl.supportedValuesOf` indisponible) : même
+  garantie, `ensureTimeZoneOption` ne dépend pas de la source de la liste
+  de base.
+
 ## Comportement du formulaire (`PageOpsAutomationForm`)
 
 ### Création
@@ -144,6 +173,25 @@ Pour toute automation dont le trigger est `scheduled` :
 Une automation `manual`/`event` n'affiche aucun de ces éléments — `nextRunAt`
 n'a de sens que pour un déclenchement planifié.
 
+### Un fuseau non reconnu ne doit jamais faire planter la page (revue Codex)
+
+`formatInstantInTimeZone()` appelle `Intl.DateTimeFormat` avec le fuseau
+reçu — un fuseau que le backend accepte, ou qu'un navigateur plus récent
+connaît, peut être inconnu d'un navigateur plus ancien et lever une
+`RangeError`. Corrigé : l'erreur est rattrapée, jamais laissée remonter
+jusqu'à faire planter la liste ou le détail. Le repli :
+
+- affiche l'instant en **UTC** ;
+- l'indique explicitement comme un repli, et rappelle le fuseau
+  initialement demandé (ex. `21/09/2026 06:00 UTC (repli : fuseau
+  « Foo/Bar » non reconnu par ce navigateur)`) — jamais une heure UTC
+  présentée silencieusement comme si elle correspondait au fuseau
+  d'origine.
+
+Une date ISO invalide (`nextRunAt` corrompu) est traitée de la même façon
+défensive : `Date invalide`, jamais une exception. `formatNextRunAt(null,
+timezone)` continue de renvoyer `« Non planifiée »`, inchangé.
+
 `automationTriggerLabel()` (badge partagé liste/détail) utilise désormais
 `describeCronHuman()` au lieu d'afficher l'expression cron brute.
 
@@ -162,7 +210,7 @@ rattrape un contrat déjà exposé :
 
 ## Fichiers créés
 
-- `apps/app-robia/src/lib/cron-schedule.ts` (+ `.test.ts`, 30 tests)
+- `apps/app-robia/src/lib/cron-schedule.ts` (+ `.test.ts`, 38 tests)
 - `docs/rc25-scheduling-ui.md`
 
 ## Fichiers modifiés
@@ -187,12 +235,23 @@ rattrape un contrat déjà exposé :
 - Aucun changement au moteur de planification backend lui-même (hors
   scope explicite de cette PR).
 
+## Corrections de revue (Codex, sur cette PR)
+
+1. **Le fuseau courant pouvait manquer du `<select>`** — voir « Garantir
+   que le fuseau courant est toujours une option » sous « Fuseau
+   horaire ». Nouveau helper `ensureTimeZoneOption()`, utilisé à la place
+   d'une constante globale figée.
+2. **Un fuseau non reconnu par ce navigateur pouvait faire planter la
+   liste/le détail** — voir « Un fuseau non reconnu ne doit jamais faire
+   planter la page » sous « Visibilité opérationnelle ». Repli explicite
+   sur UTC, jamais silencieux ; date ISO invalide gérée de la même façon.
+
 ## Tests exécutés
 
 ```
-pnpm --filter app-robia test     → 19 fichiers, 160 tests, tous passants
-                                    (30 nouveaux dans cron-schedule.test.ts,
-                                    17 nouveaux dans PageOpsAutomationForm,
+pnpm --filter app-robia test     → 19 fichiers, 171 tests, tous passants
+                                    (38 dans cron-schedule.test.ts,
+                                    20 nouveaux dans PageOpsAutomationForm,
                                     2 nouveaux dans PageOpsAutomations,
                                     4 nouveaux dans PageOpsAutomationDetail)
 pnpm --filter app-robia build    → tsc -b + vite build : succès

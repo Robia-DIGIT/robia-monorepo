@@ -171,22 +171,64 @@ export function detectBrowserTimeZone(): string {
   }
 }
 
+// Codex review fix: listIanaTimeZones() is a snapshot of this runtime's own
+// canonical IANA zone database — it is not guaranteed to contain the
+// browser's own detected zone, a zone saved earlier from a different
+// browser/OS, or an alias the backend itself accepts but this particular
+// runtime doesn't list canonically. A <select> built only from
+// listIanaTimeZones() could therefore silently drop the current value on
+// load, changing it to a different zone the instant the form is saved
+// without the user ever touching the field. This guarantees `current` is
+// present — inserted first if missing, never duplicated if already
+// there — and must be called with the *live* current value (create: the
+// detected browser zone; edit: trigger.timezone), never baked into a
+// static, one-time list.
+export function ensureTimeZoneOption(zones: string[], current: string | null | undefined): string[] {
+  if (!current) return zones
+  return zones.includes(current) ? zones : [current, ...zones]
+}
+
 // Renders an ISO instant (as stored/returned by the backend, always UTC)
 // in a given IANA zone, in French — the zone itself is always appended
 // rather than left implicit, per the "never hide the reference timezone"
 // requirement: a bare "18/09/2026 09:00" would silently be read in the
 // viewer's own local time, which is not necessarily the automation's own
 // timezone.
+//
+// Codex review fix: `timeZone` can be a value this particular runtime
+// doesn't recognize (accepted by the backend, or by a different/newer
+// browser, but unknown to an older one) — Intl.DateTimeFormat throws a
+// RangeError in that case. Never let that crash the list/detail page:
+// degrade to UTC, but say so explicitly and keep naming the zone that was
+// actually requested, so the UTC instant is never mistaken for the
+// automation's own timezone. An invalid ISO instant is handled the same
+// defensive way, never thrown.
 export function formatInstantInTimeZone(iso: string, timeZone: string): string {
-  const formatted = new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone,
-  }).format(new Date(iso))
-  return `${formatted} (${timeZone})`
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return 'Date invalide'
+  }
+  try {
+    const formatted = new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone,
+    }).format(date)
+    return `${formatted} (${timeZone})`
+  } catch {
+    const utcFormatted = new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC',
+    }).format(date)
+    return `${utcFormatted} UTC (repli : fuseau « ${timeZone} » non reconnu par ce navigateur)`
+  }
 }
 
 export function formatNextRunAt(nextRunAt: string | null, timezone: string | null): string {

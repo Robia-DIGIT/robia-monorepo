@@ -3,6 +3,7 @@ import {
   buildCronExpression,
   describeCronHuman,
   detectBrowserTimeZone,
+  ensureTimeZoneOption,
   formatInstantInTimeZone,
   formatNextRunAt,
   isFiveFieldCron,
@@ -141,6 +142,40 @@ describe('listIanaTimeZones', () => {
   })
 })
 
+describe('ensureTimeZoneOption', () => {
+  it('inserts a browser-detected timezone that is absent from the base list', () => {
+    const zones = ['UTC', 'Europe/Paris']
+    expect(ensureTimeZoneOption(zones, 'Not/InTheBaseList')).toEqual([
+      'Not/InTheBaseList',
+      'UTC',
+      'Europe/Paris',
+    ])
+  })
+
+  it('inserts an existing automation timezone that is absent from the local list', () => {
+    const zones = ['UTC', 'Europe/Paris']
+    expect(ensureTimeZoneOption(zones, 'Some/OtherBrowserZone')).toContain('Some/OtherBrowserZone')
+  })
+
+  it('never duplicates a timezone that is already present', () => {
+    const zones = ['UTC', 'Europe/Paris']
+    expect(ensureTimeZoneOption(zones, 'Europe/Paris')).toEqual(['UTC', 'Europe/Paris'])
+  })
+
+  it('returns the list unchanged when current is null/undefined', () => {
+    const zones = ['UTC', 'Europe/Paris']
+    expect(ensureTimeZoneOption(zones, null)).toEqual(zones)
+    expect(ensureTimeZoneOption(zones, undefined)).toEqual(zones)
+  })
+
+  it('works with the real static fallback list too', () => {
+    const zones = ensureTimeZoneOption(['UTC'], 'Indian/Antananarivo')
+    expect(zones).toContain('Indian/Antananarivo')
+    expect(zones).toContain('UTC')
+    expect(zones.filter((z) => z === 'Indian/Antananarivo')).toHaveLength(1)
+  })
+})
+
 describe('formatInstantInTimeZone / formatNextRunAt', () => {
   it('formats an instant in French, in the given timezone, with the timezone shown', () => {
     const formatted = formatInstantInTimeZone('2026-09-21T06:00:00.000Z', 'UTC')
@@ -150,6 +185,21 @@ describe('formatInstantInTimeZone / formatNextRunAt', () => {
   it('never hides which timezone a formatted date is in', () => {
     const paris = formatInstantInTimeZone('2026-09-21T06:00:00.000Z', 'Europe/Paris')
     expect(paris).toContain('(Europe/Paris)')
+  })
+
+  it('falls back to UTC, clearly labelled, for a timezone this runtime does not recognize', () => {
+    const result = formatInstantInTimeZone('2026-09-21T06:00:00.000Z', 'Not/AZone')
+    expect(result).toContain('06:00 UTC')
+    expect(result).toContain('Not/AZone')
+    expect(result).toContain('non reconnu')
+    // Never present the UTC fallback as if it were the originally
+    // requested (unrecognized) zone.
+    expect(result).not.toBe('21/09/2026 06:00 (Not/AZone)')
+  })
+
+  it('never crashes on an invalid ISO instant', () => {
+    expect(formatInstantInTimeZone('not-a-date', 'UTC')).toBe('Date invalide')
+    expect(formatInstantInTimeZone('not-a-date', 'Not/AZone')).toBe('Date invalide')
   })
 
   it('shows "Non planifiée" for a null nextRunAt', () => {
@@ -164,5 +214,10 @@ describe('formatInstantInTimeZone / formatNextRunAt', () => {
 
   it('defaults to UTC when timezone is null', () => {
     expect(formatNextRunAt('2026-09-21T06:00:00.000Z', null)).toBe('21/09/2026 06:00 (UTC)')
+  })
+
+  it('never crashes formatNextRunAt on an unrecognized timezone', () => {
+    const result = formatNextRunAt('2026-09-21T06:00:00.000Z', 'Not/AZone')
+    expect(result).toContain('non reconnu')
   })
 })

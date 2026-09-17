@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import PageOpsAutomationForm from './PageOpsAutomationForm'
 import * as api from '../lib/api'
 import type { Automation } from '../lib/api'
+import * as cronSchedule from '../lib/cron-schedule'
 import { detectBrowserTimeZone } from '../lib/cron-schedule'
 
 vi.mock('../lib/api', async (importOriginal) => {
@@ -139,6 +140,19 @@ describe('PageOpsAutomationForm — scheduling builder (create)', () => {
     expect((screen.getByLabelText('Fuseau horaire') as HTMLSelectElement).value).toBe(
       detectBrowserTimeZone(),
     )
+  })
+
+  it('includes the browser-detected timezone as a selectable, selected option even when absent from the supported list', async () => {
+    const spy = vi.spyOn(cronSchedule, 'detectBrowserTimeZone').mockReturnValue('Zzz/NotARealZone')
+    renderCreate()
+    fireEvent.change(await screen.findByPlaceholderText(/Ex. Régénérer/), { target: { value: 'Test' } })
+    switchToScheduled()
+
+    const select = screen.getByLabelText('Fuseau horaire') as HTMLSelectElement
+    expect(select.value).toBe('Zzz/NotARealZone')
+    expect(screen.getByText('Zzz/NotARealZone')).toBeInTheDocument()
+
+    spy.mockRestore()
   })
 
   it('generates a daily cron expression: minute hour * * *', async () => {
@@ -345,6 +359,31 @@ describe('PageOpsAutomationForm — scheduling builder (edit)', () => {
     expect((screen.getByLabelText('Heure') as HTMLInputElement).value).toBe('09:30')
     expect((screen.getByLabelText('Jour de la semaine') as HTMLSelectElement).value).toBe('3')
     expect((screen.getByLabelText('Fuseau horaire') as HTMLSelectElement).value).toBe('Europe/Paris')
+  })
+
+  it('includes an existing timezone absent from the local supported list, and preserves it on submit', async () => {
+    const automation = scheduledAutomation({ cronExpression: '30 9 * * 3', timezone: 'Foo/NotInLocalList' })
+    mockedApi.updateAutomation.mockResolvedValue(automation)
+    renderEdit(automation)
+
+    await waitFor(() => expect(screen.getByDisplayValue('Automation planifiée')).toBeInTheDocument())
+    const select = screen.getByLabelText('Fuseau horaire') as HTMLSelectElement
+    expect(select.value).toBe('Foo/NotInLocalList')
+    expect(screen.getByText('Foo/NotInLocalList')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    await waitFor(() => expect(mockedApi.updateAutomation).toHaveBeenCalled())
+    const payload = mockedApi.updateAutomation.mock.calls[0][1]
+    expect(payload.trigger?.timezone).toBe('Foo/NotInLocalList')
+  })
+
+  it('never duplicates a timezone that is already present in the supported list', async () => {
+    const automation = scheduledAutomation({ cronExpression: '30 9 * * 3', timezone: 'Europe/Paris' })
+    renderEdit(automation)
+
+    await waitFor(() => expect(screen.getByDisplayValue('Automation planifiée')).toBeInTheDocument())
+    expect(screen.getAllByText('Europe/Paris')).toHaveLength(1)
   })
 
   it('recognizes an existing monthly preset cron and shows the matching fields', async () => {
