@@ -1,11 +1,11 @@
 import { AsyncButton } from '@/components/api-ui';
-import { SiteSelector } from '@/components/site-selector';
 import { auditScore } from '@/src/api/presentation';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
 import { RobiaCard, RobiaScreen } from '@/components/robia-ui';
+import { SiteSelector } from '@/components/site-selector';
 import { Brand, Fonts } from '@/constants/theme';
 import { useRobiaData } from '@/src/api/data';
 import { useSession } from '@/src/auth/session';
@@ -70,12 +70,10 @@ export default function HomeScreen() {
 
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
 
-      <CopilotStep order={2} name="site-selector" text="Sélectionnez le site à analyser. Vous pouvez en connecter plusieurs depuis cet espace.">
-        <CopilotTarget style={styles.guideTarget}><SiteSelector /></CopilotTarget>
-      </CopilotStep>
+
       {!organization ? <AsyncButton label="Compléter mon organisation" action={async () => router.push("/settings")} /> : null}
       {sessionError ? <AsyncButton label={sessionError + " · Réessayer"} action={refreshOrganization} /> : null}
-      <AsyncButton label={isLoading ? "Actualisation…" : "Actualiser mes données"} disabled={isLoading} action={refresh} />
+      {/* <AsyncButton label={isLoading ? "Actualisation…" : "Actualiser mes données"} disabled={isLoading} action={refresh} /> */}
       <CopilotStep order={3} name="audit-score" text="Votre score de visibilité résume le dernier diagnostic. Lancez un audit pour obtenir vos premières recommandations.">
         <CopilotTarget>
           <RobiaCard style={styles.balanceCard}>
@@ -89,7 +87,9 @@ export default function HomeScreen() {
               </View>
               <View style={styles.trend}>
                 <MaterialIcons name="trending-up" size={15} color={Brand.tealDark} />
-                <Text style={styles.trendText}>Diagnostic</Text>
+                <Text style={styles.trendText}><CopilotStep order={2} name="site-selector" text="Sélectionnez le site à analyser. Vous pouvez en connecter plusieurs depuis cet espace.">
+                  <SiteSelector />
+                </CopilotStep></Text>
               </View>
             </View>
             <View
