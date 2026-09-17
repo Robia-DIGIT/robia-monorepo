@@ -3,6 +3,7 @@ import {
   Building2,
   CreditCard,
   BarChart3,
+  BellRing,
   FileText,
   HelpCircle,
   LayoutDashboard,
@@ -53,6 +54,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { to: "/google-data", label: "Données Google", icon: BarChart3 },
   { to: "/meta-data", label: "Données Meta", icon: Share2 },
   { to: "/ops/automations", label: "Automatisations", icon: Workflow },
+  { to: "/ops/notifications", label: "Notifications", icon: BellRing },
 ];
 
 const FOCUS_RING =

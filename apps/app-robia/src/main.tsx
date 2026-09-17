@@ -25,6 +25,8 @@ import PageOpsAutomations from './pages/PageOpsAutomations.tsx'
 import PageOpsAutomationDetail from './pages/PageOpsAutomationDetail.tsx'
 import PageOpsAutomationForm from './pages/PageOpsAutomationForm.tsx'
 import PageOpsAutomationRun from './pages/PageOpsAutomationRun.tsx'
+import PageOpsNotifications from './pages/PageOpsNotifications.tsx'
+import PageOpsNotificationDetail from './pages/PageOpsNotificationDetail.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -56,6 +58,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="ops/automations/runs/:runId" element={<PageOpsAutomationRun />} />
             <Route path="ops/automations/:id" element={<PageOpsAutomationDetail />} />
             <Route path="ops/automations/:id/edit" element={<PageOpsAutomationForm />} />
+            <Route path="ops/notifications" element={<PageOpsNotifications />} />
+            <Route path="ops/notifications/:id" element={<PageOpsNotificationDetail />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
