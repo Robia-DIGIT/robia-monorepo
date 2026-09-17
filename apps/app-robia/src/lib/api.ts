@@ -381,6 +381,23 @@ function handleUnauthorized() {
   }
 }
 
+// Carries the HTTP status alongside the already-readable French message, so
+// a caller that needs to tell "not found" apart from any other failure
+// (e.g. an honest empty state instead of an error banner) can check
+// `error instanceof ApiError && error.status === 404` instead of matching
+// on message text. Every throw inside request() uses this — a plain
+// Error only ever comes from the network-failure path, where there is no
+// response to read a status from.
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function parseErrorMessage(response: Response, fallbackMessage: string) {
   try {
     const body = (await response.json()) as ApiErrorPayload;
@@ -445,36 +462,44 @@ async function request<T>(path: string, options: RequestOptions = {}) {
 
   if (response.status === 401) {
     handleUnauthorized();
-    throw new Error("Votre session a expiré. Veuillez vous reconnecter.");
+    throw new ApiError(
+      "Votre session a expiré. Veuillez vous reconnecter.",
+      401,
+    );
   }
 
   if (response.status === 429) {
-    throw new Error(
+    throw new ApiError(
       "Trop de requêtes ont été envoyées. Veuillez patienter avant de réessayer.",
+      429,
     );
   }
 
   if (response.status >= 500) {
-    throw new Error(
+    throw new ApiError(
       "Erreur serveur ROBIA (5xx). Notre équipe est prévenue — réessayez dans quelques minutes.",
+      response.status,
     );
   }
 
   if (response.status === 404) {
-    throw new Error(
+    throw new ApiError(
       "Ressource introuvable (404). Il est possible que cette donnée ne soit pas encore synchronisée.",
+      404,
     );
   }
 
   if (response.status === 403) {
-    throw new Error(
+    throw new ApiError(
       "Accès refusé. Vous n'avez pas les permissions nécessaires pour cette action.",
+      403,
     );
   }
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       await parseErrorMessage(response, "Une erreur est survenue."),
+      response.status,
     );
   }
 
@@ -1897,6 +1922,44 @@ export async function withdrawOdcApplication(id: string, reason: string) {
       body: JSON.stringify({ reason }),
     },
   );
+}
+
+// RC-33b — real upload. No Content-Type header here on purpose: the browser
+// sets the correct multipart boundary itself for a FormData body. `file`
+// only ever carries `documentTypeId` + the file itself — never a
+// storageKey, which the backend's own DTO doesn't even accept.
+export async function uploadOdcDocument(
+  applicationId: string,
+  documentTypeId: string,
+  file: File,
+) {
+  const formData = new FormData();
+  formData.append("documentTypeId", documentTypeId);
+  formData.append("file", file);
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}/documents/upload`,
+    { method: "POST", body: formData },
+  );
+}
+
+// Returns null on a 404 (never throws for it) so a caller can render an
+// honest empty state — e.g. RC-32's demo seed documents are 'received' in
+// the database but were never backed by a real file — instead of a generic
+// error banner. Any other failure still throws.
+export async function downloadOdcDocumentFile(
+  documentId: string,
+): Promise<Blob | null> {
+  try {
+    return await request<Blob>(
+      `/odc/documents/${encodeURIComponent(documentId)}/file`,
+      { responseType: "blob" },
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export type OdcOutreachStatus = "queued" | "sent" | "failed" | "skipped";
