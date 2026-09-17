@@ -41,6 +41,7 @@ function makeAutomation(overrides: Partial<Automation> = {}): Automation {
       automationId: 'auto-1',
       type: 'event',
       cronExpression: null,
+      timezone: null,
       eventType: 'audit.completed',
       config: null,
       createdAt: now,
@@ -109,5 +110,53 @@ describe('PageOpsAutomations', () => {
     await waitFor(() =>
       expect(mockedApi.setAutomationEnabled).toHaveBeenCalledWith('auto-1', false),
     )
+  })
+
+  it('shows the human-readable frequency, timezone, and next run for a scheduled automation', async () => {
+    mockedApi.listAutomations.mockResolvedValue([
+      makeAutomation({
+        trigger: {
+          id: 'trig-1',
+          automationId: 'auto-1',
+          type: 'scheduled',
+          cronExpression: '30 9 * * *',
+          timezone: 'Europe/Paris',
+          eventType: null,
+          config: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        nextRunAt: '2026-09-21T06:00:00.000Z',
+      }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText(/Tous les jours à 09:30/)).toBeInTheDocument())
+    expect(screen.getByText('Fuseau : Europe/Paris')).toBeInTheDocument()
+    expect(screen.getByText(/Prochaine exécution : 21\/09\/2026 08:00 \(Europe\/Paris\)/)).toBeInTheDocument()
+  })
+
+  it('shows "Non planifiée" when a scheduled automation has no nextRunAt', async () => {
+    mockedApi.listAutomations.mockResolvedValue([
+      makeAutomation({
+        trigger: {
+          id: 'trig-1',
+          automationId: 'auto-1',
+          type: 'scheduled',
+          cronExpression: '30 9 * * *',
+          timezone: 'UTC',
+          eventType: null,
+          config: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        nextRunAt: null,
+      }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText(/Prochaine exécution : Non planifiée/)).toBeInTheDocument())
   })
 })

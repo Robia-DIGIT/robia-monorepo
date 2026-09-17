@@ -14,6 +14,18 @@ import {
   type ConditionNode,
   type CreateAutomationPayload,
 } from '../lib/api'
+import {
+  MAX_DAY_OF_MONTH,
+  MIN_DAY_OF_MONTH,
+  WEEKDAY_OPTIONS,
+  buildCronExpression,
+  detectBrowserTimeZone,
+  ensureTimeZoneOption,
+  isFiveFieldCron,
+  listIanaTimeZones,
+  parseCronPreset,
+  type ScheduleFrequency,
+} from '../lib/cron-schedule'
 
 // RC-20: "formulaire simple", pas un éditeur visuel — cette liste couvre
 // exactement les champs allowlistés par condition-engine.ts côté backend
@@ -67,6 +79,38 @@ function stepsToFormValues(steps: AutomationStep[]): StepFormValue[] {
   }))
 }
 
+// The form's own schedule "mode" — a superset of ScheduleFrequency (which
+// only covers the three generated presets) with 'advanced' added for the
+// raw-cron fallback.
+type ScheduleMode = ScheduleFrequency | 'advanced'
+
+// Base list only — never rendered as-is. The runtime's own canonical IANA
+// database (or its static fallback) doesn't change during the page's
+// lifetime, so computing it once here is safe; what's rendered is always
+// ensureTimeZoneOption(BASE_IANA_TIME_ZONES, <the live current value>),
+// computed fresh from state on every render (see the timezone <select>
+// below) — never this constant directly, which on its own can't guarantee
+// the current create-time browser zone or an existing automation's own
+// timezone is actually present (Codex review fix).
+const BASE_IANA_TIME_ZONES = listIanaTimeZones()
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+function timeToInputValue(hour: number, minute: number): string {
+  return `${pad2(hour)}:${pad2(minute)}`
+}
+
+function parseTimeInputValue(value: string): { hour: number; minute: number } | null {
+  const match = /^(\d{1,2}):(\d{1,2})$/.exec(value)
+  if (!match) return null
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
+  return { hour, minute }
+}
+
 export default function PageOpsAutomationForm() {
   const { id } = useParams()
   const isEdit = Boolean(id)
@@ -79,8 +123,18 @@ export default function PageOpsAutomationForm() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [triggerType, setTriggerType] = useState<AutomationTriggerType>('manual')
-  const [cronExpression, setCronExpression] = useState('')
   const [eventType, setEventType] = useState('')
+
+  // RC-25 frontend scheduling UI — only meaningful while triggerType ===
+  // 'scheduled'. 'advanced' keeps raw cron-expression access for anything
+  // the three presets can't (or shouldn't silently try to) represent.
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>('daily')
+  const [scheduleTime, setScheduleTime] = useState('09:00')
+  const [scheduleWeekday, setScheduleWeekday] = useState(1) // Lundi
+  const [scheduleDayOfMonth, setScheduleDayOfMonth] = useState(1)
+  const [advancedCron, setAdvancedCron] = useState('')
+  const [timezone, setTimezone] = useState<string>(() => detectBrowserTimeZone())
+
   const [requiresApproval, setRequiresApproval] = useState(true)
   const [enabled, setEnabled] = useState(false)
   const [steps, setSteps] = useState<StepFormValue[]>(stepsToFormValues([]))
@@ -100,8 +154,32 @@ export default function PageOpsAutomationForm() {
         setName(automation.name)
         setDescription(automation.description ?? '')
         setTriggerType(automation.trigger.type)
-        setCronExpression(automation.trigger.cronExpression ?? '')
         setEventType(automation.trigger.eventType ?? '')
+
+        if (automation.trigger.type === 'scheduled') {
+          // Never silently rewritten: an existing cron this UI can't
+          // recognize as one of its own three presets opens the advanced
+          // editor with the exact original text, untouched.
+          const cron = automation.trigger.cronExpression ?? ''
+          const parsed = parseCronPreset(cron)
+          if (parsed) {
+            setScheduleMode(parsed.frequency)
+            setScheduleTime(timeToInputValue(parsed.hour, parsed.minute))
+            if (parsed.frequency === 'weekly' && parsed.weekday !== undefined) {
+              setScheduleWeekday(parsed.weekday)
+            }
+            if (parsed.frequency === 'monthly' && parsed.dayOfMonth !== undefined) {
+              setScheduleDayOfMonth(parsed.dayOfMonth)
+            }
+          } else {
+            setScheduleMode('advanced')
+            setAdvancedCron(cron)
+          }
+          // Preserve the existing timezone exactly — never re-derived from
+          // the browser once a scheduled trigger already has one.
+          setTimezone(automation.trigger.timezone ?? 'UTC')
+        }
+
         setRequiresApproval(automation.requiresApproval)
         setEnabled(automation.enabled)
         setSteps(stepsToFormValues(automation.steps))
@@ -136,14 +214,53 @@ export default function PageOpsAutomationForm() {
     setSteps((current) => current.map((step, i) => (i === index ? { ...step, ...patch } : step)))
   }
 
+  // Resolves the schedule builder's current state into a strict 5-field
+  // cron expression, or sets a user-facing error and returns null. Kept
+  // separate from buildPayload() so the same validation the submit path
+  // uses is trivially unit-testable in isolation if needed.
+  const resolveScheduleCron = (): string | null => {
+    if (scheduleMode === 'advanced') {
+      const trimmed = advancedCron.trim()
+      if (!trimmed) {
+        setError('Une expression cron est requise pour un déclenchement planifié.')
+        return null
+      }
+      if (!isFiveFieldCron(trimmed)) {
+        setError(
+          "L'expression cron avancée doit comporter exactement 5 champs (minute heure jour-du-mois mois jour-de-semaine) — les raccourcis (@daily, ...) et le format à 6 champs (avec secondes) ne sont pas acceptés.",
+        )
+        return null
+      }
+      return trimmed
+    }
+
+    const parsedTime = parseTimeInputValue(scheduleTime)
+    if (!parsedTime) {
+      setError('Renseignez une heure valide pour la planification.')
+      return null
+    }
+    if (scheduleMode === 'monthly' && (scheduleDayOfMonth < MIN_DAY_OF_MONTH || scheduleDayOfMonth > MAX_DAY_OF_MONTH)) {
+      setError(`Le jour du mois doit être compris entre ${MIN_DAY_OF_MONTH} et ${MAX_DAY_OF_MONTH}.`)
+      return null
+    }
+    return buildCronExpression(scheduleMode, {
+      hour: parsedTime.hour,
+      minute: parsedTime.minute,
+      weekday: scheduleWeekday,
+      dayOfMonth: scheduleDayOfMonth,
+    })
+  }
+
   const buildPayload = (): CreateAutomationPayload | null => {
     if (!name.trim()) {
       setError('Le nom est obligatoire.')
       return null
     }
-    if (triggerType === 'scheduled' && !cronExpression.trim()) {
-      setError('Une expression cron est requise pour un déclenchement planifié.')
-      return null
+    let resolvedCron: string | undefined
+    if (triggerType === 'scheduled') {
+      const cron = resolveScheduleCron()
+      if (!cron) return null
+      resolvedCron = cron
     }
     if (triggerType === 'event' && !eventType.trim()) {
       setError("Un type d'événement est requis pour un déclenchement événementiel.")
@@ -194,7 +311,10 @@ export default function PageOpsAutomationForm() {
       description: description.trim() || undefined,
       trigger: {
         type: triggerType,
-        cronExpression: triggerType === 'scheduled' ? cronExpression.trim() : undefined,
+        cronExpression: triggerType === 'scheduled' ? resolvedCron : undefined,
+        // Only ever sent for a scheduled trigger — the backend's own
+        // validateTrigger() rejects any timezone on event/manual.
+        timezone: triggerType === 'scheduled' ? timezone : undefined,
         eventType: triggerType === 'event' ? eventType.trim() : undefined,
       },
       conditions,
@@ -229,6 +349,14 @@ export default function PageOpsAutomationForm() {
       </div>
     )
   }
+
+  // Recomputed from the live `timezone` state on every render (Codex
+  // review fix) — never a static, one-time list. Guarantees the currently
+  // selected value (the detected browser zone on create, or an existing
+  // automation's own trigger.timezone on edit) is always a selectable
+  // option, even if the runtime's own canonical IANA list doesn't happen
+  // to contain it.
+  const timeZoneOptions = ensureTimeZoneOption(BASE_IANA_TIME_ZONES, timezone)
 
   return (
     <div className="p-6 lg:p-8 max-w-3xl mx-auto animate-slide-up">
@@ -274,12 +402,90 @@ export default function PageOpsAutomationForm() {
           </select>
         </div>
         {triggerType === 'scheduled' && (
-          <Input
-            label="Expression cron"
-            value={cronExpression}
-            onChange={(e) => setCronExpression(e.target.value)}
-            placeholder="0 6 * * *"
-          />
+          <div className="space-y-4 rounded-xl border border-border p-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-dark">Fréquence</label>
+              <select
+                aria-label="Fréquence"
+                value={scheduleMode}
+                onChange={(e) => setScheduleMode(e.target.value as ScheduleMode)}
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
+              >
+                <option value="daily">Quotidienne</option>
+                <option value="weekly">Hebdomadaire</option>
+                <option value="monthly">Mensuelle</option>
+                <option value="advanced">Avancée (expression cron)</option>
+              </select>
+            </div>
+
+            {scheduleMode === 'advanced' ? (
+              <Input
+                label="Expression cron (5 champs)"
+                aria-label="Expression cron (5 champs)"
+                value={advancedCron}
+                onChange={(e) => setAdvancedCron(e.target.value)}
+                placeholder="0 6 * * *"
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  type="time"
+                  label="Heure"
+                  aria-label="Heure"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                />
+                {scheduleMode === 'weekly' && (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-dark">Jour de la semaine</label>
+                    <select
+                      aria-label="Jour de la semaine"
+                      value={scheduleWeekday}
+                      onChange={(e) => setScheduleWeekday(Number(e.target.value))}
+                      className="w-full rounded-xl border border-border px-4 py-2.5 text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
+                    >
+                      {WEEKDAY_OPTIONS.map((w) => (
+                        <option key={w.value} value={w.value}>
+                          {w.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {scheduleMode === 'monthly' && (
+                  <Input
+                    type="number"
+                    label={`Jour du mois (${MIN_DAY_OF_MONTH}–${MAX_DAY_OF_MONTH})`}
+                    aria-label="Jour du mois"
+                    min={MIN_DAY_OF_MONTH}
+                    max={MAX_DAY_OF_MONTH}
+                    value={scheduleDayOfMonth}
+                    onChange={(e) => setScheduleDayOfMonth(Number(e.target.value))}
+                  />
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-dark">Fuseau horaire</label>
+              <select
+                aria-label="Fuseau horaire"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
+              >
+                {timeZoneOptions.map((zone) => (
+                  <option key={zone} value={zone}>
+                    {zone}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-muted">
+                Pré-rempli avec le fuseau de votre navigateur — modifiable si l'automatisation doit suivre un autre
+                fuseau que le vôtre.
+              </p>
+            </div>
+          </div>
         )}
         {triggerType === 'event' && (
           <Input

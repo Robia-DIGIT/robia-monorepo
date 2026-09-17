@@ -3,6 +3,7 @@ import {
   getStoredAccessToken,
   persistAuthResponse,
 } from "./auth";
+import { describeCronHuman } from "./cron-schedule";
 
 const apiBaseUrl =
   import.meta.env.VITE_API_URL ?? "https://robia-back.vercel.app";
@@ -1052,6 +1053,11 @@ export interface AutomationTrigger {
   automationId: string;
   type: AutomationTriggerType;
   cronExpression: string | null;
+  // RC-25 hardening: non-null only for type === "scheduled" (UTC by
+  // default), always null for "event"/"manual" — see the backend's
+  // AutomationsService.resolveTriggerTimezone() for the persisted
+  // invariant. Never inferred from anything else on the frontend either.
+  timezone: string | null;
   eventType: string | null;
   config: Record<string, unknown> | null;
   createdAt: string;
@@ -1172,6 +1178,10 @@ export interface CreateAutomationPayload {
   trigger: {
     type: AutomationTriggerType;
     cronExpression?: string;
+    // Only ever sent for type === "scheduled" — the backend's own
+    // validateTrigger() rejects a timezone on an "event"/"manual" trigger,
+    // so this must stay undefined (never an empty string) for those.
+    timezone?: string;
     eventType?: string;
   };
   conditions?: ConditionNode;
@@ -1229,7 +1239,7 @@ export function automationModeLabel(automation: Automation): {
 export function automationTriggerLabel(trigger: AutomationTrigger): string {
   if (trigger.type === "manual") return "Manuel";
   if (trigger.type === "scheduled")
-    return `Planifié${trigger.cronExpression ? ` (${trigger.cronExpression})` : ""}`;
+    return `Planifié — ${describeCronHuman(trigger.cronExpression)}`;
   return `Événement${trigger.eventType ? ` : ${trigger.eventType}` : ""}`;
 }
 
