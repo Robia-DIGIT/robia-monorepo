@@ -1205,6 +1205,10 @@ export const AUTOMATION_ACTION_TYPES: Array<{
     type: "robia.action_items.create_internal_task",
     label: "Créer une tâche ROBIA interne (brouillon)",
   },
+  {
+    type: "robia.notification.send_email",
+    label: "Préparer un email à partir d’un modèle ROBIA",
+  },
 ];
 
 // This describes the APPROVAL mode only — never the trigger/execution mode.
@@ -1277,6 +1281,80 @@ export function stepStatusLabel(status: AutomationStepRunStatus): {
 
 export async function listAutomations() {
   return request<Automation[]>("/ops/automations");
+}
+
+// ---------------------------------------------------------------------
+// RC-26 — Notification delivery follow-up
+// ---------------------------------------------------------------------
+
+export type NotificationDeliveryStatus =
+  | "pending"
+  | "processing"
+  | "sent"
+  | "retry_scheduled"
+  | "dead_letter";
+
+export interface NotificationDelivery {
+  id: string;
+  channel: string;
+  templateKey: string;
+  status: NotificationDeliveryStatus;
+  attemptCount: number;
+  nextAttemptAt: string;
+  recipientMasked: string;
+  providerMessageId: string | null;
+  lastError: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function notificationStatusLabel(status: NotificationDeliveryStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue";
+} {
+  switch (status) {
+    case "pending":
+      return { label: "En attente", variant: "gray" };
+    case "processing":
+      return { label: "En cours d’envoi", variant: "blue" };
+    case "sent":
+      return { label: "Accepté par le serveur email", variant: "teal" };
+    case "retry_scheduled":
+      return { label: "Nouvelle tentative planifiée", variant: "orange" };
+    case "dead_letter":
+      return { label: "Échec définitif", variant: "red" };
+  }
+}
+
+export function notificationTemplateLabel(templateKey: string): string {
+  switch (templateKey) {
+    case "audit_completed":
+      return "Audit terminé";
+    case "automation_failed":
+      return "Automatisation en échec";
+    case "weekly_opportunities_summary":
+      return "Résumé hebdomadaire des opportunités";
+    default:
+      return templateKey;
+  }
+}
+
+export async function listNotificationDeliveries() {
+  return request<NotificationDelivery[]>("/ops/notifications");
+}
+
+export async function getNotificationDelivery(id: string) {
+  return request<NotificationDelivery>(
+    `/ops/notifications/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function retryNotificationDelivery(id: string) {
+  return request<NotificationDelivery>(
+    `/ops/notifications/${encodeURIComponent(id)}/retry`,
+    { method: "POST" },
+  );
 }
 
 export async function getAutomation(id: string) {
