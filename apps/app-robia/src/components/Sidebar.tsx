@@ -17,6 +17,7 @@ import {
   Share2,
   Workflow,
   Zap,
+  ClipboardList,
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
@@ -55,6 +56,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { to: "/meta-data", label: "Données Meta", icon: Share2 },
   { to: "/ops/automations", label: "Automatisations", icon: Workflow },
   { to: "/ops/notifications", label: "Notifications", icon: BellRing },
+  { to: "/odc/programmes", label: "Candidatures ODC", icon: ClipboardList },
 ];
 
 const FOCUS_RING =

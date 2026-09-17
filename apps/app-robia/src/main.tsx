@@ -27,6 +27,9 @@ import PageOpsAutomationForm from './pages/PageOpsAutomationForm.tsx'
 import PageOpsAutomationRun from './pages/PageOpsAutomationRun.tsx'
 import PageOpsNotifications from './pages/PageOpsNotifications.tsx'
 import PageOpsNotificationDetail from './pages/PageOpsNotificationDetail.tsx'
+import PageOdcPrograms from './pages/PageOdcPrograms.tsx'
+import PageOdcProgramKanban from './pages/PageOdcProgramKanban.tsx'
+import PageOdcApplication from './pages/PageOdcApplication.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -60,6 +63,9 @@ createRoot(document.getElementById('root')!).render(
             <Route path="ops/automations/:id/edit" element={<PageOpsAutomationForm />} />
             <Route path="ops/notifications" element={<PageOpsNotifications />} />
             <Route path="ops/notifications/:id" element={<PageOpsNotificationDetail />} />
+            <Route path="odc/programmes" element={<PageOdcPrograms />} />
+            <Route path="odc/programmes/:id" element={<PageOdcProgramKanban />} />
+            <Route path="odc/candidatures/:id" element={<PageOdcApplication />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
