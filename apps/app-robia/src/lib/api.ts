@@ -1857,3 +1857,53 @@ export async function withdrawOdcApplication(id: string, reason: string) {
     },
   );
 }
+
+export type OdcOutreachStatus = "queued" | "sent" | "failed" | "skipped";
+
+export interface OdcOutreach {
+  id: string;
+  programId: string;
+  applicationId: string;
+  sortOrder: number;
+  status: OdcOutreachStatus | string;
+  templateKey: string;
+  applicantName: string;
+  recipientMasked: string;
+  sentAt: string | null;
+  lastError: string | null;
+  isNext: boolean;
+}
+
+export async function listOdcOutreach(programId: string) {
+  return request<OdcOutreach[]>(
+    `/odc/programs/${encodeURIComponent(programId)}/outreach`,
+  );
+}
+
+export async function queueOdcOutreach(
+  programId: string,
+  applicationIds: string[],
+) {
+  return request<OdcOutreach[]>(
+    `/odc/programs/${encodeURIComponent(programId)}/outreach`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicationIds }),
+    },
+  );
+}
+
+export async function sendOdcOutreach(id: string) {
+  return request<OdcOutreach>(
+    `/odc/outreach/${encodeURIComponent(id)}/send`,
+    { method: "POST" },
+  );
+}
+
+export async function skipOdcOutreach(id: string) {
+  return request<OdcOutreach>(
+    `/odc/outreach/${encodeURIComponent(id)}/skip`,
+    { method: "POST" },
+  );
+}
