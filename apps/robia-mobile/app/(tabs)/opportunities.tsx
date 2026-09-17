@@ -31,7 +31,6 @@ export default function OpportunitiesScreen() {
     refresh,
     generateActions,
   } = useRobiaData();
-  // const { request } = useSession();
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState("Toutes");
