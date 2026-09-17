@@ -1610,3 +1610,250 @@ export function intelligenceConfigureRoute(
   if (provider === "meta") return "/meta-data";
   return null;
 }
+
+// ---------------------------------------------------------------------
+// RC-29b — ODC candidatures (mirrors Robia-Back src/odc)
+// ---------------------------------------------------------------------
+
+export type OdcProgramStatus = "draft" | "open" | "closed" | "archived";
+
+export type OdcApplicationStatus =
+  | "draft"
+  | "submitted"
+  | "screening"
+  | "incomplete"
+  | "in_review"
+  | "waitlisted"
+  | "accepted"
+  | "rejected"
+  | "withdrawn";
+
+export type OdcDecision = "accepted" | "rejected" | "waitlisted";
+
+export interface OdcField {
+  id: string;
+  key: string;
+  label: string;
+  required: boolean;
+  fieldType: string;
+  options: unknown;
+  sortOrder: number;
+}
+
+export interface OdcCriterion {
+  id: string;
+  key: string;
+  label: string;
+  description: string | null;
+  weight: number;
+  maxPoints: number;
+  required: boolean;
+  sortOrder: number;
+}
+
+export interface OdcDocumentType {
+  id: string;
+  key: string;
+  label: string;
+  required: boolean;
+  mimeAllow: string[];
+}
+
+export interface OdcProgram {
+  id: string;
+  organizationId: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  status: OdcProgramStatus;
+  opensAt: string | null;
+  closesAt: string | null;
+  requireDualReview: boolean;
+  decisionThreshold: number | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  fields: OdcField[];
+  criteria: OdcCriterion[];
+  docTypes: OdcDocumentType[];
+}
+
+export interface OdcApplicant {
+  id: string;
+  organizationId: string;
+  displayName: string;
+  email: string | null;
+  phone: string | null;
+  userId: string | null;
+  createdAt: string;
+}
+
+export interface OdcDocument {
+  id: string;
+  organizationId: string;
+  applicationId: string;
+  documentTypeId: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  storageKey: string | null;
+  status: "pending_upload" | "received" | "rejected";
+  createdAt: string;
+}
+
+export interface OdcScoreLine {
+  id: string;
+  organizationId: string;
+  applicationId: string;
+  criterionId: string;
+  proposedPoints: number | null;
+  proposedBy: string;
+  finalPoints: number | null;
+  rationale: string | null;
+}
+
+export interface OdcHistoryEvent {
+  id: string;
+  organizationId: string;
+  applicationId: string;
+  actorUserId: string | null;
+  eventType: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  payload: unknown;
+  createdAt: string;
+}
+
+export interface OdcApplication {
+  id: string;
+  organizationId: string;
+  programId: string;
+  applicantId: string;
+  status: OdcApplicationStatus;
+  answers: Record<string, unknown>;
+  proposedTotal: number | null;
+  finalTotal: number | null;
+  summaryDraft: string | null;
+  missing: string[] | null;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  decidedById: string | null;
+  decisionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  applicant?: OdcApplicant;
+  documents?: OdcDocument[];
+  scoreLines?: OdcScoreLine[];
+  events?: OdcHistoryEvent[];
+  program?: OdcProgram;
+}
+
+export function odcProgramStatusLabel(status: OdcProgramStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "blue";
+} {
+  switch (status) {
+    case "draft":
+      return { label: "Brouillon", variant: "gray" };
+    case "open":
+      return { label: "Ouvert", variant: "teal" };
+    case "closed":
+      return { label: "Fermé", variant: "blue" };
+    case "archived":
+      return { label: "Archivé", variant: "gray" };
+  }
+}
+
+export function odcApplicationStatusLabel(status: OdcApplicationStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue" | "green";
+} {
+  switch (status) {
+    case "draft":
+      return { label: "Brouillon", variant: "gray" };
+    case "submitted":
+      return { label: "Déposée", variant: "blue" };
+    case "screening":
+      return { label: "Contrôle", variant: "blue" };
+    case "incomplete":
+      return { label: "Incomplète", variant: "orange" };
+    case "in_review":
+      return { label: "En revue", variant: "teal" };
+    case "waitlisted":
+      return { label: "Liste d'attente", variant: "orange" };
+    case "accepted":
+      return { label: "Acceptée", variant: "green" };
+    case "rejected":
+      return { label: "Refusée", variant: "red" };
+    case "withdrawn":
+      return { label: "Retirée", variant: "gray" };
+  }
+}
+
+export function formatOdcScore(total: number | null): string {
+  if (total === null || total === undefined) return "Non figé";
+  return String(total);
+}
+
+export async function listOdcPrograms() {
+  return request<OdcProgram[]>("/odc/programs");
+}
+
+export async function getOdcProgram(id: string) {
+  return request<OdcProgram>(`/odc/programs/${encodeURIComponent(id)}`);
+}
+
+export async function openOdcProgram(id: string) {
+  return request<OdcProgram>(`/odc/programs/${encodeURIComponent(id)}/open`, {
+    method: "POST",
+  });
+}
+
+export async function closeOdcProgram(id: string) {
+  return request<OdcProgram>(`/odc/programs/${encodeURIComponent(id)}/close`, {
+    method: "POST",
+  });
+}
+
+export async function listOdcApplications(programId: string) {
+  return request<OdcApplication[]>(
+    `/odc/programs/${encodeURIComponent(programId)}/applications`,
+  );
+}
+
+export async function getOdcApplication(id: string) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function getOdcApplicationHistory(id: string) {
+  return request<OdcHistoryEvent[]>(
+    `/odc/applications/${encodeURIComponent(id)}/history`,
+  );
+}
+
+export async function decideOdcApplication(
+  id: string,
+  payload: { decision: OdcDecision; decisionReason: string },
+) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(id)}/decide`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function withdrawOdcApplication(id: string, reason: string) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(id)}/withdraw`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
