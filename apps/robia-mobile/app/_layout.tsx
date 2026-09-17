@@ -4,6 +4,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { router, Stack, useRootNavigationState, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { CopilotProvider } from 'react-native-copilot';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
@@ -237,6 +238,7 @@ function AppLayout() {
 
   return (
     <ThemeProvider value={navigationTheme}>
+      <CopilotProvider>
       <Stack key={user?.id ?? "guest"} screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
@@ -309,6 +311,7 @@ function AppLayout() {
       ) : null}
 
       <StatusBar style="dark" />
+      </CopilotProvider>
     </ThemeProvider>
   );
 }

@@ -9,8 +9,13 @@ import { RobiaCard, RobiaScreen } from '@/components/robia-ui';
 import { Brand, Fonts } from '@/constants/theme';
 import { useRobiaData } from '@/src/api/data';
 import { useSession } from '@/src/auth/session';
+import * as SecureStore from 'expo-secure-store';
+import { CopilotStep, useCopilot, walkthroughable } from 'react-native-copilot';
+import { useEffect } from 'react';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+const CopilotTarget = walkthroughable(View);
+const GUIDE_SEEN_KEY = 'robia.dashboard-guide-seen';
 
 const TOOLS = [
   { label: 'Vue d’ensemble', description: 'Sources et constats', icon: 'insights', href: '/intelligence' },
@@ -26,6 +31,7 @@ const TOOLS = [
 ] as const;
 
 export default function HomeScreen() {
+  const { start } = useCopilot();
   const { user, organization, sessionError, refreshOrganization } = useSession();
   const { latestAudit, opportunities, documents, actions, error, refresh, isLoading } = useRobiaData();
   const displayScore = auditScore(latestAudit);
@@ -34,25 +40,50 @@ export default function HomeScreen() {
   const progress = actions.length ? Math.round((done / actions.length) * 100) : 0;
   const firstName = user?.name?.split(' ')[0] ?? organization?.name ?? 'Entreprise';
 
+  useEffect(() => {
+    let mounted = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    void SecureStore.getItemAsync(GUIDE_SEEN_KEY).then((seen) => {
+      if (!mounted || seen) return;
+      timer = setTimeout(() => {
+        void start('normal');
+        void SecureStore.setItemAsync(GUIDE_SEEN_KEY, 'true');
+      }, 700);
+    }).catch(() => {});
+    return () => {
+      mounted = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [start]);
+
+  const launchGuide = () => {
+    void start('normal');
+  };
+
   return (
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
-      <View style={styles.header}>
+      <CopilotStep order={1} name="welcome" text="Votre tableau de bord rassemble les indicateurs et les prochaines actions de votre entreprise.">
+        <CopilotTarget style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bonjour, {firstName}</Text>
           <Text style={styles.context}>{organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui</Text>
         </View>
-        {/* <Pressable accessibilityRole="button" accessibilityLabel="Actualiser" onPress={() => void refresh()} style={styles.roundButton}>
-          {isLoading ? <ActivityIndicator size="small" color={Brand.tealDark} /> : <MaterialIcons name="notifications-none" size={22} color={Brand.navyDark} />}
-          {!isLoading && opportunities.length > 0 ? <View style={styles.notificationDot} /> : null}
-        </Pressable> */}
-      </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir le guide RobIA" onPress={launchGuide} style={styles.guideButton}>
+          <MaterialIcons name="help-outline" size={21} color={Brand.tealDark} />
+        </Pressable>
+        </CopilotTarget>
+      </CopilotStep>
 
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
 
-      <SiteSelector />
+      <CopilotStep order={2} name="site-selector" text="Sélectionnez le site à analyser. Vous pouvez en connecter plusieurs depuis cet espace.">
+        <CopilotTarget style={styles.guideTarget}><SiteSelector /></CopilotTarget>
+      </CopilotStep>
       {!organization ? <AsyncButton label="Compléter mon organisation" action={async () => router.push("/settings")} /> : null}
       {sessionError ? <AsyncButton label={sessionError + " · Réessayer"} action={refreshOrganization} /> : null}
       <AsyncButton label={isLoading ? "Actualisation…" : "Actualiser mes données"} disabled={isLoading} action={refresh} />
+      <CopilotStep order={3} name="audit-score" text="Votre score de visibilité résume le dernier diagnostic. Lancez un audit pour obtenir vos premières recommandations.">
+      <CopilotTarget>
       <RobiaCard style={styles.balanceCard}>
         <View style={styles.cardHeading}>
           <View>
@@ -80,7 +111,11 @@ export default function HomeScreen() {
           <MaterialIcons name="arrow-forward" size={18} color={Brand.white} />
         </Pressable>
       </RobiaCard>
+      </CopilotTarget>
+      </CopilotStep>
 
+      <CopilotStep order={4} name="activity" text="Retrouvez ici vos opportunités, vos documents et l'avancement de votre plan d'action.">
+      <CopilotTarget style={styles.guideTarget}>
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Votre activité</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir la vue d’ensemble" onPress={() => router.push("/intelligence")} style={styles.sectionLink}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
@@ -90,6 +125,8 @@ export default function HomeScreen() {
         <Metric icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
         <Metric icon="checklist" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
       </View>
+      </CopilotTarget>
+      </CopilotStep>
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Outils</Text>
@@ -162,6 +199,8 @@ function Metric({ icon, value, label, color, tint }: { icon: IconName; value: st
 
 const styles = StyleSheet.create({
   header: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  guideTarget: { gap: 9 },
+  guideButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealLight },
   greeting: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, lineHeight: 28, fontWeight: '900', letterSpacing: -0.4 },
   context: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 14, lineHeight: 20, marginTop: 2 },
   roundButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.surfaceSoft, borderWidth: 0, },
