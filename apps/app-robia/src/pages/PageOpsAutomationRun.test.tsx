@@ -71,6 +71,8 @@ describe('PageOpsAutomationRun', () => {
             status: 'succeeded',
             evidence: { opportunityCount: 2 },
             error: null,
+            attemptCount: 1,
+            nextAttemptAt: null,
             startedAt: now,
             finishedAt: now,
             createdAt: now,
@@ -103,6 +105,8 @@ describe('PageOpsAutomationRun', () => {
             status: 'failed',
             evidence: null,
             error: 'Something failed',
+            attemptCount: 1,
+            nextAttemptAt: null,
             startedAt: now,
             finishedAt: now,
             createdAt: now,
@@ -225,6 +229,127 @@ describe('PageOpsAutomationRun', () => {
       expect(mockedApi.rejectAutomationRun).toHaveBeenCalledWith('run-1', undefined),
     )
     expect(mockedApi.approveAutomationRun).not.toHaveBeenCalled()
+  })
+
+  // ---------------------------------------------------------------------
+  // Step-level retries (RC-28 — frontend visibility for backend RC-27)
+  // ---------------------------------------------------------------------
+
+  it('shows a retry-scheduled step with its badge and the next attempt time, and a run-level banner explaining the run is not stuck', async () => {
+    const nextAttemptAt = '2026-09-14T12:05:00Z'
+    mockedApi.getAutomationRun.mockResolvedValue(
+      baseRun({
+        status: 'running',
+        steps: [
+          {
+            id: 'step-1',
+            runId: 'run-1',
+            sequence: 1,
+            actionType: 'robia.audit.run_diagnostic',
+            input: { websiteId: 'site-1' },
+            status: 'retry_scheduled',
+            evidence: null,
+            error: 'ECONNRESET',
+            attemptCount: 1,
+            nextAttemptAt,
+            startedAt: now,
+            finishedAt: null,
+            createdAt: now,
+          },
+        ],
+      }),
+    )
+
+    renderPage()
+
+    await waitFor(() =>
+      expect(screen.getByText('Nouvelle tentative programmée')).toBeInTheDocument(),
+    )
+    // The step's own next-attempt note.
+    expect(screen.getByText(/Nouvelle tentative prévue à/)).toBeInTheDocument()
+    // The run-level banner — names the step and the upcoming attempt number
+    // (attemptCount + 1), and says the run is not stuck. The action type
+    // also appears in the step's own header, so there are two matches.
+    expect(screen.getAllByText(/robia.audit.run_diagnostic/).length).toBe(2)
+    expect(screen.getByText(/tentative 2/)).toBeInTheDocument()
+    expect(screen.getByText(/aucune action n'est nécessaire/i)).toBeInTheDocument()
+    // The run's own status badge stays "En cours" — a retry in progress is
+    // never mistaken for a failure.
+    expect(screen.getAllByText('En cours').length).toBeGreaterThanOrEqual(1)
+    // The last error is shown, explicitly labelled as such (not a bare,
+    // unlabelled error the way a final failure's is).
+    expect(screen.getByText(/Dernière erreur : ECONNRESET/)).toBeInTheDocument()
+  })
+
+  it('never shows the retry banner when no step is waiting on a retry', async () => {
+    mockedApi.getAutomationRun.mockResolvedValue(baseRun({ status: 'succeeded' }))
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Succès')).toBeInTheDocument())
+    expect(screen.queryByText(/aucune action n'est nécessaire/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Nouvelle tentative programmée')).not.toBeInTheDocument()
+  })
+
+  it('shows the attempt count next to a step only once it took more than one attempt', async () => {
+    mockedApi.getAutomationRun.mockResolvedValue(
+      baseRun({
+        status: 'succeeded',
+        steps: [
+          {
+            id: 'step-1',
+            runId: 'run-1',
+            sequence: 1,
+            actionType: 'robia.report.prepare_organization_summary',
+            input: {},
+            status: 'succeeded',
+            evidence: { ok: true },
+            error: null,
+            attemptCount: 2,
+            nextAttemptAt: null,
+            startedAt: now,
+            finishedAt: now,
+            createdAt: now,
+          },
+        ],
+      }),
+    )
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('2 tentatives')).toBeInTheDocument())
+  })
+
+  it('never shows an attempt count for a step that succeeded on its first try', async () => {
+    mockedApi.getAutomationRun.mockResolvedValue(
+      baseRun({
+        status: 'succeeded',
+        steps: [
+          {
+            id: 'step-1',
+            runId: 'run-1',
+            sequence: 1,
+            actionType: 'robia.report.prepare_organization_summary',
+            input: {},
+            status: 'succeeded',
+            evidence: { ok: true },
+            error: null,
+            attemptCount: 1,
+            nextAttemptAt: null,
+            startedAt: now,
+            finishedAt: now,
+            createdAt: now,
+          },
+        ],
+      }),
+    )
+
+    renderPage()
+
+    await waitFor(() =>
+      expect(screen.getAllByText('Succès').length).toBeGreaterThanOrEqual(2),
+    )
+    expect(screen.queryByText(/tentatives/)).not.toBeInTheDocument()
   })
 
   it('shows a cancelled banner and no steps for a rejected run', async () => {
