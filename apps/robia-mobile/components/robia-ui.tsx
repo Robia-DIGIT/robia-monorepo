@@ -48,8 +48,8 @@ export function RobiaScreen({
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <View pointerEvents="none" style={styles.ambientTop} />
-      <View pointerEvents="none" style={styles.ambientSide} />
+      {/* <View pointerEvents="none" style={styles.ambientTop} />
+      <View pointerEvents="none" style={styles.ambientSide} /> */}
       {header ? (
         <View style={styles.fixedHeader}>
           <View style={styles.fixedHeaderInner}>{header}</View>
