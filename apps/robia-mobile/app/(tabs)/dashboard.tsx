@@ -10,8 +10,8 @@ import { Brand, Fonts } from '@/constants/theme';
 import { useRobiaData } from '@/src/api/data';
 import { useSession } from '@/src/auth/session';
 import * as SecureStore from 'expo-secure-store';
-import { CopilotStep, useCopilot, walkthroughable } from 'react-native-copilot';
 import { useEffect } from 'react';
+import { CopilotStep, useCopilot, walkthroughable } from 'react-native-copilot';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 const CopilotTarget = walkthroughable(View);
