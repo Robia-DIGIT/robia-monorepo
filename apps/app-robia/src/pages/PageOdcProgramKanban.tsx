@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Plus } from 'lucide-react'
 
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from '../components/ui'
 import {
@@ -18,6 +18,7 @@ import {
   type OdcOutreach,
   type OdcProgram,
 } from '../lib/api'
+import { seedDemoApplicationsOnProgram } from '../lib/odc-demo-applications'
 
 const KANBAN_COLUMNS: OdcApplicationStatus[] = [
   'draft',
@@ -58,6 +59,7 @@ export default function PageOdcProgramKanban() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [seeding, setSeeding] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -95,6 +97,24 @@ export default function PageOdcProgramKanban() {
 
   const queuedIds = useMemo(() => new Set(outreach.map((row) => row.applicationId)), [outreach])
   const nextOutreach = outreach.find((row) => row.isNext) ?? null
+
+  const handleSeedDemo = async () => {
+    if (!program) return
+    setSeeding(true)
+    setError('')
+    try {
+      await seedDemoApplicationsOnProgram(program)
+      await load()
+    } catch (seedError: unknown) {
+      setError(
+        seedError instanceof Error
+          ? seedError.message
+          : 'Impossible de charger les dossiers de démonstration.',
+      )
+    } finally {
+      setSeeding(false)
+    }
+  }
 
   const toggle = (applicationId: string) => {
     setSelected((current) =>
@@ -168,6 +188,19 @@ export default function PageOdcProgramKanban() {
         title={program?.name ?? 'Programme'}
         subtitle="Trier les CV, sélectionner, envoyer un email à la fois. L’IA ne décide pas."
         badge={programStatus ? <Badge variant={programStatus.variant}>{programStatus.label}</Badge> : undefined}
+        actions={
+          applications.length === 0 && program?.status === 'open' ? (
+            <Button
+              size="sm"
+              icon={<Plus size={14} />}
+              loading={seeding}
+              onClick={() => void handleSeedDemo()}
+              data-testid="odc-seed-demo-applications"
+            >
+              Charger 3 dossiers démo
+            </Button>
+          ) : null
+        }
       />
       {error && (
         <div className="mb-4">
@@ -282,7 +315,19 @@ export default function PageOdcProgramKanban() {
         <EmptyState
           icon={<span />}
           title="Aucune candidature"
-          description="Les dossiers apparaîtront ici dès qu’ils seront créés pour ce programme."
+          description="Le seed VPS crée un autre programme. Ici : 3 dossiers @example.com sur CET appel (complétude réelle, pas de décision IA)."
+          action={
+            program?.status === 'open' ? (
+              <Button
+                icon={<Plus size={14} />}
+                loading={seeding}
+                onClick={() => void handleSeedDemo()}
+                data-testid="odc-seed-demo-applications-empty"
+              >
+                Charger 3 dossiers démo
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4">
