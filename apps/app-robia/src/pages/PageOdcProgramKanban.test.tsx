@@ -11,6 +11,10 @@ vi.mock('../lib/api', async (importOriginal) => {
     ...actual,
     getOdcProgram: vi.fn(),
     listOdcApplications: vi.fn(),
+    listOdcOutreach: vi.fn(),
+    queueOdcOutreach: vi.fn(),
+    sendOdcOutreach: vi.fn(),
+    skipOdcOutreach: vi.fn(),
   }
 })
 
@@ -74,6 +78,7 @@ describe('PageOdcProgramKanban', () => {
   it('renders every status column and never shows a 0 score for an unfrozen total', async () => {
     mockedApi.getOdcProgram.mockResolvedValue(program)
     mockedApi.listOdcApplications.mockResolvedValue([app()])
+    mockedApi.listOdcOutreach.mockResolvedValue([])
     render(
       <MemoryRouter initialEntries={['/odc/programmes/p1']}>
         <Routes>
@@ -86,5 +91,6 @@ describe('PageOdcProgramKanban', () => {
     expect(screen.getByTestId('odc-column-withdrawn')).toBeInTheDocument()
     expect(screen.getByText(/Score : Non figé/)).toBeInTheDocument()
     expect(screen.queryByText(/Score : 0/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('odc-cv-ranking')).toBeInTheDocument()
   })
 })
