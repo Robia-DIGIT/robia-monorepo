@@ -1210,6 +1210,7 @@ export interface AutomationRun {
 export interface CreateAutomationPayload {
   name: string;
   description?: string;
+  scope?: "ORGANIZATION" | "ROBIA_INTERNAL" | "PROGRAM" | "COHORT";
   trigger: {
     type: AutomationTriggerType;
     cronExpression?: string;
@@ -1253,6 +1254,18 @@ export const AUTOMATION_ACTION_TYPES: Array<{
   {
     type: "robia.notification.send_email",
     label: "Préparer un email à partir d’un modèle ROBIA",
+  },
+  {
+    type: "robia.odc.prepare_application_summary",
+    label: "ODC — préparer un résumé de dossier (brouillon)",
+  },
+  {
+    type: "robia.odc.flag_missing_documents",
+    label: "ODC — recalculer les pièces manquantes",
+  },
+  {
+    type: "robia.odc.create_review_task",
+    label: "ODC — créer une tâche de revue (brouillon)",
   },
 ];
 
