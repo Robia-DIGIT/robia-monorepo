@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import PageOpsAutomations from './PageOpsAutomations'
@@ -77,6 +77,9 @@ describe('PageOpsAutomations', () => {
     expect(screen.getByText('Activée')).toBeInTheDocument()
     expect(screen.getByText('Sans validation')).toBeInTheDocument()
     expect(screen.getByText(/audit.completed/)).toBeInTheDocument()
+    expect(screen.getByTestId('ops-scope-filter')).toBeInTheDocument()
+    expect(screen.getByText('ODC candidatures')).toBeInTheDocument()
+    expect(screen.getByText('Formation')).toBeInTheDocument()
   })
 
   it('shows "Validation requise" for an automation that requires approval', async () => {
@@ -158,5 +161,35 @@ describe('PageOpsAutomations', () => {
     renderPage()
 
     await waitFor(() => expect(screen.getByText(/Prochaine exécution : Non planifiée/)).toBeInTheDocument())
+  })
+
+  it('filters ODC candidatures vs PME vs formation', async () => {
+    mockedApi.listAutomations.mockResolvedValue([
+      makeAutomation({ id: 'pme', name: 'Audit PME' }),
+      makeAutomation({
+        id: 'odc',
+        name: 'ODC — résumé à la soumission',
+        scope: 'PROGRAM',
+        steps: [{ actionType: 'robia.odc.prepare_application_summary' }],
+      }),
+      makeAutomation({
+        id: 'form',
+        name: 'Formation — tâche de revue cohorte',
+        scope: 'COHORT',
+        steps: [{ actionType: 'robia.odc.create_review_task' }],
+      }),
+    ])
+
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Audit PME')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'ODC candidatures' }))
+    expect(screen.getByText('ODC — résumé à la soumission')).toBeInTheDocument()
+    expect(screen.queryByText('Audit PME')).not.toBeInTheDocument()
+    expect(screen.queryByText('Formation — tâche de revue cohorte')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Formation' }))
+    expect(screen.getByText('Formation — tâche de revue cohorte')).toBeInTheDocument()
+    expect(screen.queryByText('Audit PME')).not.toBeInTheDocument()
   })
 })

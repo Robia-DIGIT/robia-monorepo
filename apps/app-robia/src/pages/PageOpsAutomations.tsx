@@ -12,6 +12,7 @@ import {
   type Automation,
 } from '../lib/api'
 import { formatNextRunAt } from '../lib/cron-schedule'
+import { isFormationAutomation, isOdcAutomation } from '../lib/odc-ops'
 
 function formatDate(value: string | null) {
   if (!value) return 'Jamais exécutée'
@@ -90,6 +91,7 @@ export default function PageOpsAutomations() {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
+  const [filter, setFilter] = useState<'all' | 'pme' | 'odc' | 'formation'>('all')
 
   const loadData = async () => {
     setLoading(true)
@@ -133,6 +135,13 @@ export default function PageOpsAutomations() {
     }
   }
 
+  const visibleAutomations = automations.filter((automation) => {
+    if (filter === 'odc') return isOdcAutomation(automation) && !isFormationAutomation(automation)
+    if (filter === 'formation') return isFormationAutomation(automation)
+    if (filter === 'pme') return !isOdcAutomation(automation)
+    return true
+  })
+
   if (loading) {
     return (
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -147,7 +156,7 @@ export default function PageOpsAutomations() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-slide-up">
       <PageHeader
         title="Automatisations ROBIA"
-        subtitle="Moteur d'automatisation interne : conditions déterministes, allowlist d'actions sûres, validation humaine pour tout ce qui est sensible."
+        subtitle="Moteur unique : PME (visibilité) et ODC/Formation (dossiers). Les actions ODC restent des brouillons. Jamais de décision automatique."
         actions={
           <Button variant="primary" icon={<Plus size={14} />} onClick={() => navigate('/ops/automations/new')}>
             Nouvelle automation
@@ -161,11 +170,29 @@ export default function PageOpsAutomations() {
         </div>
       )}
 
-      {automations.length === 0 ? (
+      <div className="mb-4 flex flex-wrap gap-2" data-testid="ops-scope-filter">
+        {([
+          ['all', 'Tous'],
+          ['pme', 'PME / visibilité'],
+          ['odc', 'ODC candidatures'],
+          ['formation', 'Formation'],
+        ] as const).map(([key, label]) => (
+          <Button
+            key={key}
+            size="sm"
+            variant={filter === key ? 'primary' : 'outline'}
+            onClick={() => setFilter(key)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {visibleAutomations.length === 0 ? (
         <EmptyState
           icon={<Workflow size={22} />}
           title="Aucune automatisation"
-          description="Créez votre première automatisation ROBIA — diagnostic de site, régénération d'opportunités, rapport ou tâche interne."
+          description="Créez une automation PME, ou installez une tâche ODC/Formation depuis Candidatures ODC."
           action={
             <Button variant="primary" icon={<Plus size={14} />} onClick={() => navigate('/ops/automations/new')}>
               Nouvelle automation
@@ -174,7 +201,7 @@ export default function PageOpsAutomations() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {automations.map((automation) => (
+          {visibleAutomations.map((automation) => (
             <AutomationCard
               key={automation.id}
               automation={automation}
