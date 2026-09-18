@@ -15,12 +15,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import PagerView from "react-native-pager-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AuthScreen() {
+  const { height, width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const { login, register, sessionError, restore } = useSession();
   const pager = useRef<PagerView>(null);
@@ -33,6 +35,7 @@ export default function AuthScreen() {
   const submitLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const compact = height < 700;
   function selectPage(next: number) {
     setPage(next);
     setError("");
@@ -96,7 +99,7 @@ export default function AuthScreen() {
         style={s.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View style={s.hero}>
+        <View style={[s.hero, compact && s.heroCompact]}>
           {/* <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
             <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
           </Pressable> */}
@@ -116,7 +119,7 @@ export default function AuthScreen() {
             <Text style={s.errorText}>{sessionError} · Réessayer</Text>
           </Pressable>
         ) : null}
-        <View style={s.sheet}>
+        <View style={[s.sheet, width >= 560 && s.sheetWide]}>
           <View style={s.handle} />
           <View style={s.modeSwitch}>
             <ModeButton
@@ -393,14 +396,15 @@ const s = StyleSheet.create({
     borderWidth: 0,
   },
   hero: {
-    height: "25%",
-    minHeight: 168,
+    flex: 0.42,
+    minHeight: 164,
     maxHeight: 220,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
     backgroundColor: Brand.slate50,
   },
+  heroCompact: { flex: 0, minHeight: 126, maxHeight: 142 },
   orb: { position: "absolute", borderRadius: 999, opacity: 0.7 },
   orbTeal: {
     width: 190,
@@ -460,6 +464,7 @@ const s = StyleSheet.create({
     shadowRadius: 24,
     elevation: 5,
   },
+  sheetWide: { width: "100%", maxWidth: 620, alignSelf: "center" },
   handle: {
     alignSelf: "center",
     width: 42,
@@ -487,8 +492,11 @@ const s = StyleSheet.create({
   modeLabelActive: { color: Brand.navyDark },
   pager: { flex: 1 },
   page: { flex: 1 },
-  pageContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28 },
+  pageContent: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28 },
   heading: {
+    maxWidth: 560,
+    width: "100%",
+    alignSelf: "center",
     marginBottom: 20,
     flexDirection: "row",
     alignItems: "flex-start",
@@ -511,7 +519,7 @@ const s = StyleSheet.create({
     fontWeight: "900",
   },
   subtitle: { color: Brand.slate500, fontSize: 14, lineHeight: 20 },
-  form: { gap: 14 },
+  form: { width: "100%", maxWidth: 560, alignSelf: "center", gap: 14 },
   fieldGroup: { gap: 7 },
   fieldLabel: { color: Brand.navyDark, fontSize: 13, fontWeight: "800" },
   field: {
@@ -548,6 +556,9 @@ const s = StyleSheet.create({
     fontWeight: "600",
   },
   submit: {
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
     minHeight: 56,
     marginTop: 19,
     paddingLeft: 20,
