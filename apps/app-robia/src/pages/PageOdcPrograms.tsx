@@ -264,6 +264,17 @@ export default function PageOdcPrograms() {
                         Ouvrir
                       </Button>
                     )}
+                    {program.status === 'closed' && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        loading={busyId === program.id}
+                        onClick={() => void handleOpen(program.id)}
+                        data-testid="odc-reopen-program"
+                      >
+                        Réouvrir
+                      </Button>
+                    )}
                     {program.status === 'open' && (
                       <Button
                         size="sm"

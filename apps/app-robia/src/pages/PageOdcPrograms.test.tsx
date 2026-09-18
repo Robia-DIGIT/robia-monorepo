@@ -65,6 +65,28 @@ describe('PageOdcPrograms', () => {
     expect(screen.getByText('Candidature')).toBeInTheDocument()
   })
 
+  it('reopens a closed program', async () => {
+    const closed = makeProgram({
+      slug: 'odc-appel-2026',
+      name: 'Orange Digital Center — Appel à candidatures 2026',
+      status: 'closed',
+    })
+    mockedApi.listOdcPrograms.mockResolvedValue([closed])
+    mockedApi.openOdcProgram.mockResolvedValue({ ...closed, status: 'open' })
+
+    render(
+      <MemoryRouter>
+        <PageOdcPrograms />
+      </MemoryRouter>,
+    )
+    await waitFor(() => expect(screen.getByTestId('odc-reopen-program')).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('odc-reopen-program'))
+    await waitFor(() => {
+      expect(mockedApi.openOdcProgram).toHaveBeenCalledWith('p1')
+      expect(screen.getByText('Ouvert')).toBeInTheDocument()
+    })
+  })
+
   it('shows empty state when there are no programs', async () => {
     mockedApi.listOdcPrograms.mockResolvedValue([])
     render(
