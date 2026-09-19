@@ -3,14 +3,14 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Children, type PropsWithChildren, type ReactNode } from "react";
 import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+    type StyleProp,
+    type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -134,6 +134,11 @@ export function RobiaHeader({
     </View>
   );
 }
+
+export function RobiaFixedHeader({ children }: PropsWithChildren) {
+  return <View style={styles.fixedHeaderGroup}>{children}</View>;
+}
+
 export function RobiaCard({
   children,
   style,
@@ -334,6 +339,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     justifyContent: "center",
   },
+  fixedHeaderGroup: { gap: 10 },
   screenContentBelowHeader: { paddingTop: 12 },
   screenContent: {
     flex: 1,
@@ -407,7 +413,7 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: Brand.surfaceSoft,
   },
   plainSection: {
@@ -418,7 +424,7 @@ const styles = StyleSheet.create({
   iconBadge: {
     width: 42,
     height: 42,
-    borderRadius: 15,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -438,7 +444,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   filterChips: { gap: 8, paddingVertical: 2 },
-  filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: "center", backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
+  filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 8, justifyContent: "center", backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
   filterChipActive: { backgroundColor: Brand.navyDark, borderColor: Brand.navyDark },
   filterChipLabel: { color: Brand.slate500, fontFamily: Fonts?.sans, fontSize: 12, fontWeight: "700" },
   filterChipLabelActive: { color: Brand.white },
@@ -455,7 +461,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     minHeight: 50,
-    borderRadius: 18,
+    borderRadius: 10,
     paddingHorizontal: 20,
     paddingVertical: 12,
     flexDirection: "row",

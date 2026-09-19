@@ -3,25 +3,25 @@ import { Brand, Fonts } from "@/constants/theme";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { PlatformPressable } from "@react-navigation/elements";
 import {
-  createMaterialTopTabNavigator,
-  type MaterialTopTabBarProps,
-  type MaterialTopTabNavigationEventMap,
-  type MaterialTopTabNavigationOptions,
+    createMaterialTopTabNavigator,
+    type MaterialTopTabBarProps,
+    type MaterialTopTabNavigationEventMap,
+    type MaterialTopTabNavigationOptions,
 } from "@react-navigation/material-top-tabs";
 import {
-  type ParamListBase,
-  type TabNavigationState,
-  useLinkBuilder,
+    type ParamListBase,
+    type TabNavigationState,
+    useLinkBuilder,
 } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { withLayoutContext } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   bar: {
     marginHorizontal: 16,
     marginTop: 8,
-    borderRadius: 28,
+    borderRadius: 12,
     backgroundColor: Brand.white,
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: 4 },

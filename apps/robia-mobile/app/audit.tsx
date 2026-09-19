@@ -1,10 +1,10 @@
 import { Choices } from "@/components/api-ui";
 import {
-  PrimaryButton,
-  RobiaCard,
-  RobiaHeader,
-  RobiaScreen,
-  robiaStyles,
+    PrimaryButton,
+    RobiaCard,
+    RobiaHeader,
+    RobiaScreen,
+    robiaStyles,
 } from "@/components/robia-ui";
 import { Brand, Fonts } from "@/constants/theme";
 import { useRobiaData } from "@/src/api/data";
@@ -13,13 +13,13 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import { useState, type ComponentProps } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
 export default function AuditScreen() {
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   inputShell: {
     minHeight: 52,
     paddingHorizontal: 14,
-    borderRadius: 17,
+    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   loadingCopy: { gap: 2 },
   error: {
     padding: 12,
-    borderRadius: 14,
+    borderRadius: 8,
     color: Brand.orangeDark,
     backgroundColor: Brand.orangeLight,
     fontWeight: "700",

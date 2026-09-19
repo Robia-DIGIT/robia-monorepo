@@ -2,6 +2,7 @@ import {
   FilterChips,
   IconBadge,
   RobiaCard,
+  RobiaFixedHeader,
   RobiaHeader,
   RobiaScreen,
   StatusPill,
@@ -53,7 +54,7 @@ export default function OpportunitiesScreen() {
   }
   return (
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
-      <View style={styles.fixedHeaderContent}>
+      <RobiaFixedHeader>
         <RobiaHeader compact
           eyebrow="RECOMMANDATIONS IA"
           title="Opportunités"
@@ -61,7 +62,7 @@ export default function OpportunitiesScreen() {
         />
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} />
-      </View>
+      </RobiaFixedHeader>
       {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
       {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
       <View style={styles.summary}>
@@ -198,12 +199,9 @@ function Meta({ label, value }: { label: string; value: string }) {
   );
 }
 const styles = StyleSheet.create({
-  fixedHeaderContent: {
-    gap: 12,
-  },
   summary: {
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -229,7 +227,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     flex: 1,
     minHeight: 48,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: Brand.tealDark,
     flexDirection: "row",
@@ -242,7 +240,7 @@ const styles = StyleSheet.create({
     minWidth: 98,
     minHeight: 48,
     paddingHorizontal: 13,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: Brand.tealDark,
     flexDirection: "row",
     alignItems: "center",

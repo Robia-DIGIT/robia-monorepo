@@ -1,14 +1,14 @@
 import { AsyncButton, LoadState, apiStyles as s } from "@/components/api-ui";
-import { RobiaCard, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
+import { RobiaCard, RobiaFixedHeader, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
 import { SiteSelector } from "@/components/site-selector";
 import { useRobiaData } from "@/src/api/data";
 import type {
-  IntelligenceFinding,
-  IntelligenceSignal,
+    IntelligenceFinding,
+    IntelligenceSignal,
 } from "@/src/api/intelligence";
 import {
-  PROVIDER_LABELS,
-  PROVIDER_STATUS_LABELS,
+    PROVIDER_LABELS,
+    PROVIDER_STATUS_LABELS,
 } from "@/src/api/presentation";
 import { useResource } from "@/src/api/use-resource";
 import { useSession } from "@/src/auth/session";
@@ -35,8 +35,10 @@ export default function IntelligenceScreen() {
       refreshing={status.loading || findings.loading}
       onRefresh={refresh}
     >
-      <RobiaHeader compact back title="Vue d’ensemble" />
-      <SiteSelector />
+      <RobiaFixedHeader>
+        <RobiaHeader compact back title="Vue d’ensemble" />
+        <SiteSelector />
+      </RobiaFixedHeader>
       {!organization ? (
         <AsyncButton
           label="Compléter mon organisation"

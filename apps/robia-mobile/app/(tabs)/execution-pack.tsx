@@ -3,6 +3,7 @@ import {
     FilterChips,
     IconBadge,
     RobiaCard,
+    RobiaFixedHeader,
     RobiaHeader,
     RobiaScreen,
     StatusPill,
@@ -38,13 +39,15 @@ export default function ExecutionPackScreen() {
   });
   return (
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
-      <RobiaHeader compact
-        eyebrow="CENTRE DE PRODUCTION"
-        title="Documents"
-        subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."
-      />
-      <SiteSelector />
-      <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      <RobiaFixedHeader>
+        <RobiaHeader compact
+          eyebrow="CENTRE DE PRODUCTION"
+          title="Documents"
+          subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."
+        />
+        <SiteSelector />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      </RobiaFixedHeader>
       <LoadState loading={isLoading} error={error} retry={refresh} />
       <AsyncButton label="Historique des validations" action={async () => router.push("/validations")} />
       <View style={styles.progressCard}>
@@ -103,7 +106,7 @@ export default function ExecutionPackScreen() {
 const styles = StyleSheet.create({
   progressCard: {
     padding: 16,
-    borderRadius: 22,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
   documentIcon: {
     width: 46,
     height: 54,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Brand.slate100,

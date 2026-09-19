@@ -1,5 +1,5 @@
 import { AsyncButton, LoadState, apiStyles as s } from "@/components/api-ui";
-import { RobiaCard, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
+import { RobiaCard, RobiaFixedHeader, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
 import { SiteSelector } from "@/components/site-selector";
 import { useRobiaData } from "@/src/api/data";
 import { shareActionPdf } from "@/src/api/export";
@@ -83,8 +83,10 @@ export default function ReportsScreen() {
       refreshing={isLoading || connection.loading}
       onRefresh={reload}
     >
-      <RobiaHeader compact back title="Mes performances" />
-      <SiteSelector />
+      <RobiaFixedHeader>
+        <RobiaHeader compact back title="Mes performances" />
+        <SiteSelector />
+      </RobiaFixedHeader>
       <LoadState loading={isLoading} error={error} retry={refresh} />
       <RobiaCard style={s.stack}>
         <Text style={s.title}>Diagnostic du site sélectionné</Text>

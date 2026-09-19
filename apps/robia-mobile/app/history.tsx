@@ -1,5 +1,5 @@
 import { LoadState, apiStyles as s } from "@/components/api-ui";
-import { RobiaCard, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
+import { RobiaCard, RobiaFixedHeader, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
 import { SiteSelector } from "@/components/site-selector";
 import { useRobiaData } from "@/src/api/data";
 import { auditScore } from "@/src/api/presentation";
@@ -20,8 +20,10 @@ export default function HistoryScreen() {
       refreshing={resource.loading}
       onRefresh={resource.reload}
     >
-      <RobiaHeader compact back title="Historique des audits" />
-      <SiteSelector />
+      <RobiaFixedHeader>
+        <RobiaHeader compact back title="Historique des audits" />
+        <SiteSelector />
+      </RobiaFixedHeader>
       <LoadState
         {...resource}
         retry={resource.reload}

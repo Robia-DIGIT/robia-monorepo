@@ -3,6 +3,7 @@ import {
     FilterChips,
     PrimaryButton,
     RobiaCard,
+    RobiaFixedHeader,
     RobiaHeader,
     RobiaScreen,
     SectionTitle,
@@ -75,13 +76,15 @@ export default function ProgressScreen() {
   }
   return (
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
-      <RobiaHeader compact
-        eyebrow="PLAN D’ACTION"
-        title="Suivi"
-        subtitle="Pilotez les actions générées par RobIA et leurs échéances."
-      />
-      <SiteSelector />
-      <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      <RobiaFixedHeader>
+        <RobiaHeader compact
+          eyebrow="PLAN D’ACTION"
+          title="Suivi"
+          subtitle="Pilotez les actions générées par RobIA et leurs échéances."
+        />
+        <SiteSelector />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      </RobiaFixedHeader>
       <LoadState loading={isLoading} error={error ?? planError} retry={refresh} />
       <AsyncButton label="Partager le plan PDF" disabled={!actions.length} action={() => shareActionPdf(request, selectedWebsiteId)} />
       <RobiaCard style={styles.hero} accent={Brand.teal}>
