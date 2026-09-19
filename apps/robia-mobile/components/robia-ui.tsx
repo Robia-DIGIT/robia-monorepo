@@ -128,7 +128,17 @@ export function RobiaHeader({
             </Text>
           </View>
         ) : null}
-        <View style={styles.headerActions}>{action}</View>
+        <View style={styles.headerActions}>
+          {back ? (
+            <Image
+              source={require("@/assets/images/logo-robia-copilot.svg")}
+              contentFit="contain"
+              style={styles.compactBrandMark}
+              accessibilityLabel="Logo RobIA Copilot"
+            />
+          ) : null}
+          {action}
+        </View>
       </View>
       {!compact && eyebrow ? (
         <Text style={styles.eyebrow}>{eyebrow}</Text>
@@ -383,8 +393,11 @@ const styles = StyleSheet.create({
   fixedHeader: {
     zIndex: 20,
     paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 8,
+    backgroundColor: "#FBFCFC",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Brand.borderSubtle,
   },
   fixedHeaderInner: {
     width: "100%",
@@ -414,16 +427,21 @@ const styles = StyleSheet.create({
   },
   logo: { width: 72, height: 40 },
   logoCompact: { width: 62, height: 32 },
+  compactBrandMark: { width: 30, height: 30, opacity: 0.9 },
   brandRowCompact: { minHeight: 48, marginBottom: 0 },
   headerButton: {
     width: 48,
     height: 48,
-    alignItems: "flex-start",
+    borderRadius: 10,
+    backgroundColor: Brand.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Brand.borderSubtle,
+    alignItems: "center",
     justifyContent: "center",
   },
   navigationTitleGroup: {
     flex: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
@@ -431,15 +449,17 @@ const styles = StyleSheet.create({
   navigationTitle: {
     color: Brand.navyDark,
     fontFamily: Fonts?.rounded,
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: "900",
     letterSpacing: -0.25,
-    textAlign: "center",
+    textAlign: "left",
   },
   subtitleAfterNavigation: { marginTop: 4 },
   headerActions: {
     minWidth: 40,
+    flexDirection: "row",
+    gap: 8,
     minHeight: 40,
     alignItems: "flex-end",
     justifyContent: "center",

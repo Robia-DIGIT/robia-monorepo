@@ -4,7 +4,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
-import { RobiaCard, RobiaScreen } from '@/components/robia-ui';
+import { RobiaCard, RobiaHeader, RobiaScreen } from '@/components/robia-ui';
 import { SiteSelector } from '@/components/site-selector';
 import { Brand, Fonts } from '@/constants/theme';
 import { useRobiaData } from '@/src/api/data';
@@ -61,10 +61,11 @@ export default function HomeScreen() {
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <CopilotStep order={1} name="welcome" text="Votre tableau de bord rassemble les indicateurs et les prochaines actions de votre entreprise.">
         <CopilotTarget style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Bonjour, {firstName}</Text>
-            <Text style={styles.context}>{organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui</Text>
-          </View>
+          <RobiaHeader
+            eyebrow="ROBIA COPILOT"
+            title={`Bonjour, ${firstName}`}
+            subtitle={`${organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui`}
+          />
         </CopilotTarget>
       </CopilotStep>
 
