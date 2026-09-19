@@ -1,6 +1,7 @@
 import { AsyncButton, LoadState } from '@/components/api-ui';
 import {
     FilterChips,
+    FilterTransition,
     PrimaryButton,
     RobiaCard,
     RobiaFixedHeader,
@@ -85,6 +86,7 @@ export default function ProgressScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} />
       </RobiaFixedHeader>
+      <FilterTransition filterKey={filter}>
       <LoadState loading={isLoading} error={error ?? planError} retry={refresh} />
       <AsyncButton label="Partager le plan PDF" disabled={!actions.length} action={() => shareActionPdf(request, selectedWebsiteId)} />
       <RobiaCard style={styles.hero} accent={Brand.teal}>
@@ -186,6 +188,7 @@ export default function ProgressScreen() {
           <Text style={robiaStyles.body}>Choisissez un autre statut pour afficher votre plan.</Text>
         </RobiaCard>
       ) : null}
+      </FilterTransition>
     </RobiaScreen>
   );
 }

@@ -1,5 +1,6 @@
 import {
   FilterChips,
+  FilterTransition,
   IconBadge,
   RobiaCard,
   RobiaFixedHeader,
@@ -63,7 +64,8 @@ export default function OpportunitiesScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} />
       </RobiaFixedHeader>
-      {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
+      <FilterTransition filterKey={filter}>
+        {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
       {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
       <View style={styles.summary}>
         <Text style={styles.summaryCount}>{visibleOpportunities.length}</Text>
@@ -104,6 +106,7 @@ export default function OpportunitiesScreen() {
           <Text style={robiaStyles.body}>Essayez un autre filtre pour voir les recommandations disponibles.</Text>
         </RobiaCard>
       ) : null}
+      </FilterTransition>
     </RobiaScreen>
   );
 }

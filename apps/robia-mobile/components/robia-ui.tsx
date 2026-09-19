@@ -1,8 +1,15 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { Children, type PropsWithChildren, type ReactNode } from "react";
 import {
+  Children,
+  useEffect,
+  useRef,
+  type PropsWithChildren,
+  type ReactNode,
+} from "react";
+import {
+  Animated,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -15,6 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Brand, Fonts } from "@/constants/theme";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
@@ -137,6 +145,52 @@ export function RobiaHeader({
 
 export function RobiaFixedHeader({ children }: PropsWithChildren) {
   return <View style={styles.fixedHeaderGroup}>{children}</View>;
+}
+
+export function FilterTransition({
+  filterKey,
+  children,
+}: PropsWithChildren<{ filterKey: string }>) {
+  const reduceMotion = useReducedMotion();
+  const opacity = useRef(new Animated.Value(1)).current;
+  const offset = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      offset.setValue(0);
+      return;
+    }
+
+    opacity.setValue(0.35);
+    offset.setValue(8);
+    const animation = Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(offset, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+    ]);
+    animation.start();
+
+    return () => animation.stop();
+  }, [filterKey, offset, opacity, reduceMotion]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.filterTransition,
+        { opacity, transform: [{ translateY: offset }] },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
 }
 
 export function RobiaCard({
@@ -340,6 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   fixedHeaderGroup: { gap: 10 },
+  filterTransition: { gap: 22 },
   screenContentBelowHeader: { paddingTop: 12 },
   screenContent: {
     flex: 1,

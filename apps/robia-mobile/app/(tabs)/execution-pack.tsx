@@ -1,6 +1,7 @@
 import { AsyncButton, LoadState } from '@/components/api-ui';
 import {
     FilterChips,
+    FilterTransition,
     IconBadge,
     RobiaCard,
     RobiaFixedHeader,
@@ -48,6 +49,7 @@ export default function ExecutionPackScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} />
       </RobiaFixedHeader>
+      <FilterTransition filterKey={filter}>
       <LoadState loading={isLoading} error={error} retry={refresh} />
       <AsyncButton label="Historique des validations" action={async () => router.push("/validations")} />
       <View style={styles.progressCard}>
@@ -100,6 +102,7 @@ export default function ExecutionPackScreen() {
           />
         </RobiaCard>
       ))}
+      </FilterTransition>
     </RobiaScreen>
   );
 }
