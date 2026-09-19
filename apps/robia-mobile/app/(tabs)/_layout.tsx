@@ -1,29 +1,31 @@
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Brand, Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Brand, Fonts } from "@/constants/theme";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { PlatformPressable } from "@react-navigation/elements";
 import {
-  createMaterialTopTabNavigator,
-  MaterialTopTabNavigationEventMap,
-  MaterialTopTabNavigationOptions,
-} from '@react-navigation/material-top-tabs';
-import { ParamListBase, TabNavigationState } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
-import { withLayoutContext } from 'expo-router';
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeOut,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+    createMaterialTopTabNavigator,
+    type MaterialTopTabBarProps,
+    type MaterialTopTabNavigationEventMap,
+    type MaterialTopTabNavigationOptions,
+} from "@react-navigation/material-top-tabs";
+import {
+    type ParamListBase,
+    type TabNavigationState,
+    useLinkBuilder,
+} from "@react-navigation/native";
+import * as Haptics from "expo-haptics";
+import { withLayoutContext } from "expo-router";
+import { useEffect, useRef } from "react";
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { Navigator } = createMaterialTopTabNavigator();
-
 const SwipeTabs = withLayoutContext<
   MaterialTopTabNavigationOptions,
   typeof Navigator,
@@ -31,213 +33,174 @@ const SwipeTabs = withLayoutContext<
   MaterialTopTabNavigationEventMap
 >(Navigator);
 
-type RobiaIconName =
-  | 'house.fill'
-  | 'target'
-  | 'doc.text.fill'
-  | 'checklist'
-  | 'bubble.left.and.bubble.right.fill'
-  | 'person.crop.circle';
+const TABS = [
+  { name: "dashboard", title: "Accueil", icon: "house.fill" },
+  { name: "opportunities", title: "Opportunité", icon: "lightbulb.fill" },
+  { name: "execution-pack", title: "Document", icon: "doc.text.fill" },
+  { name: "progress", title: "Suivi", icon: "chart.bar.fill" },
+  { name: "profile", title: "Profil", icon: "person.crop.circle.fill" },
+] as const;
 
-function AnimatedTabIcon({
-  name,
-  color,
-  focused,
-}: {
-  name: RobiaIconName;
-  color: string;
-  focused: boolean;
-}) {
-  const progress = useSharedValue(focused ? 1 : 0);
+// Use the navigator's selected route as the only source of selection. The
+// default tab bar cross-fades two icon trees, which conflicts with icon-level
+// entering/exiting animations, especially when jumping over several pages.
+export function RobiaTabBar({
+  state,
+  descriptors,
+  navigation,
+}: MaterialTopTabBarProps) {
+  const { width, fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
+  const { buildHref } = useLinkBuilder();
+  const scroll = useRef<ScrollView>(null);
+  const shouldScroll = fontScale > 1.15 || width < 360;
+  const itemWidth = shouldScroll
+    ? 104 * fontScale
+    : (width - 32) / state.routes.length;
 
   useEffect(() => {
-    progress.value = withTiming(focused ? 1 : 0, {
-      duration: focused ? 240 : 180,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [focused, progress]);
-
-  const animatedIconStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: interpolate(progress.value, [0, 1], [0, -1]) },
-      { scale: interpolate(progress.value, [0, 1], [1, 1.08]) },
-    ],
-  }));
+    if (shouldScroll) {
+      scroll.current?.scrollTo({
+        x: Math.max(0, state.index * itemWidth - (width - 32 - itemWidth) / 2),
+        animated: !reduceMotion,
+      });
+    }
+  }, [itemWidth, reduceMotion, shouldScroll, state.index, width]);
 
   return (
-    <View style={styles.iconContainer}>
-      {focused ? (
-        <Animated.View
-          entering={FadeIn.duration(0)}
-          exiting={FadeOut.duration(140)}
-          style={styles.iconContainerActive}
-        />
-      ) : null}
-      <Animated.View style={animatedIconStyle}>
-        <IconSymbol size={22} name={name} color={color} />
-      </Animated.View>
-      {focused ? (
-        <Animated.View entering={FadeIn.delay(80).duration(180)} style={styles.activeDot} />
-      ) : null}
+    <View style={[styles.bar, { marginBottom: Math.max(insets.bottom, 10) }]}>
+      <ScrollView
+        ref={scroll}
+        horizontal
+        scrollEnabled={shouldScroll}
+        showsHorizontalScrollIndicator={shouldScroll}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.items}
+      >
+        {state.routes.map((route, index) => {
+          const tab = TABS.find((item) => item.name === route.name);
+          const options = descriptors[route.key].options;
+          const selected = state.index === index;
+          const label = options.title ?? route.name;
+          return (
+            <PlatformPressable
+              key={route.key}
+              href={buildHref(route.name, route.params)}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected }}
+              testID={`tab-${route.name}`}
+              pressOpacity={0.85}
+              pressColor={Brand.tealLight}
+              onPress={() => {
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (selected || event.defaultPrevented) return;
+                navigation.navigate(route.name, route.params);
+                void Haptics.selectionAsync().catch(() => {});
+              }}
+              onLongPress={() =>
+                navigation.emit({ type: "tabLongPress", target: route.key })
+              }
+              style={[styles.item, { width: itemWidth }]}
+            >
+              <View
+                accessible={false}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={[styles.icon, selected && styles.iconSelected]}
+              >
+                <IconSymbol
+                  name={tab?.icon ?? "house.fill"}
+                  size={23}
+                  color={selected ? Brand.tealDark : Brand.slate500}
+                />
+              </View>
+              <Text style={[styles.label, selected && styles.labelSelected]}>
+                {label}
+              </Text>
+              <View style={[styles.dot, { opacity: selected ? 1 : 0 }]} />
+            </PlatformPressable>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
 
-function createTabIcon(name: RobiaIconName) {
-  return function TabBarIcon({ color, focused }: { color: string; focused: boolean }) {
-    return <AnimatedTabIcon name={name} color={color} focused={focused} />;
-  };
-}
-
-function createTabLabel(label: string) {
-  return function TabBarLabel({ focused, color }: { focused: boolean; color: string }) {
-    return focused ? (
-      <Animated.Text
-        entering={FadeIn.duration(180)}
-        exiting={FadeOut.duration(120)}
-        style={[styles.tabBarLabel, { color }]}
-      >
-        {label}
-      </Animated.Text>
-    ) : null;
-  };
-}
-
-const tabListeners = {
-  tabPress: () => {
-    void Haptics.selectionAsync();
-  },
-};
-
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const palette = Colors[colorScheme ?? 'light'];
-  const insets = useSafeAreaInsets();
-  const bottomSpacing = Math.max(insets.bottom, 10);
+  const reduceMotion = useReducedMotion();
   return (
     <SwipeTabs
       initialRouteName="dashboard"
+      backBehavior="history"
       tabBarPosition="bottom"
+      tabBar={RobiaTabBar}
       screenOptions={{
-        animationEnabled: true,
+        animationEnabled: !reduceMotion,
         swipeEnabled: true,
-        lazy: false,
-        tabBarActiveTintColor: Brand.tealDark,
-        tabBarInactiveTintColor: Brand.slate400,
-        tabBarShowIcon: true,
-        tabBarShowLabel: true,
-        tabBarPressColor: 'rgba(20,184,166,0.24)',
-        tabBarPressOpacity: 0.72,
-        sceneStyle: { backgroundColor: palette.background },
-        tabBarStyle: [
-          styles.tabBar,
-          {
-            marginBottom: bottomSpacing,
-            backgroundColor: Brand.white,
-            borderColor: '#EDF1F3',
-          },
-        ],
-        tabBarItemStyle: styles.tabBarItem,
-        tabBarLabelStyle: styles.tabBarLabel,
-        tabBarIndicatorStyle: styles.tabBarIndicator,
-      }}>
-      <SwipeTabs.Screen
-        name="dashboard"
-        listeners={tabListeners}
-        options={{
-          title: 'Accueil',
-          tabBarLabel: createTabLabel('Accueil'),
-          tabBarIcon: createTabIcon('house.fill'),
-        }}
-      />
-      <SwipeTabs.Screen
-        name="opportunities"
-        listeners={tabListeners}
-        options={{
-          title: 'Opportunités',
-          tabBarLabel: createTabLabel('Opportunités'),
-          tabBarIcon: createTabIcon('target'),
-        }}
-      />
-      <SwipeTabs.Screen
-        name="execution-pack"
-        listeners={tabListeners}
-        options={{
-          title: 'Documents',
-          tabBarLabel: createTabLabel('Documents'),
-          tabBarIcon: createTabIcon('doc.text.fill'),
-        }}
-      />
-      <SwipeTabs.Screen
-        name="progress"
-        listeners={tabListeners}
-        options={{
-          title: 'Suivi',
-          tabBarLabel: createTabLabel('Suivi'),
-          tabBarIcon: createTabIcon('checklist'),
-        }}
-      />
-      <SwipeTabs.Screen
-        name="profile"
-        listeners={tabListeners}
-        options={{
-          title: 'Profil',
-          tabBarLabel: createTabLabel('Profil'),
-          tabBarIcon: createTabIcon('person.crop.circle'),
-        }}
-      />
+        lazy: true,
+        sceneStyle: { backgroundColor: "#FBFCFC" },
+      }}
+    >
+      {TABS.map((tab) => (
+        <SwipeTabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{ title: tab.title }}
+        />
+      ))}
     </SwipeTabs>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    height: 72,
+  bar: {
     marginHorizontal: 16,
     marginTop: 8,
-    paddingTop: 5,
-    paddingBottom: 5,
-    borderWidth: 1,
-    borderRadius: 100,
+    borderRadius: 12,
+    backgroundColor: Brand.white,
     shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.10,
-    shadowRadius: 20,
-    elevation: 14,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: "hidden",
   },
-  tabBarItem: {
-    minHeight: 62,
-    paddingHorizontal: 1,
-    paddingVertical: 2,
+  items: { alignItems: "stretch" },
+  item: {
+    minHeight: 76,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
   },
-  tabBarLabel: {
-    margin: 0,
-    fontFamily: Fonts?.sans,
-    fontSize: 9.5,
-    lineHeight: 12,
-    fontWeight: '700',
-    textTransform: 'none',
+  icon: {
+    width: 40,
+    height: 30,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  tabBarIndicator: {
-    display: 'none',
+  iconSelected: { backgroundColor: Brand.tealLight },
+  label: {
+    color: Brand.slate500,
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    fontWeight: "600",
   },
-  iconContainer: {
-    width: 38,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconContainerActive: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Brand.tealLight,
-    borderRadius: 40,
-  },
-  activeDot: {
-    position: 'absolute',
-    bottom: -2,
-    width: 4,
-    height: 4,
+  labelSelected: { color: Brand.tealDark, fontWeight: "800" },
+  dot: {
+    width: 5,
+    height: 3,
     borderRadius: 2,
-    backgroundColor: Brand.teal,
+    backgroundColor: Brand.tealDark,
   },
 });

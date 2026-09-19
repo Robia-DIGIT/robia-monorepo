@@ -10,8 +10,9 @@ export const Brand = {
   teal: '#14B8A6', tealLight: '#CCFBF1', tealDark: '#0F766E',
   orange: '#F97316', orangeLight: '#FED7AA', orangeDark: '#EA580C',
   electric: '#1D4ED8', electricLight: '#DBEAFE', electricDark: '#1E40AF',
+  surfaceSoft: '#F4F7F7', borderSubtle: '#EDF1F2',
   white: '#FFFFFF', slate50: '#F8FAFC', slate100: '#F1F5F9',
-  slate200: '#E2E8F0', slate400: '#94A3B8', slate500: '#64748B', slate800: '#1E293B',
+  slate200: '#E2E8F0', slate400: '#68778B', slate500: '#526174', slate800: '#1E293B',
 } as const;
 
 export const Colors = {

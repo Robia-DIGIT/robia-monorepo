@@ -1,15 +1,17 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { router, Stack, usePathname, useRootNavigationState, useSegments } from 'expo-router';
+import { router, Stack, useRootNavigationState, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { CopilotProvider } from 'react-native-copilot';
 import 'react-native-reanimated';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { RobiaDataProvider } from '@/src/api/data';
 import { SessionProvider, useSession } from '@/src/auth/session';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,11 +32,11 @@ export default function RootLayout() {
 
 function AppLayout() {
   const colorScheme = useColorScheme();
+  const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
-  const pathname = usePathname();
-  const { token, isLoading } = useSession();
+  const { token, user, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
   const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
   const [showLaunchAnimation, setShowLaunchAnimation] = useState(true);
@@ -43,7 +45,7 @@ function AppLayout() {
   useEffect(() => {
     if (isLoading || !rootNavigationState?.key) return;
     const section = segments[0];
-    if (!token && section === '(tabs)') router.replace('/auth');
+    if (!token && !['index', 'auth', 'password', 'support', '+not-found'].includes(section ?? 'index')) router.replace('/auth');
     if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/dashboard');
   }, [isLoading, rootNavigationState?.key, segments, token]);
 
@@ -61,8 +63,8 @@ function AppLayout() {
   };
 
   const screenOptions = {
-    animation: 'slide_from_right' as const,
-    animationDuration: 260,
+    animation: reduceMotion ? 'none' as const : 'slide_from_right' as const,
+    animationDuration: reduceMotion ? 0 : 260,
     gestureEnabled: true,
     fullScreenGestureEnabled: true,
     animationMatchesGesture: true,
@@ -70,6 +72,7 @@ function AppLayout() {
     headerTintColor: Brand.navyDark,
     headerShadowVisible: false,
     headerTitleStyle: { fontFamily: Fonts?.rounded, fontWeight: '800' as const },
+    headerShown: false,
     contentStyle: { backgroundColor: Brand.slate50 },
   };
 
@@ -78,6 +81,13 @@ function AppLayout() {
   }, []);
 
   useEffect(() => {
+    if (reduceMotion) {
+      launchProgress.setValue(1);
+      finishLaunchAnimation();
+      SplashScreen.hideAsync().catch(() => {});
+      return;
+    }
+
     const animation = Animated.timing(launchProgress, {
       toValue: 1,
       duration: 3800,
@@ -95,7 +105,7 @@ function AppLayout() {
       animation.stop();
       clearTimeout(fallbackTimer);
     };
-  }, [finishLaunchAnimation, launchProgress]);
+  }, [finishLaunchAnimation, launchProgress, reduceMotion]);
 
   const revealAnimation = useCallback(() => {
     SplashScreen.hideAsync().catch(() => {
@@ -222,41 +232,50 @@ function AppLayout() {
     inputRange: [0, 0.88, 1],
     outputRange: [1, 1, 0],
   });
-  const showAssistantButton = Boolean(token) && !isLoading && pathname !== '/chat';
+  // Keep the assistant outside the pager so it stays mounted and stationary
+  // while the user changes tabs by pressing the navbar or swiping.
+  const showAssistantButton = Boolean(token) && !isLoading && segments[0] === '(tabs)';
 
   return (
     <ThemeProvider value={navigationTheme}>
-      <Stack screenOptions={screenOptions}>
+      <CopilotProvider>
+      <Stack key={user?.id ?? "guest"} screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
           name="auth"
           options={{
             headerShown: false,
             presentation: 'fullScreenModal',
-            animation: 'slide_from_bottom',
+            animation: reduceMotion ? 'none' : 'slide_from_bottom',
           }}
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen
           name="audit"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Nouvel audit' }}
+          options={{ presentation: 'modal', animation: reduceMotion ? 'none' : 'slide_from_bottom', headerShown: false }}
         />
-        <Stack.Screen name="history" options={{ title: 'Historique' }} />
-        <Stack.Screen name="reports" options={{ title: 'Rapports' }} />
-        <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+        <Stack.Screen name="history" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
 
       {showAssistantButton ? (
         <Pressable
           accessibilityLabel="Ouvrir l'assistant RobIA"
           accessibilityRole="button"
-          onPress={() => router.push('/chat')}
+          testID="floating-assistant"
+          onPress={() => router.navigate('/chat')}
+          accessibilityHint="Découvrir le chatbot RobIA, bientôt disponible"
           style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
-          <View pointerEvents="none" style={styles.assistantRing} />
-          <MaterialIcons name="android" size={28} color={Brand.white} />
-          <Text style={styles.assistantBadge}>IA</Text>
+          <View pointerEvents="none" style={styles.assistantHalo} />
+          <View pointerEvents="none" style={styles.assistantCore}>
+            <MaterialIcons name="chat-bubble-outline" size={27} color={Brand.tealDark} />
+            <View style={styles.assistantRobot}>
+              <MaterialIcons name="smart-toy" size={12} color={Brand.white} />
+            </View>
+          </View>
         </Pressable>
       ) : null}
 
@@ -292,6 +311,7 @@ function AppLayout() {
       ) : null}
 
       <StatusBar style="dark" />
+      </CopilotProvider>
     </ThemeProvider>
   );
 }
@@ -306,34 +326,42 @@ const styles = StyleSheet.create({
     borderRadius: 31,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Brand.navyDark,
-    borderWidth: 3,
-    borderColor: Brand.teal,
+    backgroundColor: Brand.white,
+    borderWidth: 0,
     shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 5,
   },
-  assistantRing: {
+  assistantHalo: {
     position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: Brand.tealLight,
   },
-  assistantBadge: {
+  assistantCore: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ECFDF9',
+    borderWidth: 0,
+  },
+  assistantRobot: {
     position: 'absolute',
-    right: 5,
+    right: 3,
     bottom: 3,
-    color: Brand.navyDark,
-    fontSize: 8,
-    fontWeight: '900',
+    width: 20,
+    height: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Brand.teal,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Brand.white,
   },
   launchOverlay: {
     ...StyleSheet.absoluteFillObject,
