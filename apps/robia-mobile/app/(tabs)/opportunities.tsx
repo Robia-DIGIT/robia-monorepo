@@ -53,13 +53,15 @@ export default function OpportunitiesScreen() {
   }
   return (
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
-      <RobiaHeader compact
-        eyebrow="RECOMMANDATIONS IA"
-        title="Opportunités"
-        subtitle="Les actions les plus utiles détectées à partir de votre dernier audit."
-      />
-      <SiteSelector />
-      <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      <View style={styles.fixedHeaderContent}>
+        <RobiaHeader compact
+          eyebrow="RECOMMANDATIONS IA"
+          title="Opportunités"
+          subtitle="Les actions les plus utiles détectées à partir de votre dernier audit."
+        />
+        <SiteSelector />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} />
+      </View>
       {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
       {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
       <View style={styles.summary}>
@@ -196,6 +198,9 @@ function Meta({ label, value }: { label: string; value: string }) {
   );
 }
 const styles = StyleSheet.create({
+  fixedHeaderContent: {
+    gap: 12,
+  },
   summary: {
     padding: 16,
     borderRadius: 20,
