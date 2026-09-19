@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Activity,
   MapPin,
@@ -23,6 +24,9 @@ import {
 } from 'recharts'
 
 import { Alert, Badge, Button, Card, EmptyState, ProgressBar, SearchBar, Tabs } from '../components/ui'
+import { PageSpeedInsightsCard } from '../components/PageSpeedInsightsCard'
+import { SeoScoreV2Card } from '../components/SeoScoreV2Card'
+import { SearchConsoleSignalsCard } from '../components/SearchConsoleSignalsCard'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import {
   createWebsite,
@@ -34,11 +38,20 @@ import {
   runAudit,
   auditScore,
   auditSubscores,
+  auditPageSpeedInsights,
+  auditSeoScoreV2,
+  auditGoogleSearchConsole,
   oppImpact,
   oppPriorityLabel,
+  listCompetitors,
+  createCompetitor,
+  runCompetitor,
+  deleteCompetitor,
+  competitorScore,
   type Audit,
   type Opportunity,
   type Organization,
+  type Competitor,
 } from '../lib/api'
 
 const tabs = ["Vue d'ensemble", 'Historique', 'Recommandations', 'Concurrents']
@@ -53,7 +66,34 @@ function normalizeWebsiteUrl(value: string) {
   }
 }
 
+function competitorStatusVariant(status: string): 'teal' | 'orange' | 'blue' | 'gray' | 'red' | 'green' {
+  switch (status) {
+    case 'completed':
+      return 'teal'
+    case 'running':
+      return 'blue'
+    case 'failed':
+      return 'red'
+    default:
+      return 'gray'
+  }
+}
+
+function competitorStatusLabel(status: string): string {
+  switch (status) {
+    case 'completed':
+      return 'Analysé'
+    case 'running':
+      return 'Analyse en cours'
+    case 'failed':
+      return 'Échec'
+    default:
+      return 'En attente'
+  }
+}
+
 export default function PageAnalyse() {
+  const navigate = useNavigate()
   const [organization, setOrganization] = useState<Organization | null>(null)
   const { websites, activeWebsite, activeWebsiteId: selectedWebsiteId, setActiveWebsiteId: setSelectedWebsiteId, refreshWebsites } = useWebsiteContext()
   const [latestAudit, setLatestAudit] = useState<Audit | null>(null)
@@ -66,6 +106,11 @@ export default function PageAnalyse() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
+  const [competitors, setCompetitors] = useState<Competitor[]>([])
+  const [competitorUrl, setCompetitorUrl] = useState('')
+  const [competitorBusy, setCompetitorBusy] = useState(false)
+  const [runningCompetitorId, setRunningCompetitorId] = useState<string | null>(null)
+  const [competitorError, setCompetitorError] = useState('')
 
   const trendData = useMemo(() => {
     const source = audits.slice(0, 7).reverse()
@@ -81,6 +126,9 @@ export default function PageAnalyse() {
   const scoreLabel = summaryScore >= 75 ? 'Bon' : summaryScore >= 50 ? 'À améliorer' : 'Faible'
   const radialData = [{ name: 'Score', value: summaryScore, fill: '#14B8A6' }]
   const subscores = auditSubscores(latestAudit)
+  const pageSpeedInsights = auditPageSpeedInsights(latestAudit)
+  const seoScoreV2 = auditSeoScoreV2(latestAudit)
+  const searchConsoleSignals = auditGoogleSearchConsole(latestAudit)
 
   const filteredRecommendations = useMemo(() => {
     return opportunities
@@ -98,20 +146,23 @@ export default function PageAnalyse() {
       setOrganization(organizationData)
 
       if (selectedWebsiteId) {
-        const [auditData, auditsData] = await Promise.all([
+        const [auditData, auditsData, competitorsData] = await Promise.all([
           getLatestAudit(selectedWebsiteId),
           listAudits(selectedWebsiteId),
+          listCompetitors(selectedWebsiteId),
         ])
 
         setLatestAudit(auditData)
         setAudits(auditsData)
         setOpportunities(auditData?.id ? await listOpportunities(String(auditData.id)) : [])
         setHasAnalyzed(Boolean(auditData?.id))
+        setCompetitors(competitorsData)
       } else {
         setLatestAudit(null)
         setAudits([])
         setOpportunities([])
         setHasAnalyzed(false)
+        setCompetitors([])
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les données.')
@@ -175,6 +226,49 @@ export default function PageAnalyse() {
       setError(analyseError instanceof Error ? analyseError.message : "Impossible de lancer l'analyse.")
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handleAddCompetitor = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedWebsiteId || !competitorUrl.trim()) return
+
+    setCompetitorBusy(true)
+    setCompetitorError('')
+
+    try {
+      const created = await createCompetitor({ websiteId: selectedWebsiteId, url: competitorUrl.trim() })
+      setCompetitors((current) => [created, ...current])
+      setCompetitorUrl('')
+    } catch (createError) {
+      setCompetitorError(createError instanceof Error ? createError.message : "Impossible d'ajouter ce concurrent.")
+    } finally {
+      setCompetitorBusy(false)
+    }
+  }
+
+  const handleRunCompetitor = async (competitorId: string) => {
+    setRunningCompetitorId(competitorId)
+    setCompetitorError('')
+
+    try {
+      const updated = await runCompetitor(competitorId)
+      setCompetitors((current) => current.map((competitor) => (competitor.id === updated.id ? updated : competitor)))
+    } catch (runError) {
+      setCompetitorError(runError instanceof Error ? runError.message : "Impossible de lancer l'analyse de ce concurrent.")
+    } finally {
+      setRunningCompetitorId(null)
+    }
+  }
+
+  const handleRemoveCompetitor = async (competitorId: string) => {
+    setCompetitorError('')
+
+    try {
+      await deleteCompetitor(competitorId)
+      setCompetitors((current) => current.filter((competitor) => competitor.id !== competitorId))
+    } catch (removeError) {
+      setCompetitorError(removeError instanceof Error ? removeError.message : 'Impossible de retirer ce concurrent.')
     }
   }
 
@@ -346,7 +440,7 @@ export default function PageAnalyse() {
                   <div className="space-y-3 mt-2">
                     {subscores ? (
                       <>
-                        <ProgressBar value={subscores.local} label="Google Business (local)" showValue color="#14B8A6" />
+                        <ProgressBar value={subscores.local} label="Présence locale" showValue color="#14B8A6" />
                         <ProgressBar value={subscores.content} label="Contenu local" showValue color="#1D4ED8" />
                         <ProgressBar value={subscores.technical} label="Cohérence NAP / Technique" showValue color="#F97316" />
                         <ProgressBar value={subscores.performance} label="Performance site" showValue color="#1D4ED8" />
@@ -361,6 +455,14 @@ export default function PageAnalyse() {
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "Vue d'ensemble" && (
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <PageSpeedInsightsCard psi={pageSpeedInsights} />
+                <SeoScoreV2Card score={seoScoreV2} />
+                <SearchConsoleSignalsCard signals={searchConsoleSignals} />
               </div>
             )}
 
@@ -398,6 +500,7 @@ export default function PageAnalyse() {
                             size="sm"
                             className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity"
                             icon={<ArrowRight size={12} />}
+                            onClick={() => navigate('/opportunites')}
                           >
                             Exécuter
                           </Button>
@@ -410,11 +513,100 @@ export default function PageAnalyse() {
             )}
 
             {activeTab === 'Concurrents' && (
-              <EmptyState
-                icon={<Users size={18} />}
-                title="Comparatif concurrents"
-                description="Le module d'analyse concurrentielle est en cours d'implémentation côté backend. Cette section sera mise à jour dès que les données seront disponibles."
-              />
+              <div className="space-y-5">
+                <form onSubmit={handleAddCompetitor} className="flex flex-col gap-3 sm:flex-row">
+                  <SearchBar
+                    value={competitorUrl}
+                    onChange={(event) => setCompetitorUrl(event.target.value)}
+                    placeholder="https://site-concurrent.fr"
+                    aria-label="URL du site concurrent à ajouter"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="secondary"
+                    loading={competitorBusy}
+                    type="submit"
+                    disabled={competitorBusy || !competitorUrl.trim()}
+                    icon={<Users size={16} strokeWidth={2.5} />}
+                  >
+                    Ajouter un concurrent
+                  </Button>
+                </form>
+
+                {competitorError && <Alert variant="error" title="Erreur">{competitorError}</Alert>}
+
+                {competitors.length === 0 ? (
+                  <EmptyState
+                    icon={<Users size={18} />}
+                    title="Aucun concurrent suivi"
+                    description="Ajoutez l'URL d'un site concurrent pour comparer son score ROBIA au vôtre, calculé avec le même moteur d'audit."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between rounded-xl border border-teal/30 bg-teal-light/30 p-4">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-dark">Votre site</p>
+                        <p className="text-sm font-semibold text-navy truncate">{activeWebsite?.url ?? 'Site sélectionné'}</p>
+                      </div>
+                      <div className="shrink-0 text-[28px] font-bold tracking-tight text-navy">{summaryScore}</div>
+                    </div>
+
+                    {competitors.map((competitor) => {
+                      const score = competitorScore(competitor)
+                      const delta = score !== null ? score - summaryScore : null
+                      return (
+                        <div
+                          key={competitor.id}
+                          className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border border-border"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-dark text-sm truncate">{competitor.name || competitor.url}</div>
+                            <div className="text-xs text-muted mt-0.5 truncate">{competitor.url}</div>
+                            {competitor.status === 'failed' && competitor.errorMessage && (
+                              <div className="text-xs text-red-600 mt-1">{competitor.errorMessage}</div>
+                            )}
+                          </div>
+                          <div className="shrink-0">
+                            <Badge variant={competitorStatusVariant(competitor.status)}>
+                              {competitorStatusLabel(competitor.status)}
+                            </Badge>
+                          </div>
+                          <div className="text-right shrink-0 w-24">
+                            {score !== null ? (
+                              <>
+                                <div className="text-sm font-bold text-navy">{score}</div>
+                                {delta !== null && delta !== 0 && (
+                                  <div className={`text-[10px] ${delta > 0 ? 'text-red-600' : 'text-teal-dark'}`}>
+                                    {delta > 0 ? '+' : ''}{delta} vs vous
+                                  </div>
+                                )}
+                              </>
+                            ) : competitor.status === 'failed' ? (
+                              <div className="text-xs text-muted">Analyse indisponible</div>
+                            ) : (
+                              <div className="text-xs text-muted">—</div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              loading={runningCompetitorId === competitor.id}
+                              disabled={runningCompetitorId !== null && runningCompetitorId !== competitor.id}
+                              onClick={() => handleRunCompetitor(competitor.id)}
+                            >
+                              {competitor.status === 'completed' || competitor.status === 'failed' ? 'Relancer' : 'Analyser'}
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleRemoveCompetitor(competitor.id)}>
+                              Retirer
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )}
 
             {activeTab === 'Historique' && (

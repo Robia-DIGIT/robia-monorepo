@@ -3,6 +3,7 @@ import {
   getStoredAccessToken,
   persistAuthResponse,
 } from "./auth";
+import { describeCronHuman } from "./cron-schedule";
 
 const apiBaseUrl =
   import.meta.env.VITE_API_URL ?? "https://robia-back.vercel.app";
@@ -150,11 +151,86 @@ export interface AuditSubscores {
   ai_readiness: number;
 }
 
+// PageSpeed Insights contract — mirrors Robia-Back's app.integrations.pagespeed
+// (RC-10, PR #24, SHA 79809b0). Do not add fields here that RC-10 doesn't
+// produce: absent Google fields stay absent/null, they are never invented
+// client-side.
+export interface PageSpeedMetrics {
+  lcpMs: number | null;
+  cls: number | null;
+  /** Lab proxy for interactivity (Total Blocking Time) — not a Core Web Vital. */
+  tbtMs: number | null;
+  fcpMs: number | null;
+}
+
+export type PageSpeedStatus = "ok" | "unavailable";
+
+export interface PageSpeedInsightsResult {
+  status: PageSpeedStatus;
+  strategy: "mobile";
+  performanceScore: number | null;
+  metrics: PageSpeedMetrics;
+  fetchedAt: string;
+  analyzedUrl: string;
+  finalUrl: string | null;
+  source: string;
+  unavailableReason: string | null;
+}
+
+// Explainable SEO score V2 (RC-12, PR #25 as drafted — not yet merged, not
+// yet Codex-reviewed as of this writing). Purely additive alongside
+// global_score/subscores: renders next to the legacy score, never replaces
+// it — whether/how the displayed score migrates to v2 is an explicit,
+// separate product decision (see RC-12's PR body), not decided here.
+export interface SeoCategoryScoreV2 {
+  score: number | null;
+  weight: number | null;
+  measured: boolean;
+  findingsEvaluated: number;
+}
+
+export interface SeoScoreV2 {
+  version: string;
+  globalScore: number | null;
+  categories: Record<string, SeoCategoryScoreV2>;
+}
+
+// Search Console signals attached to an audit (RC-13, PR #28 as drafted —
+// not yet merged). A stale-but-real snapshot of whatever the dashboard's
+// "Google Data" page last synced — never a live call made during the
+// audit itself. 'unavailable' with a reason is a normal, expected value
+// (not connected / no property selected / nothing synced in 28 days),
+// never an error to surface as such.
+export type SearchConsoleAuditSignalsStatus = "ok" | "unavailable";
+
+export interface AuditSearchConsoleSignals {
+  status: SearchConsoleAuditSignalsStatus;
+  source: "search_console";
+  siteUrl: string | null;
+  period: { startDate: string; endDate: string } | null;
+  summary: Omit<SearchConsoleMetric, "key"> | null;
+  lastSyncedAt: string | null;
+  unavailableReason:
+    | "not_connected"
+    | "no_property_selected"
+    | "not_synced_recently"
+    | "temporarily_unavailable"
+    | null;
+}
+
 export interface AuditResultJson {
   summary: string;
   subscores: AuditSubscores;
   global_score: number;
   missing_data: string[];
+  // Multi-page v2 audit payload (see Robia-Back audits.service.ts `run()`).
+  site_audit?: {
+    pagespeed_insights?: PageSpeedInsightsResult | null;
+    seo_score_v2?: SeoScoreV2 | null;
+  };
+  // Top-level, not nested in site_audit — matches where RC-13 actually
+  // attaches it in audits.service.ts.
+  google_search_console?: AuditSearchConsoleSignals | null;
 }
 
 export type AuditStatus = "completed" | "pending" | "failed" | string;
@@ -175,7 +251,9 @@ export type OpportunityStatus =
   "open" | "in_progress" | "done" | "closed" | string;
 
 export interface FindingEvidence {
-  url: string;
+  // Absent on Meta-sourced opportunities (RC-19): that evidence is about
+  // an account-level signal, not a specific page.
+  url?: string;
   observed: string;
   expected: string;
 }
@@ -191,6 +269,14 @@ export interface OpportunitySourceDataV2 {
   evidence?: FindingEvidence[];
   whyItMatters?: string;
   recommendedSteps?: string[];
+  // RC-19: present only on Meta-sourced opportunities (Robia-Back's
+  // OpportunitiesService.buildMetaSourceData) — never combined with the
+  // SEO-oriented fields above on the same opportunity. scoreInfluence is
+  // always false for these; there is no code path where it is true.
+  source?: "meta" | string;
+  confidence?: "observed" | "heuristic" | string;
+  recommendation?: string;
+  scoreInfluence?: boolean;
 }
 
 export interface Opportunity {
@@ -295,6 +381,23 @@ function handleUnauthorized() {
   }
 }
 
+// Carries the HTTP status alongside the already-readable French message, so
+// a caller that needs to tell "not found" apart from any other failure
+// (e.g. an honest empty state instead of an error banner) can check
+// `error instanceof ApiError && error.status === 404` instead of matching
+// on message text. Every throw inside request() uses this — a plain
+// Error only ever comes from the network-failure path, where there is no
+// response to read a status from.
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function parseErrorMessage(response: Response, fallbackMessage: string) {
   try {
     const body = (await response.json()) as ApiErrorPayload;
@@ -359,36 +462,44 @@ async function request<T>(path: string, options: RequestOptions = {}) {
 
   if (response.status === 401) {
     handleUnauthorized();
-    throw new Error("Votre session a expiré. Veuillez vous reconnecter.");
+    throw new ApiError(
+      "Votre session a expiré. Veuillez vous reconnecter.",
+      401,
+    );
   }
 
   if (response.status === 429) {
-    throw new Error(
+    throw new ApiError(
       "Trop de requêtes ont été envoyées. Veuillez patienter avant de réessayer.",
+      429,
     );
   }
 
   if (response.status >= 500) {
-    throw new Error(
+    throw new ApiError(
       "Erreur serveur ROBIA (5xx). Notre équipe est prévenue — réessayez dans quelques minutes.",
+      response.status,
     );
   }
 
   if (response.status === 404) {
-    throw new Error(
+    throw new ApiError(
       "Ressource introuvable (404). Il est possible que cette donnée ne soit pas encore synchronisée.",
+      404,
     );
   }
 
   if (response.status === 403) {
-    throw new Error(
+    throw new ApiError(
       "Accès refusé. Vous n'avez pas les permissions nécessaires pour cette action.",
+      403,
     );
   }
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       await parseErrorMessage(response, "Une erreur est survenue."),
+      response.status,
     );
   }
 
@@ -443,6 +554,31 @@ export function auditSummary(audit: Audit | null | undefined): string {
 
 export function auditMissingData(audit: Audit | null | undefined): string[] {
   return audit?.resultJson?.missing_data ?? [];
+}
+
+export function auditPageSpeedInsights(
+  audit: Audit | null | undefined,
+): PageSpeedInsightsResult | null {
+  return audit?.resultJson?.site_audit?.pagespeed_insights ?? null;
+}
+
+export function auditSeoScoreV2(
+  audit: Audit | null | undefined,
+): SeoScoreV2 | null {
+  return audit?.resultJson?.site_audit?.seo_score_v2 ?? null;
+}
+
+export function auditGoogleSearchConsole(
+  audit: Audit | null | undefined,
+): AuditSearchConsoleSignals | null {
+  return audit?.resultJson?.google_search_console ?? null;
+}
+
+// RC-19: true only for opportunities generated from Meta signals
+// (Robia-Back's OpportunitiesService.generateMetaOpportunities) — always
+// read-only, always out of the SEO score.
+export function oppIsMeta(opp: Opportunity | null | undefined): boolean {
+  return opportunitySourceData(opp).source === "meta";
 }
 
 export function oppImpact(opp: Opportunity | null | undefined): number {
@@ -735,6 +871,65 @@ export async function getAudit(id: string) {
   return request<Audit>(`/audits/${encodeURIComponent(id)}`);
 }
 
+// RC-24: a Competitor is a benchmark of an external URL against the
+// organization's own site — not an Audit/Website of the organization's
+// own. Its score comes only from a real run of the same audit engine
+// (Robia-Back's CompetitorsService.run() → AuditRunnerService), never
+// fabricated: a pending/failed competitor has globalScore/resultJson at
+// null, never a 0 fallback.
+export type CompetitorStatus = "pending" | "running" | "completed" | "failed" | string;
+
+export interface Competitor {
+  id: string;
+  organizationId: string;
+  websiteId: string;
+  url: string;
+  name: string | null;
+  status: CompetitorStatus;
+  globalScore: number | null;
+  resultJson: AuditResultJson | null;
+  errorMessage: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export async function listCompetitors(websiteId: string) {
+  return request<Competitor[]>("/competitors", {
+    query: { website_id: websiteId },
+  });
+}
+
+export async function createCompetitor(payload: {
+  websiteId: string;
+  url: string;
+  name?: string;
+}) {
+  return request<Competitor>("/competitors", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function runCompetitor(id: string) {
+  return request<Competitor>(`/competitors/${encodeURIComponent(id)}/run`, {
+    method: "POST",
+  });
+}
+
+export async function deleteCompetitor(id: string) {
+  return request<{ deleted: boolean }>(
+    `/competitors/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function competitorScore(competitor: Competitor): number | null {
+  if (competitor.globalScore !== null) return competitor.globalScore;
+  const fromResult = competitor.resultJson?.global_score;
+  return typeof fromResult === "number" ? fromResult : null;
+}
+
 export async function generateOpportunities(payload: { auditId: string }) {
   return request<Opportunity[]>("/opportunities/generate", {
     method: "POST",
@@ -870,4 +1065,1029 @@ export function createBillingPortalSession(): Promise<{ url: string }> {
   return request<{ url: string }>("/billing/portal-session", {
     method: "POST",
   });
+}
+
+// ---------------------------------------------------------------------
+// RC-20 — Ops Automation Core
+// ---------------------------------------------------------------------
+
+export type AutomationTriggerType = "manual" | "scheduled" | "event";
+
+export interface AutomationTrigger {
+  id: string;
+  automationId: string;
+  type: AutomationTriggerType;
+  cronExpression: string | null;
+  // RC-25 hardening: non-null only for type === "scheduled" (UTC by
+  // default), always null for "event"/"manual" — see the backend's
+  // AutomationsService.resolveTriggerTimezone() for the persisted
+  // invariant. Never inferred from anything else on the frontend either.
+  timezone: string | null;
+  eventType: string | null;
+  config: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ConditionOperator =
+  | "eq"
+  | "ne"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "in"
+  | "notIn"
+  | "exists"
+  | "notExists";
+
+export interface ConditionLeaf {
+  field: string;
+  operator: ConditionOperator;
+  value?: string | number | boolean | Array<string | number>;
+}
+
+export interface ConditionGroup {
+  all?: ConditionNode[];
+  any?: ConditionNode[];
+  not?: ConditionNode;
+}
+
+export type ConditionNode = ConditionLeaf | ConditionGroup;
+
+export interface AutomationStep {
+  actionType: string;
+  input?: Record<string, unknown>;
+}
+
+export interface Automation {
+  id: string;
+  organizationId: string;
+  scope: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  conditions: ConditionNode | null;
+  steps: AutomationStep[];
+  requiresApproval: boolean;
+  createdById: string;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  trigger: AutomationTrigger;
+}
+
+export type AutomationRunStatus =
+  | "queued"
+  | "running"
+  | "waiting_approval"
+  | "succeeded"
+  | "failed"
+  | "cancelled"
+  | "skipped";
+
+export type AutomationStepRunStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "skipped"
+  | "cancelled"
+  // RC-27 (backend) — a transient step failure with retries remaining. The
+  // parent AutomationRun stays "running" while a step sits here; it only
+  // reaches "failed" once this step's own retry budget is exhausted.
+  | "retry_scheduled";
+
+export interface AutomationStepRun {
+  id: string;
+  runId: string;
+  sequence: number;
+  actionType: string;
+  input: Record<string, unknown> | null;
+  status: AutomationStepRunStatus;
+  evidence: Record<string, unknown> | null;
+  error: string | null;
+  // RC-27 (backend) — how many attempts this step has made so far (the
+  // initial attempt counts as 1) and, only while status is
+  // "retry_scheduled", when the next one is due. nextAttemptAt is null once
+  // a step is no longer waiting on a retry.
+  attemptCount: number;
+  nextAttemptAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+}
+
+export interface AutomationRun {
+  id: string;
+  organizationId: string;
+  automationId: string;
+  status: AutomationRunStatus;
+  triggerType: AutomationTriggerType;
+  sourceEventId: string | null;
+  dedupKey: string;
+  triggeredById: string | null;
+  requiresApproval: boolean;
+  approvalStatus: "pending" | "approved" | "rejected" | null;
+  approvedById: string | null;
+  approvalReason: string | null;
+  approvedAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  context: Record<string, unknown> | null;
+  // Immutable snapshot of the steps (action + canonical/allowlisted input)
+  // taken at trigger time — this is what executeSteps() actually runs, not
+  // the automation's current (possibly since-edited) steps. Shown before
+  // approval so the approver sees exactly what will execute.
+  plannedSteps?: AutomationStep[] | null;
+  createdAt: string;
+  steps?: AutomationStepRun[];
+}
+
+export interface CreateAutomationPayload {
+  name: string;
+  description?: string;
+  scope?: "ORGANIZATION" | "ROBIA_INTERNAL" | "PROGRAM" | "COHORT";
+  trigger: {
+    type: AutomationTriggerType;
+    cronExpression?: string;
+    // Only ever sent for type === "scheduled" — the backend's own
+    // validateTrigger() rejects a timezone on an "event"/"manual" trigger,
+    // so this must stay undefined (never an empty string) for those.
+    timezone?: string;
+    eventType?: string;
+  };
+  conditions?: ConditionNode;
+  steps: AutomationStep[];
+  requiresApproval?: boolean;
+  enabled?: boolean;
+}
+
+export type UpdateAutomationPayload = Partial<CreateAutomationPayload>;
+
+// RC-20: the exact allowlist ops-actions-registry.service.ts enforces on
+// the backend — kept here only for the form's dropdown, never trusted as
+// the source of truth (the backend re-validates every actionType).
+export const AUTOMATION_ACTION_TYPES: Array<{
+  type: string;
+  label: string;
+}> = [
+  {
+    type: "robia.audit.run_diagnostic",
+    label: "Lancer un diagnostic (audit) sur un site",
+  },
+  {
+    type: "robia.opportunities.regenerate",
+    label: "Générer/compléter les opportunités pour un audit",
+  },
+  {
+    type: "robia.report.prepare_organization_summary",
+    label: "Préparer un résumé de l'organisation (lecture seule)",
+  },
+  {
+    type: "robia.action_items.create_internal_task",
+    label: "Créer une tâche ROBIA interne (brouillon)",
+  },
+  {
+    type: "robia.notification.send_email",
+    label: "Préparer un email à partir d’un modèle ROBIA",
+  },
+  {
+    type: "robia.odc.prepare_application_summary",
+    label: "ODC — préparer un résumé de dossier (brouillon)",
+  },
+  {
+    type: "robia.odc.flag_missing_documents",
+    label: "ODC — recalculer les pièces manquantes",
+  },
+  {
+    type: "robia.odc.create_review_task",
+    label: "ODC — créer une tâche de revue (brouillon)",
+  },
+];
+
+// This describes the APPROVAL mode only — never the trigger/execution mode.
+// "Automatique" would wrongly conflate the two: a manual-trigger automation
+// with requiresApproval=false still needs a human to click "run", and an
+// event-trigger one isn't actually autonomous either since RC20 wires up no
+// automatic event emission yet. automationTriggerLabel() below is the only
+// place that describes Manuel/Événement/Planifié — keep these separate.
+export function automationModeLabel(automation: Automation): {
+  label: string;
+  variant: "teal" | "orange";
+} {
+  return automation.requiresApproval
+    ? { label: "Validation requise", variant: "orange" }
+    : { label: "Sans validation", variant: "teal" };
+}
+
+export function automationTriggerLabel(trigger: AutomationTrigger): string {
+  if (trigger.type === "manual") return "Manuel";
+  if (trigger.type === "scheduled")
+    return `Planifié — ${describeCronHuman(trigger.cronExpression)}`;
+  return `Événement${trigger.eventType ? ` : ${trigger.eventType}` : ""}`;
+}
+
+export function runStatusLabel(status: AutomationRunStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue";
+} {
+  switch (status) {
+    case "succeeded":
+      return { label: "Succès", variant: "teal" };
+    case "failed":
+      return { label: "Échec", variant: "red" };
+    case "waiting_approval":
+      return { label: "Validation requise", variant: "orange" };
+    case "running":
+      return { label: "En cours", variant: "blue" };
+    case "queued":
+      return { label: "En file", variant: "gray" };
+    case "cancelled":
+      return { label: "Rejeté", variant: "gray" };
+    case "skipped":
+      return { label: "Ignoré", variant: "gray" };
+    default:
+      return { label: status, variant: "gray" };
+  }
+}
+
+export function stepStatusLabel(status: AutomationStepRunStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue";
+} {
+  switch (status) {
+    case "succeeded":
+      return { label: "Succès", variant: "teal" };
+    case "failed":
+      return { label: "Échec", variant: "red" };
+    case "running":
+      return { label: "En cours", variant: "blue" };
+    case "queued":
+      return { label: "En file", variant: "gray" };
+    case "skipped":
+      return { label: "Ignoré", variant: "gray" };
+    case "cancelled":
+      return { label: "Annulé", variant: "gray" };
+    case "retry_scheduled":
+      return { label: "Nouvelle tentative programmée", variant: "orange" };
+    default:
+      return { label: status, variant: "gray" };
+  }
+}
+
+export async function listAutomations() {
+  return request<Automation[]>("/ops/automations");
+}
+
+// ---------------------------------------------------------------------
+// RC-26 — Notification delivery follow-up
+// ---------------------------------------------------------------------
+
+export type NotificationDeliveryStatus =
+  | "pending"
+  | "processing"
+  | "sent"
+  | "retry_scheduled"
+  | "dead_letter";
+
+export interface NotificationDelivery {
+  id: string;
+  channel: string;
+  templateKey: string;
+  status: NotificationDeliveryStatus;
+  attemptCount: number;
+  nextAttemptAt: string;
+  recipientMasked: string;
+  providerMessageId: string | null;
+  lastError: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function notificationStatusLabel(status: NotificationDeliveryStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue";
+} {
+  switch (status) {
+    case "pending":
+      return { label: "En attente", variant: "gray" };
+    case "processing":
+      return { label: "En cours d’envoi", variant: "blue" };
+    case "sent":
+      return { label: "Accepté par le serveur email", variant: "teal" };
+    case "retry_scheduled":
+      return { label: "Nouvelle tentative planifiée", variant: "orange" };
+    case "dead_letter":
+      return { label: "Échec définitif", variant: "red" };
+  }
+}
+
+export function notificationTemplateLabel(templateKey: string): string {
+  switch (templateKey) {
+    case "audit_completed":
+      return "Audit terminé";
+    case "automation_failed":
+      return "Automatisation en échec";
+    case "weekly_opportunities_summary":
+      return "Résumé hebdomadaire des opportunités";
+    default:
+      return templateKey;
+  }
+}
+
+export async function listNotificationDeliveries() {
+  return request<NotificationDelivery[]>("/ops/notifications");
+}
+
+export async function getNotificationDelivery(id: string) {
+  return request<NotificationDelivery>(
+    `/ops/notifications/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function retryNotificationDelivery(id: string) {
+  return request<NotificationDelivery>(
+    `/ops/notifications/${encodeURIComponent(id)}/retry`,
+    { method: "POST" },
+  );
+}
+
+export async function getAutomation(id: string) {
+  return request<Automation>(`/ops/automations/${encodeURIComponent(id)}`);
+}
+
+export async function createAutomation(payload: CreateAutomationPayload) {
+  return request<Automation>("/ops/automations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAutomation(
+  id: string,
+  payload: UpdateAutomationPayload,
+) {
+  return request<Automation>(`/ops/automations/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function setAutomationEnabled(id: string, enabled: boolean) {
+  return request<Automation>(
+    `/ops/automations/${encodeURIComponent(id)}/enabled`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    },
+  );
+}
+
+export async function triggerAutomation(id: string) {
+  return request<AutomationRun>(
+    `/ops/automations/${encodeURIComponent(id)}/run`,
+    { method: "POST" },
+  );
+}
+
+export async function listAutomationRuns(id: string) {
+  return request<AutomationRun[]>(
+    `/ops/automations/${encodeURIComponent(id)}/runs`,
+  );
+}
+
+export async function getAutomationRun(runId: string) {
+  return request<AutomationRun>(
+    `/ops/automations/runs/${encodeURIComponent(runId)}`,
+  );
+}
+
+export async function approveAutomationRun(runId: string, reason?: string) {
+  return request<AutomationRun>(
+    `/ops/automations/runs/${encodeURIComponent(runId)}/approve`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
+
+export async function rejectAutomationRun(runId: string, reason?: string) {
+  return request<AutomationRun>(
+    `/ops/automations/runs/${encodeURIComponent(runId)}/reject`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
+
+// ---------------------------------------------------------------------
+// RC-21 — Unified Intelligence Core (contracts consumed by RC-22's
+// Command Center). Strictly mirrors Robia-Back's
+// src/intelligence/intelligence.types.ts — do not add fields here that
+// the backend doesn't produce, and never widen a status/reason union
+// with a client-invented value.
+// ---------------------------------------------------------------------
+
+export type IntelligenceProvider =
+  | "seo"
+  | "pagespeed"
+  | "search_console"
+  | "ga4"
+  | "meta"
+  | "gbp"
+  | "ops";
+
+export type IntelligenceProviderStatus =
+  | "ok"
+  | "partial"
+  | "unavailable"
+  | "not_connected"
+  | "not_configured";
+
+// `data` is `null` whenever `status` is not `ok`/`partial` — RC-21's own
+// contract — so this is never coerced into a zero-shaped object here.
+export interface IntelligenceSignal<T = unknown> {
+  provider: IntelligenceProvider;
+  status: IntelligenceProviderStatus;
+  organizationId: string;
+  observedAt: string | null;
+  readOnly: boolean;
+  scoreInfluence: boolean;
+  data: T | null;
+  unavailableReason: string | null;
+}
+
+export interface IntelligenceFinding {
+  provider: IntelligenceProvider;
+  ruleCode: string;
+  title: string;
+  description: string;
+  category: string;
+  evidence: unknown[];
+  recommendation: string | string[];
+  impactScore: number;
+  effortScore: number;
+  confidenceScore: number;
+  // Optional (RC-19's MetaFinding.confidence) — only present for
+  // providers/findings that distinguish a directly-observed fact from a
+  // documented threshold. Never defaulted when absent. Kept as an exact
+  // union (no `| string` widening, Codex review): an unrecognized value
+  // must never be silently rendered as "constat observé".
+  confidence?: "observed" | "heuristic";
+  scoreInfluence: boolean;
+}
+
+export async function getIntelligenceStatus() {
+  return request<IntelligenceSignal[]>("/intelligence/status");
+}
+
+export async function getIntelligenceFindings(auditId: string) {
+  return request<IntelligenceFinding[]>("/intelligence/findings", {
+    query: { auditId },
+  });
+}
+
+// Canonical display order for the provider status grid — 'ops' is
+// intentionally absent: RC-21 registers no 'ops' adapter, so the backend
+// never returns it, and the Command Center must never fabricate a card
+// for a provider it did not actually receive (see intelligenceCards()).
+export const INTELLIGENCE_PROVIDER_ORDER: IntelligenceProvider[] = [
+  "seo",
+  "pagespeed",
+  "search_console",
+  "ga4",
+  "meta",
+  "gbp",
+];
+
+export const INTELLIGENCE_PROVIDER_LABELS: Record<IntelligenceProvider, string> = {
+  seo: "SEO",
+  pagespeed: "PageSpeed",
+  search_console: "Search Console",
+  ga4: "Google Analytics 4",
+  meta: "Meta",
+  gbp: "Google Business Profile",
+  ops: "Automatisations",
+};
+
+// Orders whatever the backend actually returned by the canonical display
+// order above, appending any unlisted provider (e.g. a future 'ops'
+// signal) at the end rather than dropping it — purely a sort, never a
+// filter: a provider absent from `signals` never gets a synthesized card.
+export function orderIntelligenceSignals(
+  signals: IntelligenceSignal[],
+): IntelligenceSignal[] {
+  const rank = (provider: IntelligenceProvider) => {
+    const index = INTELLIGENCE_PROVIDER_ORDER.indexOf(provider);
+    return index === -1 ? INTELLIGENCE_PROVIDER_ORDER.length : index;
+  };
+  return [...signals].sort((a, b) => rank(a.provider) - rank(b.provider));
+}
+
+export function intelligenceStatusLabel(status: IntelligenceProviderStatus): {
+  label: string;
+  badge: "teal" | "blue" | "gray" | "orange" | "red";
+} {
+  switch (status) {
+    case "ok":
+      return { label: "Disponible", badge: "teal" };
+    case "partial":
+      return { label: "Partiel", badge: "blue" };
+    case "not_connected":
+      return { label: "Non connecté", badge: "gray" };
+    case "not_configured":
+      return { label: "Configuration requise", badge: "orange" };
+    case "unavailable":
+      return { label: "Temporairement indisponible", badge: "red" };
+    default:
+      return { label: status, badge: "gray" };
+  }
+}
+
+const INTELLIGENCE_REASON_LABELS: Record<string, string> = {
+  not_connected: "non connecté",
+  not_configured: "configuration requise",
+  no_property_selected: "aucune propriété sélectionnée",
+  analytics_scope_not_granted: "autorisation Google Analytics non accordée",
+  temporarily_unavailable: "temporairement indisponible",
+  no_audit: "aucun audit disponible pour cette organisation",
+  no_pagespeed_data: "aucune donnée PageSpeed disponible sur ce audit",
+  legacy_audit_result: "cet audit précède le score SEO v2",
+  unavailable: "indisponible",
+};
+
+// Reason codes are a closed, backend-owned enum (never a raw error
+// message or stack trace), so surfacing them is safe — this only turns
+// the snake_case code into a readable French phrase, it never invents
+// detail the backend didn't provide.
+export function intelligenceReasonLabel(reason: string | null): string {
+  if (!reason) return "raison non précisée";
+  return INTELLIGENCE_REASON_LABELS[reason] ?? reason.replace(/_/g, " ");
+}
+
+// Where the Command Center sends the user to act on a provider that
+// needs configuration — null means "no configuration surface exists yet"
+// (SEO/PageSpeed derive from an audit, not a connection; GBP has no real
+// backend integration in RC-21, so it must never offer a CTA at all).
+export function intelligenceConfigureRoute(
+  provider: IntelligenceProvider,
+): string | null {
+  if (provider === "search_console" || provider === "ga4") return "/google-data";
+  if (provider === "meta") return "/meta-data";
+  return null;
+}
+
+// ---------------------------------------------------------------------
+// RC-29b — ODC candidatures (mirrors Robia-Back src/odc)
+// ---------------------------------------------------------------------
+
+export type OdcProgramStatus = "draft" | "open" | "closed" | "archived";
+
+export type OdcApplicationStatus =
+  | "draft"
+  | "submitted"
+  | "screening"
+  | "incomplete"
+  | "in_review"
+  | "waitlisted"
+  | "accepted"
+  | "rejected"
+  | "withdrawn";
+
+export type OdcDecision = "accepted" | "rejected" | "waitlisted";
+
+export interface OdcField {
+  id: string;
+  key: string;
+  label: string;
+  required: boolean;
+  fieldType: string;
+  options: unknown;
+  sortOrder: number;
+}
+
+export interface OdcCriterion {
+  id: string;
+  key: string;
+  label: string;
+  description: string | null;
+  weight: number;
+  maxPoints: number;
+  required: boolean;
+  sortOrder: number;
+}
+
+export interface OdcDocumentType {
+  id: string;
+  key: string;
+  label: string;
+  required: boolean;
+  mimeAllow: string[];
+}
+
+export interface OdcProgram {
+  id: string;
+  organizationId: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  status: OdcProgramStatus;
+  opensAt: string | null;
+  closesAt: string | null;
+  requireDualReview: boolean;
+  decisionThreshold: number | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  fields: OdcField[];
+  criteria: OdcCriterion[];
+  docTypes: OdcDocumentType[];
+}
+
+export interface OdcApplicant {
+  id: string;
+  organizationId: string;
+  displayName: string;
+  email: string | null;
+  phone: string | null;
+  userId: string | null;
+  createdAt: string;
+}
+
+export interface OdcDocument {
+  id: string;
+  organizationId: string;
+  applicationId: string;
+  documentTypeId: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  storageKey: string | null;
+  status: "pending_upload" | "received" | "rejected";
+  createdAt: string;
+}
+
+export interface OdcScoreLine {
+  id: string;
+  organizationId: string;
+  applicationId: string;
+  criterionId: string;
+  proposedPoints: number | null;
+  proposedBy: string;
+  finalPoints: number | null;
+  rationale: string | null;
+}
+
+export interface OdcHistoryEvent {
+  id: string;
+  organizationId: string;
+  applicationId: string;
+  actorUserId: string | null;
+  eventType: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  payload: unknown;
+  createdAt: string;
+}
+
+export interface OdcApplication {
+  id: string;
+  organizationId: string;
+  programId: string;
+  applicantId: string;
+  status: OdcApplicationStatus;
+  answers: Record<string, unknown>;
+  proposedTotal: number | null;
+  finalTotal: number | null;
+  summaryDraft: string | null;
+  missing: string[] | null;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  decidedById: string | null;
+  decisionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  applicant?: OdcApplicant;
+  documents?: OdcDocument[];
+  scoreLines?: OdcScoreLine[];
+  events?: OdcHistoryEvent[];
+  program?: OdcProgram;
+}
+
+export function odcProgramStatusLabel(status: OdcProgramStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "blue";
+} {
+  switch (status) {
+    case "draft":
+      return { label: "Brouillon", variant: "gray" };
+    case "open":
+      return { label: "Ouvert", variant: "teal" };
+    case "closed":
+      return { label: "Fermé", variant: "blue" };
+    case "archived":
+      return { label: "Archivé", variant: "gray" };
+  }
+}
+
+export function odcApplicationStatusLabel(status: OdcApplicationStatus): {
+  label: string;
+  variant: "teal" | "orange" | "gray" | "red" | "blue" | "green";
+} {
+  switch (status) {
+    case "draft":
+      return { label: "Brouillon", variant: "gray" };
+    case "submitted":
+      return { label: "Déposée", variant: "blue" };
+    case "screening":
+      return { label: "Contrôle", variant: "blue" };
+    case "incomplete":
+      return { label: "Incomplète", variant: "orange" };
+    case "in_review":
+      return { label: "En revue", variant: "teal" };
+    case "waitlisted":
+      return { label: "Liste d'attente", variant: "orange" };
+    case "accepted":
+      return { label: "Acceptée", variant: "green" };
+    case "rejected":
+      return { label: "Refusée", variant: "red" };
+    case "withdrawn":
+      return { label: "Retirée", variant: "gray" };
+  }
+}
+
+export function formatOdcScore(total: number | null): string {
+  if (total === null || total === undefined) return "Non figé";
+  return String(total);
+}
+
+export async function listOdcPrograms() {
+  return request<OdcProgram[]>("/odc/programs");
+}
+
+export async function getOdcProgram(id: string) {
+  return request<OdcProgram>(`/odc/programs/${encodeURIComponent(id)}`);
+}
+
+export async function openOdcProgram(id: string) {
+  return request<OdcProgram>(`/odc/programs/${encodeURIComponent(id)}/open`, {
+    method: "POST",
+  });
+}
+
+export async function closeOdcProgram(id: string) {
+  return request<OdcProgram>(`/odc/programs/${encodeURIComponent(id)}/close`, {
+    method: "POST",
+  });
+}
+
+export type CreateOdcProgramPayload = {
+  slug: string;
+  name: string;
+  description?: string;
+  opensAt?: string;
+  closesAt?: string;
+  requireDualReview?: boolean;
+  decisionThreshold?: number;
+  fields?: Array<{
+    key: string;
+    label: string;
+    required?: boolean;
+    fieldType: "text" | "longtext" | "number" | "date" | "select";
+    options?: unknown;
+    sortOrder?: number;
+  }>;
+  criteria?: Array<{
+    key: string;
+    label: string;
+    description?: string;
+    weight?: number;
+    maxPoints?: number;
+    required?: boolean;
+    sortOrder?: number;
+  }>;
+  docTypes?: Array<{
+    key: string;
+    label: string;
+    required?: boolean;
+    mimeAllow?: string[];
+  }>;
+};
+
+export async function createOdcProgram(payload: CreateOdcProgramPayload) {
+  return request<OdcProgram>("/odc/programs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createOdcApplicant(payload: {
+  displayName: string;
+  email?: string;
+  phone?: string;
+}) {
+  return request<OdcApplicant>("/odc/applicants", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createOdcApplication(
+  programId: string,
+  payload: { applicantId: string },
+) {
+  return request<OdcApplication>(
+    `/odc/programs/${encodeURIComponent(programId)}/applications`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateOdcApplicationAnswers(
+  applicationId: string,
+  answers: Record<string, unknown>,
+) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+    },
+  );
+}
+
+export async function addOdcDocument(
+  applicationId: string,
+  payload: {
+    documentTypeId: string;
+    originalName: string;
+    mimeType: string;
+    sizeBytes: number;
+    storageKey?: string;
+  },
+) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}/documents`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function submitOdcApplication(applicationId: string) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}/submit`,
+    { method: "POST" },
+  );
+}
+
+export async function listOdcApplications(programId: string) {
+  return request<OdcApplication[]>(
+    `/odc/programs/${encodeURIComponent(programId)}/applications`,
+  );
+}
+
+export async function getOdcApplication(id: string) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function getOdcApplicationHistory(id: string) {
+  return request<OdcHistoryEvent[]>(
+    `/odc/applications/${encodeURIComponent(id)}/history`,
+  );
+}
+
+export async function decideOdcApplication(
+  id: string,
+  payload: { decision: OdcDecision; decisionReason: string },
+) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(id)}/decide`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function withdrawOdcApplication(id: string, reason: string) {
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(id)}/withdraw`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
+
+// RC-33b — real upload. No Content-Type header here on purpose: the browser
+// sets the correct multipart boundary itself for a FormData body. `file`
+// only ever carries `documentTypeId` + the file itself — never a
+// storageKey, which the backend's own DTO doesn't even accept.
+export async function uploadOdcDocument(
+  applicationId: string,
+  documentTypeId: string,
+  file: File,
+) {
+  const formData = new FormData();
+  formData.append("documentTypeId", documentTypeId);
+  formData.append("file", file);
+  return request<OdcApplication>(
+    `/odc/applications/${encodeURIComponent(applicationId)}/documents/upload`,
+    { method: "POST", body: formData },
+  );
+}
+
+// Returns null on a 404 (never throws for it) so a caller can render an
+// honest empty state — e.g. RC-32's demo seed documents are 'received' in
+// the database but were never backed by a real file — instead of a generic
+// error banner. Any other failure still throws.
+export async function downloadOdcDocumentFile(
+  documentId: string,
+): Promise<Blob | null> {
+  try {
+    return await request<Blob>(
+      `/odc/documents/${encodeURIComponent(documentId)}/file`,
+      { responseType: "blob" },
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export type OdcOutreachStatus = "queued" | "sent" | "failed" | "skipped";
+
+export interface OdcOutreach {
+  id: string;
+  programId: string;
+  applicationId: string;
+  sortOrder: number;
+  status: OdcOutreachStatus | string;
+  templateKey: string;
+  applicantName: string;
+  recipientMasked: string;
+  sentAt: string | null;
+  lastError: string | null;
+  isNext: boolean;
+}
+
+export async function listOdcOutreach(programId: string) {
+  return request<OdcOutreach[]>(
+    `/odc/programs/${encodeURIComponent(programId)}/outreach`,
+  );
+}
+
+export async function queueOdcOutreach(
+  programId: string,
+  applicationIds: string[],
+) {
+  return request<OdcOutreach[]>(
+    `/odc/programs/${encodeURIComponent(programId)}/outreach`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicationIds }),
+    },
+  );
+}
+
+export async function sendOdcOutreach(id: string) {
+  return request<OdcOutreach>(
+    `/odc/outreach/${encodeURIComponent(id)}/send`,
+    { method: "POST" },
+  );
+}
+
+export async function skipOdcOutreach(id: string) {
+  return request<OdcOutreach>(
+    `/odc/outreach/${encodeURIComponent(id)}/skip`,
+    { method: "POST" },
+  );
 }

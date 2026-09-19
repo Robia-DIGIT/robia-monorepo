@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Filter, Clock, MapPin, Radar, Zap } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock, Filter, Lock, MapPin, Radar, Share2, Zap } from 'lucide-react'
 
 import { Button, Card, Badge, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import {
+  generateActions,
   generateOpportunities,
   getCurrentOrganization,
   getLatestAudit,
@@ -14,6 +15,7 @@ import {
   oppImpact,
   oppEffort,
   oppIsDone,
+  oppIsMeta,
   oppPriority,
   oppPriorityScore,
   opportunitySourceData,
@@ -26,7 +28,47 @@ function ImpactMeter({ value }: { value: number }) {
   const color = normalized >= 8 ? '#F97316' : normalized >= 6 ? '#14B8A6' : '#94A3B8'
   return <div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border-light"><div className="h-full rounded-full" style={{ width: `${normalized * 10}%`, backgroundColor: color }} /></div><span className="text-xs font-bold tabular-nums" style={{ color }}>{normalized}/10</span></div>
 }
-function OppCard({ opp, onTransition }: { opp: Opportunity; onTransition: (id: string) => void }) {
+function MetaOppCard({ opp, onCreateAction, onTransition }: { opp: Opportunity; onCreateAction: (id: string) => void; onTransition: (id: string) => void }) {
+  const source = opportunitySourceData(opp)
+  const evidence = source.evidence ?? []
+  const done = oppIsDone(opp)
+  const inProgress = opp.status.toLowerCase().includes('progress')
+  const notStarted = !done && !inProgress
+  const buttonLabel = done ? 'Réouvrir' : inProgress ? 'Marquer comme résolue' : 'Créer une action ROBIA (brouillon)'
+  const isHeuristic = source.confidence === 'heuristic'
+  return (
+    <article className={`group border-l-2 px-4 py-4 transition-colors ${done ? 'border-teal bg-teal-light/25' : 'border-orange/60 hover:bg-orange-light/10'}`}>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <Badge variant="orange"><Share2 size={11} className="mr-1 inline" />Meta</Badge>
+        <Badge variant="gray"><Lock size={10} className="mr-1 inline" />Lecture seule</Badge>
+        <Badge variant="gray">Hors score SEO</Badge>
+        {done && <CheckCircle2 size={18} className="shrink-0 text-teal" />}
+      </div>
+      <h3 className="mb-1 text-sm font-semibold text-dark">{opp.title ?? 'Opportunité sans titre'}</h3>
+      <p className="mb-3 text-xs leading-relaxed text-muted">{opp.description ?? 'Détail fourni par le backend.'}</p>
+      {evidence.length > 0 && (
+        <div className="mb-3 rounded-lg bg-slate-bg px-3 py-2 text-xs text-dark">
+          <p><span className="font-semibold">Constat observé :</span> {evidence[0].observed}</p>
+          <p className="mt-1"><span className="font-semibold">Attendu :</span> {evidence[0].expected}</p>
+        </div>
+      )}
+      {source.recommendation && (
+        <p className="mb-3 text-xs leading-relaxed text-dark">
+          <span className="font-semibold">Recommandation ROBIA :</span> {source.recommendation}
+        </p>
+      )}
+      <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-muted">
+        {isHeuristic ? 'Confiance : heuristique (seuil configurable, pas une vérité métier)' : 'Confiance : constat observé'}
+      </p>
+      <Button variant={done ? 'outline' : 'primary'} size="sm" className="w-full" onClick={() => (notStarted ? onCreateAction(String(opp.id)) : onTransition(String(opp.id)))} icon={notStarted ? <ArrowRight size={12} /> : undefined}>{buttonLabel}</Button>
+    </article>
+  )
+}
+
+function OppCard({ opp, onTransition, onCreateMetaAction }: { opp: Opportunity; onTransition: (id: string) => void; onCreateMetaAction: (id: string) => void }) {
+  if (oppIsMeta(opp)) {
+    return <MetaOppCard opp={opp} onCreateAction={onCreateMetaAction} onTransition={onTransition} />
+  }
   const impact = oppImpact(opp)
   const priority = oppPriority(opp)
   const priorityScore = oppPriorityScore(opp)
@@ -47,9 +89,12 @@ function OppCard({ opp, onTransition }: { opp: Opportunity; onTransition: (id: s
     </article>
   )
 }
-function OppColumn({ title, opps, onTransition }: { title: string; opps: Opportunity[]; onTransition: (id: string) => void }) {
+function OppColumn({ title, opps, onTransition, onCreateMetaAction }: { title: string; opps: Opportunity[]; onTransition: (id: string) => void; onCreateMetaAction: (id: string) => void }) {
   const averagePriority = opps.length > 0 ? Math.round(opps.reduce((sum, opp) => sum + oppPriorityScore(opp), 0) / opps.length) : 0
-  return <section className="border-t border-border pt-5"><div className="mb-5 flex items-center justify-between"><div><h2 className="font-semibold text-dark">{title}</h2><p className="mt-0.5 text-xs text-muted">{opps.length} opportunité(s) · Impact SEO moyen {opps.length > 0 ? (opps.reduce((sum, opp) => sum + oppImpact(opp), 0) / opps.length).toFixed(1) : '0'}/10</p></div><div className="text-right"><p className="text-2xl font-bold text-dark">{averagePriority}<span className="text-sm font-normal text-muted">/100</span></p><p className="text-[10px] uppercase tracking-wide text-muted">priorité</p></div></div><div className="flex-1 space-y-3">{opps.length === 0 ? <EmptyState icon={<Zap size={18} />} title="Aucune opportunité" description="Lancez une génération depuis un audit pour obtenir des actions à traiter." /> : opps.map((opp) => <OppCard key={String(opp.id)} opp={opp} onTransition={onTransition} />)}</div></section>
+  // RC-19 (Codex review): a column can hold Meta-sourced opportunities
+  // (scoreInfluence: false) alongside SEO ones — never label this average
+  // "Impact SEO", which would misrepresent Meta's impact as an SEO impact.
+  return <section className="border-t border-border pt-5"><div className="mb-5 flex items-center justify-between"><div><h2 className="font-semibold text-dark">{title}</h2><p className="mt-0.5 text-xs text-muted">{opps.length} opportunité(s) · Impact moyen {opps.length > 0 ? (opps.reduce((sum, opp) => sum + oppImpact(opp), 0) / opps.length).toFixed(1) : '0'}/10</p></div><div className="text-right"><p className="text-2xl font-bold text-dark">{averagePriority}<span className="text-sm font-normal text-muted">/100</span></p><p className="text-[10px] uppercase tracking-wide text-muted">priorité</p></div></div><div className="flex-1 space-y-3">{opps.length === 0 ? <EmptyState icon={<Zap size={18} />} title="Aucune opportunité" description="Lancez une génération depuis un audit pour obtenir des actions à traiter." /> : opps.map((opp) => <OppCard key={String(opp.id)} opp={opp} onTransition={onTransition} onCreateMetaAction={onCreateMetaAction} />)}</div></section>
 }
 export default function PageOpportunites() {
   const navigate = useNavigate()
@@ -65,7 +110,12 @@ export default function PageOpportunites() {
   const doneOpps = useMemo(() => opportunities.filter((opp) => oppIsDone(opp)), [opportunities])
   const averagePriority = useMemo(() => activeOpps.length > 0 ? Math.round(activeOpps.reduce((sum, opp) => sum + oppPriorityScore(opp), 0) / activeOpps.length) : 0, [activeOpps])
   const highPriorityCount = useMemo(() => activeOpps.filter((opp) => ['Critique', 'Haute'].includes(oppPriority(opp).label)).length, [activeOpps])
-  const topOpportunity = useMemo(() => activeOpps.slice().sort((left, right) => oppPriorityScore(right) - oppPriorityScore(left))[0] ?? null, [activeOpps])
+  // RC-19 (Codex review): the "Meilleure prochaine action" hero card below
+  // has no Meta badges ("Lecture seule" / "Hors score SEO") and its CTA
+  // ("Prendre en charge") doesn't create a draft ROBIA action the way
+  // MetaOppCard's dedicated CTA does — so a Meta finding must never be
+  // featured there, only among genuine SEO opportunities.
+  const topOpportunity = useMemo(() => activeOpps.filter((opp) => !oppIsMeta(opp)).slice().sort((left, right) => oppPriorityScore(right) - oppPriorityScore(left))[0] ?? null, [activeOpps])
 
   const categorized = useMemo(() => {
     const groups = new Map<string, Opportunity[]>()
@@ -148,12 +198,36 @@ export default function PageOpportunites() {
     }
   }
 
+  // RC-19 (Codex review): "Créer une action ROBIA (brouillon)" must actually
+  // create a draft RC-14 ActionItem (approvalStatus: 'draft', executionStatus:
+  // 'not_started' — same as every other opportunity source, no special-casing)
+  // via the real generateActions() endpoint, not just move the opportunity to
+  // "in progress" and hope a later, separate click on /execution does it.
+  const createMetaDraftAction = async (id: string) => {
+    setError('')
+    try {
+      await generateActions(id)
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Impossible de créer l'action ROBIA (brouillon).")
+      return
+    }
+    await transitionOpportunity(id)
+  }
+
   if (loading) {
     return <div className="p-6 lg:p-8 max-w-7xl mx-auto"><Card className="p-8"><div className="h-8 w-72 bg-slate-100 rounded-lg" /></Card></div>
   }
 
-  const colA = categorized[0] ?? { category: 'Visibilité & Présence', items: [] }
-  const colB = categorized[1] ?? { category: 'Contenu & Technique', items: [] }
+  // RC-19 (Codex review, 2nd pass): render every category, not just the
+  // first two — with SEO opportunities already spread across several
+  // categories, a Meta ("social") category could land 3rd or later and be
+  // silently dropped, even though the backend correctly returned it.
+  const columns = categorized.length > 0
+    ? categorized
+    : [
+        { category: 'Visibilité & Présence', items: [] },
+        { category: 'Contenu & Technique', items: [] },
+      ]
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-slide-up">
@@ -178,16 +252,15 @@ export default function PageOpportunites() {
 
       <div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Toutes les opportunités</p><h2 className="mt-1 text-xl font-bold text-navy">File d’actions par signal</h2></div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OppColumn
-          title={colA.category}
-          opps={colA.items}
-          onTransition={transitionOpportunity}
-        />
-        <OppColumn
-          title={colB.category}
-          opps={colB.items}
-          onTransition={transitionOpportunity}
-        />
+        {columns.map((column) => (
+          <OppColumn
+            key={column.category}
+            title={column.category}
+            opps={column.items}
+            onTransition={transitionOpportunity}
+            onCreateMetaAction={createMetaDraftAction}
+          />
+        ))}
       </div>
 
       {doneOpps.length > 0 && (

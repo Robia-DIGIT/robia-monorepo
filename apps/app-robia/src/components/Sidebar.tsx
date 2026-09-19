@@ -3,8 +3,10 @@ import {
   Building2,
   CreditCard,
   BarChart3,
+  BellRing,
   FileText,
   HelpCircle,
+  LayoutDashboard,
   Layers,
   type LucideIcon,
   MessageSquare,
@@ -12,9 +14,13 @@ import {
   PanelLeftClose,
   Search,
   Settings,
+  Share2,
+  Workflow,
   Zap,
+  ClipboardList,
+  GraduationCap,
 } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import logoSnom from "../assets/logo_snom.png";
 import type { Organization, UserSummary } from "../lib/api";
@@ -37,9 +43,11 @@ interface NavItemConfig {
   label: string;
   icon: LucideIcon;
   badge?: string;
+  match?: "prefix" | "odc-appel" | "odc-formation";
 }
 
-const NAV_ITEMS: NavItemConfig[] = [
+const NAV_VISIBILITE: NavItemConfig[] = [
+  { to: "/command-center", label: "Command Center", icon: LayoutDashboard },
   { to: "/analyse", label: "Visibilité", icon: Search },
   { to: "/opportunites", label: "Opportunités", icon: Zap },
   { to: "/execution", label: "Actions", icon: Layers },
@@ -47,6 +55,22 @@ const NAV_ITEMS: NavItemConfig[] = [
   { to: "/ia", label: "Copilot", icon: MessageSquare, badge: "IA" },
   { to: "/business-profile", label: "Business Profile", icon: Building2 },
   { to: "/google-data", label: "Données Google", icon: BarChart3 },
+  { to: "/meta-data", label: "Données Meta", icon: Share2 },
+];
+
+const NAV_ODC: NavItemConfig[] = [
+  { to: "/odc/programmes", label: "Candidatures ODC", icon: ClipboardList, match: "odc-appel" },
+  {
+    to: "/odc/programmes?vue=formation",
+    label: "Formation",
+    icon: GraduationCap,
+    match: "odc-formation",
+  },
+];
+
+const NAV_OPS: NavItemConfig[] = [
+  { to: "/ops/automations", label: "Automatisations", icon: Workflow },
+  { to: "/ops/notifications", label: "Notifications", icon: BellRing },
 ];
 
 const FOCUS_RING =
@@ -58,6 +82,17 @@ const FOCUS_RING =
 
 function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(" ");
+}
+
+function navItemIsActive(item: NavItemConfig, pathname: string, search: string): boolean {
+  const vue = new URLSearchParams(search).get("vue")
+  if (item.match === "odc-formation") {
+    return pathname.startsWith("/odc/programmes") && vue === "formation"
+  }
+  if (item.match === "odc-appel") {
+    return pathname.startsWith("/odc/programmes") && vue !== "formation"
+  }
+  return pathname === item.to || pathname.startsWith(`${item.to}/`)
 }
 
 function getConnectionMeta(
@@ -167,7 +202,6 @@ function SidebarNavItem({
         "relative flex items-center text-sm font-medium transition-colors duration-150",
         FOCUS_RING,
         collapsed
-          // Rail d'icônes : pas de radius/fond de bouton, juste l'icône centrée.
           ? "justify-center py-3"
           : "gap-3 rounded-lg px-3 py-2.5",
         isActive
@@ -181,7 +215,6 @@ function SidebarNavItem({
       {!collapsed && item.label}
       {item.badge &&
         (collapsed ? (
-          // En rail réduit : un simple point de notification, pas un badge texte.
           <span
             className="absolute right-2.5 top-1 h-1.5 w-1.5 rounded-full bg-orange"
             aria-hidden="true"
@@ -212,6 +245,7 @@ export default function Sidebar({
   userInitial,
 }: SidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const organizationLabel = organization?.name ?? "Organisation active";
   const meta = getConnectionMeta(connectionStatus, organization);
   const userName = currentUser?.name ?? currentUser?.email ?? "Compte connecté";
@@ -225,7 +259,6 @@ export default function Sidebar({
         collapsed ? "lg:w-14" : "lg:w-72",
       )}
     >
-      {/* Brand + toggle */}
       <div
         className={cx(
           !collapsed && "border-b border-white/8",
@@ -266,7 +299,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Org switcher */}
       <div className={cx(!collapsed && "border-b border-white/8", collapsed ? "px-0 py-3" : "px-3 py-4")}>
         <button
           type="button"
@@ -297,7 +329,6 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Navigation */}
       <nav
         aria-label="Navigation principale"
         className={cx(
@@ -307,19 +338,53 @@ export default function Sidebar({
       >
         {!collapsed && (
           <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
-            Navigation
+            Visibilité PME
           </div>
         )}
 
-        {NAV_ITEMS.map((item) => (
+        {NAV_VISIBILITE.map((item) => (
           <SidebarNavItem
             key={item.to}
             item={item}
-            isActive={activePath === item.to}
+            isActive={navItemIsActive(item, activePath, location.search)}
             collapsed={collapsed}
             onNavigate={onNavigate}
           />
         ))}
+
+        <div className={collapsed ? "mt-2" : "mt-4 border-t border-white/8 pt-4"}>
+          {!collapsed && (
+            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+              Orange Digital Center
+            </div>
+          )}
+          {NAV_ODC.map((item) => (
+            <SidebarNavItem
+              key={item.to}
+              item={item}
+              isActive={navItemIsActive(item, activePath, location.search)}
+              collapsed={collapsed}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+
+        <div className={collapsed ? "mt-2" : "mt-4 border-t border-white/8 pt-4"}>
+          {!collapsed && (
+            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+              Ops RobIA
+            </div>
+          )}
+          {NAV_OPS.map((item) => (
+            <SidebarNavItem
+              key={item.to}
+              item={item}
+              isActive={navItemIsActive(item, activePath, location.search)}
+              collapsed={collapsed}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
 
         <div className={collapsed ? "mt-2" : "mt-4 border-t border-white/8 pt-4"}>
           {!collapsed && (
@@ -338,7 +403,6 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* Account */}
       <div className={cx(!collapsed && "border-t border-white/8", collapsed ? "px-0 py-4" : "px-3 py-4")}>
         <div className={cx("flex items-center", collapsed ? "flex-col justify-center gap-3" : "gap-1 rounded-lg")}>
           <button

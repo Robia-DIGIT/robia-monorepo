@@ -8,6 +8,23 @@ import { WebsiteProvider } from './components/WebsiteContext'
 
 export type ConnectionStatus = 'loading' | 'connected' | 'partial' | 'error'
 
+type MetaOAuthStatus = 'connected' | 'denied' | 'error'
+
+const META_OAUTH_NOTICE: Record<MetaOAuthStatus, { message: string; className: string }> = {
+  connected: {
+    message: 'Connexion Meta réussie. Les données Facebook et Instagram disponibles peuvent maintenant être chargées.',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  },
+  denied: {
+    message: 'Connexion Meta annulée ou refusée. Aucune donnée Meta n’a été modifiée.',
+    className: 'border-amber-200 bg-amber-50 text-amber-800',
+  },
+  error: {
+    message: 'La connexion Meta n’a pas abouti. Vérifiez la configuration Meta puis réessayez.',
+    className: 'border-red-200 bg-red-50 text-red-700',
+  },
+}
+
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -23,6 +40,14 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('loading')
 
   const activePath = location.pathname
+  const metaOAuthStatus = useMemo(() => {
+    if (location.pathname !== '/meta-data') return null
+    const value = new URLSearchParams(location.search).get('meta')
+    return value === 'connected' || value === 'denied' || value === 'error'
+      ? value
+      : null
+  }, [location.pathname, location.search])
+  const metaOAuthNotice = metaOAuthStatus ? META_OAUTH_NOTICE[metaOAuthStatus] : null
 
   const handleSidebarToggle = () => {
     setSidebarCollapsed((value) => {
@@ -90,6 +115,10 @@ export default function App() {
     return <Navigate to="/login" replace />
   }
 
+  if (location.pathname === '/analyse' && new URLSearchParams(location.search).has('meta')) {
+    return <Navigate to={`/meta-data${location.search}`} replace />
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-bg">
       {/* Mobile overlay */}
@@ -133,6 +162,15 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto">
           <WebsiteProvider>
+            {metaOAuthNotice && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`mx-4 mt-4 rounded-xl border px-4 py-3 text-sm font-medium sm:mx-6 lg:mx-8 ${metaOAuthNotice.className}`}
+              >
+                {metaOAuthNotice.message}
+              </div>
+            )}
             <Outlet />
           </WebsiteProvider>
         </main>
