@@ -132,7 +132,7 @@ function OpportunityCard({
     <RobiaCard style={styles.card}>
       <View style={styles.cardHeader}>
         <IconBadge
-          name={index === 0 ? "auto-awesome" : "insights"}
+          name={opportunityIcon(item.category)}
           backgroundColor={index === 0 ? Brand.orangeLight : Brand.tealLight}
           color={index === 0 ? Brand.orangeDark : Brand.tealDark}
         />
@@ -193,6 +193,19 @@ function OpportunityCard({
     </RobiaCard>
   );
 }
+
+function opportunityIcon(
+  category: string | null,
+): React.ComponentProps<typeof MaterialIcons>["name"] {
+  const value = category?.toLowerCase() ?? "";
+  if (value.includes("local") || value.includes("établissement")) return "location-on";
+  if (value.includes("contenu") || value.includes("rédaction")) return "edit-note";
+  if (value.includes("tech") || value.includes("performance")) return "speed";
+  if (value.includes("seo") || value.includes("référencement")) return "search";
+  if (value.includes("visibilité")) return "visibility";
+  return "lightbulb";
+}
+
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.meta}>

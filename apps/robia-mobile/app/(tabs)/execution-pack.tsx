@@ -53,7 +53,7 @@ export default function ExecutionPackScreen() {
       <LoadState loading={isLoading} error={error} retry={refresh} />
       <AsyncButton label="Historique des validations" action={async () => router.push("/validations")} />
       <View style={styles.progressCard}>
-        <IconBadge name="task-alt" />
+        <IconBadge name="description" />
         <View style={styles.progressCopy}>
           <Text style={robiaStyles.cardTitle}>
             {visibleDocuments.length} document{visibleDocuments.length > 1 ? "s" : ""}

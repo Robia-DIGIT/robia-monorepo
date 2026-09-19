@@ -2,14 +2,14 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
-  Children,
-  useEffect,
-  useRef,
-  type PropsWithChildren,
-  type ReactNode,
+    Children,
+    useEffect,
+    useRef,
+    type PropsWithChildren,
+    type ReactNode,
 } from "react";
 import {
-  Animated,
+    Animated,
     Pressable,
     RefreshControl,
     ScrollView,

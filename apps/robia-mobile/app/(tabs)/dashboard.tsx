@@ -22,7 +22,7 @@ const TOOLS = [
   { label: 'Mes sites', description: 'Présences connectées', icon: 'language', href: '/websites' },
   { label: 'Connexions', description: 'Google, Meta et autres', icon: 'hub', href: '/integrations' },
   { label: 'Rapports', description: 'Mesurer les performances', icon: 'assessment', href: '/reports' },
-  { label: 'Automatisations', description: 'Déclencheurs et contrôles', icon: 'auto-awesome', href: '/automations' },
+  { label: 'Automatisations', description: 'Déclencheurs et contrôles', icon: 'autorenew', href: '/automations' },
   { label: 'Validations', description: 'Décisions à confirmer', icon: 'fact-check', href: '/validations' },
   { label: 'Historique', description: 'Tous vos audits', icon: 'history', href: '/history' },
   { label: 'Établissements', description: 'Coordonnées et météo', icon: 'storefront', href: '/locations' },
@@ -115,9 +115,9 @@ export default function HomeScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir la vue d’ensemble" onPress={() => router.push("/intelligence")} style={styles.sectionLink}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
           </View>
           <View style={styles.metrics}>
-            <Metric icon="track-changes" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
+            <Metric icon="lightbulb" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
             <Metric icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
-            <Metric icon="checklist" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
+            <Metric icon="task-alt" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
           </View>
         </CopilotTarget>
       </CopilotStep>
@@ -161,7 +161,7 @@ export default function HomeScreen() {
             onPress={() => router.push({ pathname: "/opportunity", params: { id: item.id } })}
             style={({ pressed }) => [styles.priorityRow, index > 0 && styles.rowBorder, pressed && styles.pressed]}>
             <View style={[styles.priorityIcon, { backgroundColor: index === 0 ? Brand.orangeLight : Brand.tealLight }]}>
-              <MaterialIcons name={index === 0 ? 'bolt' : 'auto-awesome'} size={19} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />
+              <MaterialIcons name="lightbulb" size={19} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />
             </View>
             <View style={styles.priorityCopy}>
               <Text style={styles.priorityTitle} numberOfLines={1}>{item.title}</Text>
