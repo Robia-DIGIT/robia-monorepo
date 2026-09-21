@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 1365" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <pattern id="grain" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 1h4M1 0v4" stroke="#6ee7c3" stroke-opacity=".035" stroke-width=".6"/>
+    </pattern>
+    <g id="trace" fill="none" stroke="#64d9bd" stroke-opacity=".18" stroke-width="3">
+      <path d="M0 30h105l48 48v72h58l52 52v125h90l80 80h140"/>
+      <path d="M0 50h96l48 48v72h59l52 52v125h91l80 80h142"/>
+      <path d="M0 70h87l48 48v72h60l52 52v125h92l80 80h144"/>
+      <circle cx="210" cy="150" r="7" fill="#64d9bd"/>
+      <circle cx="403" cy="347" r="7" fill="#64d9bd"/>
+    </g>
+  </defs>
+  <rect width="768" height="1365" fill="#008f7d"/>
+  <path d="M-120 0h230l660 660v210H610L-120 230z" fill="#006f67" fill-opacity=".3"/>
+  <path d="M-60 430h180l410 410v210H320L-60 670z" fill="#13a28a" fill-opacity=".42"/>
+  <path d="M500 0h268v420L560 628H420l160-160V230L500 150z" fill="#08786f" fill-opacity=".28"/>
+  <path d="M0 1030h180l335 335H260L0 1100z" fill="#006f67" fill-opacity=".32"/>
+  <use href="#trace" transform="translate(-40 360) rotate(180 380 220)"/>
+  <use href="#trace" transform="translate(280 920) scale(.72)"/>
+  <use href="#trace" transform="translate(390 -80) scale(.7)"/>
+  <rect width="768" height="1365" fill="url(#grain)"/>
+</svg>

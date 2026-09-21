@@ -1,6 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { Image } from 'expo-image';
 import { router, Stack, useRootNavigationState, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -285,6 +286,12 @@ function AppLayout() {
           accessibilityRole="progressbar"
           onLayout={revealAnimation}
           style={[styles.launchOverlay, { opacity: overlayOpacity }]}>
+          <Image
+            source={require('@/assets/images/launch-background.svg')}
+            contentFit="cover"
+            style={styles.launchBackground}
+            pointerEvents="none"
+          />
           <View style={styles.logoStage}>
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-tail.png')}
@@ -368,11 +375,14 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Brand.slate50,
+    backgroundColor: '#008f7d',
+  },
+  launchBackground: {
+    ...StyleSheet.absoluteFillObject,
   },
   logoStage: {
-    width: '62%',
-    maxWidth: 270,
+    width: '74%',
+    maxWidth: 360,
     aspectRatio: 1080 / 662,
   },
   logoLayer: {
