@@ -11,6 +11,7 @@ vi.mock('../lib/api', async (importOriginal) => {
     getCurrentOrganization: vi.fn(),
     listBusinessLocations: vi.fn(),
     createBusinessLocation: vi.fn(),
+    importLegacyBusinessLocations: vi.fn(),
     deleteBusinessLocation: vi.fn(),
     getGoogleBusinessProfileStatus: vi.fn(),
     getGoogleBusinessProfileAuthorizationUrl: vi.fn(),
@@ -32,13 +33,13 @@ beforeEach(() => {
   window.history.replaceState({}, '', '/business-profile')
   mockedApi.getCurrentOrganization.mockResolvedValue(organization)
   mockedApi.listBusinessLocations.mockResolvedValue([robiaLocation])
-  mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, locationCount: 0 })
+  mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0 })
   mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([])
 })
 
 describe('BusinessProfilePage', () => {
   it('renders the real connected state and maps an imported Google location', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
       id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1',
       languageCode: 'fr', title: 'ROBIA Google', storeCode: 'STORE-42',
@@ -84,7 +85,7 @@ describe('BusinessProfilePage', () => {
   })
 
   it('expands the full fiche and shows every field Google provided', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
       id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1',
       languageCode: 'fr', title: 'ROBIA Google', storeCode: 'STORE-42',
@@ -110,7 +111,7 @@ describe('BusinessProfilePage', () => {
     await screen.findByText('ROBIA Google')
 
     expect(screen.getByText('Ouvert')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Voir la fiche complète' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Voir les détails de la fiche' }))
 
     expect(screen.getByText(/Consultant SEO/)).toBeInTheDocument()
     expect(screen.getByText(/VIP/)).toBeInTheDocument()
@@ -124,12 +125,12 @@ describe('BusinessProfilePage', () => {
     expect(screen.getByText('Livraison')).toBeInTheDocument()
     expect(screen.getByText(/10:00 – 16:00/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Masquer la fiche complète' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Masquer les détails' }))
     expect(screen.queryByText(/Consultant SEO/)).not.toBeInTheDocument()
   })
 
   it('never renders a website/Maps link when Google did not provide one, and the fiche shows no data cleanly', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
       id: 'gbp-2', googleAccountName: 'accounts/1', accountDisplayName: null, googleLocationName: 'locations/2',
       languageCode: null, title: 'ROBIA sans site', storeCode: null,
@@ -147,23 +148,47 @@ describe('BusinessProfilePage', () => {
     expect(screen.queryByRole('link', { name: /Voir sur Google Maps/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/Compte Google :/)).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Voir la fiche complète' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Voir les détails de la fiche' }))
     expect(screen.getByText(/Google n’a fourni aucun horaire pour cette fiche\./)).toBeInTheDocument()
   })
 
-  it('migrates legacy browser locations only when the server has none, then clears the cache', async () => {
-    mockedApi.listBusinessLocations.mockResolvedValue([])
-    mockedApi.createBusinessLocation.mockResolvedValue(robiaLocation)
+  it('replays the idempotent legacy import even when the server is already partially populated, then clears the cache', async () => {
+    mockedApi.listBusinessLocations.mockResolvedValue([robiaLocation])
+    mockedApi.importLegacyBusinessLocations.mockResolvedValue([robiaLocation])
     saveBusinessLocations([{ id: 'legacy-1', name: 'ROBIA Analakely', address: '12 Avenue', city: 'Antananarivo', country: 'Madagascar', phone: '+261340000000', primary: true }])
 
     render(<BusinessProfilePage />)
     expect(await screen.findByText(/transférés vers ROBIA/i)).toBeInTheDocument()
-    expect(mockedApi.createBusinessLocation).toHaveBeenCalledWith(expect.objectContaining({ name: 'ROBIA Analakely', isPrimary: true }))
+    expect(mockedApi.importLegacyBusinessLocations).toHaveBeenCalledWith([
+      expect.objectContaining({ legacyId: 'legacy-1', name: 'ROBIA Analakely', isPrimary: true }),
+    ])
     expect(window.localStorage.getItem('robia_business_locations')).toBeNull()
   })
 
+  it('keeps the legacy cache when the transactional import fails so the next load can retry it', async () => {
+    mockedApi.importLegacyBusinessLocations.mockRejectedValue(new Error('import unavailable'))
+    saveBusinessLocations([{ id: 'legacy-1', name: 'ROBIA Analakely', address: '12 Avenue', city: 'Antananarivo', country: 'Madagascar', phone: '', primary: true }])
+
+    render(<BusinessProfilePage />)
+
+    expect(await screen.findByText('import unavailable')).toBeInTheDocument()
+    expect(window.localStorage.getItem('robia_business_locations')).not.toBeNull()
+  })
+
+  it('shows an honest warning when Google returns a partial synchronization', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T10:00:00Z', lastSyncStatus: 'partial', locationCount: 1 })
+    mockedApi.syncGoogleBusinessProfileLocations.mockResolvedValue({ synced: false, status: 'partial', locationCount: 1, syncedAt: '2026-09-21T09:00:00Z' })
+
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Synchroniser' }))
+
+    expect(await screen.findByText('Synchronisation incomplète, données précédentes conservées.')).toBeInTheDocument()
+  })
+
   it('keeps Google writes out of the UI and explains read-only mode', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: null, locationCount: 0 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0 })
     render(<BusinessProfilePage />)
     await screen.findByText('ROBIA Analakely')
     fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))

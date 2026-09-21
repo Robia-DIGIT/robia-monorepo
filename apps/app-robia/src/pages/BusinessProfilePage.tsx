@@ -3,6 +3,7 @@ import { Building2, Check, ChevronDown, ChevronRight, ChevronUp, CircleAlert, Cl
 import {
   createBusinessLocation, deleteBusinessLocation, disconnectGoogleBusinessProfile,
   getCurrentOrganization, getGoogleBusinessProfileAuthorizationUrl, getGoogleBusinessProfileStatus,
+  importLegacyBusinessLocations,
   linkGoogleBusinessProfileLocation, listBusinessLocations, listGoogleBusinessProfileLocations,
   syncGoogleBusinessProfileLocations, unlinkGoogleBusinessProfileLocation,
   type BusinessLocation, type GoogleBusinessProfileLocation, type GoogleBusinessProfileStatus, type Organization,
@@ -11,7 +12,7 @@ import { clearLegacyBusinessProfile, readBusinessLocations } from "../lib/busine
 
 const EMPTY_LOCATION = { name: "", address: "", city: "", country: "Madagascar", phone: "" };
 type LocationForm = typeof EMPTY_LOCATION;
-const DISCONNECTED: GoogleBusinessProfileStatus = { connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, locationCount: 0 };
+const DISCONNECTED: GoogleBusinessProfileStatus = { connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: "never", locationCount: 0 };
 
 function Step({ number, title, active, done }: { number: number; title: string; active: boolean; done: boolean }) {
   return <div className="flex items-center gap-2"><span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${done ? "bg-teal text-white" : active ? "bg-navy text-white" : "bg-border-light text-muted"}`}>{done ? <Check size={14} /> : number}</span><span className={`text-xs font-semibold ${active ? "text-navy" : "text-muted"}`}>{title}</span></div>;
@@ -183,7 +184,7 @@ function GoogleLocationCard({
             )}
             <button type="button" onClick={() => setExpanded((current) => !current)} className="inline-flex items-center gap-1 text-xs font-semibold text-navy hover:underline">
               {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              {expanded ? "Masquer la fiche complète" : "Voir la fiche complète"}
+              {expanded ? "Masquer les détails" : "Voir les détails de la fiche"}
             </button>
           </div>
         </div>
@@ -290,14 +291,16 @@ export default function BusinessProfilePage() {
     ]);
     let resolvedLocations = serverLocations;
     const legacy = readBusinessLocations();
-    if (serverLocations.length === 0 && legacy.length > 0) {
-      resolvedLocations = [];
-      for (const item of legacy) {
-        resolvedLocations.push(await createBusinessLocation({
-          name: item.name, address: item.address, city: item.city, country: item.country,
-          phone: item.phone, isPrimary: item.primary,
-        }));
-      }
+    if (legacy.length > 0) {
+      resolvedLocations = await importLegacyBusinessLocations(legacy.map((item) => ({
+        legacyId: item.id,
+        name: item.name,
+        address: item.address,
+        city: item.city,
+        country: item.country,
+        phone: item.phone,
+        isPrimary: item.primary,
+      })));
       clearLegacyBusinessProfile();
       setNotice("Vos établissements enregistrés dans ce navigateur ont été transférés vers ROBIA.");
     }
@@ -314,8 +317,10 @@ export default function BusinessProfilePage() {
     load().then(async () => {
       if (oauthResult === "connected") {
         setTab("google"); setBusy(true);
-        await syncGoogleBusinessProfileLocations(); await load();
-        setNotice("Google Business Profile est connecté et les établissements ont été synchronisés.");
+        const result = await syncGoogleBusinessProfileLocations(); await load();
+        setNotice(result.status === "partial"
+          ? "Synchronisation incomplète, données précédentes conservées."
+          : "Google Business Profile est connecté et les établissements ont été synchronisés.");
       } else if (oauthResult === "denied") {
         setTab("google"); setNotice("Connexion Google annulée. Aucune donnée n’a été importée.");
       } else if (oauthResult === "error") {
@@ -354,7 +359,9 @@ export default function BusinessProfilePage() {
     setBusy(true);
     try {
       const result = await syncGoogleBusinessProfileLocations(); await load();
-      setNotice(`${result.locationCount} établissement${result.locationCount > 1 ? "s" : ""} Google synchronisé${result.locationCount > 1 ? "s" : ""}.`);
+      setNotice(result.status === "partial"
+        ? "Synchronisation incomplète, données précédentes conservées."
+        : `${result.locationCount} établissement${result.locationCount > 1 ? "s" : ""} Google synchronisé${result.locationCount > 1 ? "s" : ""}.`);
     } catch (error) { setNotice(errorMessage(error)); } finally { setBusy(false); }
   }
 
@@ -389,7 +396,7 @@ export default function BusinessProfilePage() {
       <div><div className="flex items-start justify-between gap-4"><div><div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-lg font-bold text-white">G</div><h2 className="mt-5 text-xl font-bold text-navy">Google Business Profile</h2><p className="mt-2 max-w-xl text-sm leading-6 text-muted">Lecture seule : ROBIA importe vos établissements sans modifier vos fiches Google.</p></div>{connection.connected && <button disabled={busy} onClick={() => void syncGoogle()} className="inline-flex items-center gap-2 rounded-lg bg-teal px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><RefreshCw size={16} />Synchroniser</button>}</div>
         {!connection.connected ? <><div className="mt-6 space-y-3">{["Autoriser le compte Google", "Importer les établissements administrés", "Associer chaque lieu à ROBIA"].map((item) => <div key={item} className="flex items-center gap-3 text-sm text-dark"><Check size={15} className="text-teal-dark" />{item}</div>)}</div><button onClick={() => void connectGoogle()} disabled={busy || !completeLocations} className="mt-7 inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"><Link2 size={16} />Connecter Google Business Profile</button>{!completeLocations && <p className="mt-2 text-xs text-orange-dark">Ajoutez au moins un établissement ROBIA avant de connecter Google.</p>}</> : <div className="mt-7 divide-y divide-border border-y border-border">{googleLocations.length === 0 ? <div className="py-8 text-center text-sm text-muted">Aucun établissement Google importé. Lancez une synchronisation.</div> : googleLocations.map((item) => <GoogleLocationCard key={item.id} item={item} robiaLocations={locations} busy={busy} onMap={(googleLocationId, robiaLocationId) => void mapLocation(googleLocationId, robiaLocationId)} />)}</div>}
       </div>
-      <aside className="border-t border-border bg-slate-bg p-6 lg:border-l lg:border-t-0"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">État du connecteur</p><div className="mt-4 flex items-center gap-3 border-l-2 border-teal bg-white px-4 py-3"><span className={`h-3 w-3 rounded-full ${connection.connected ? "bg-teal" : "bg-slate-300"}`} /><div><p className="font-bold text-navy">{connection.connected ? "Connecté" : "Non connecté"}</p><p className="text-xs text-muted">{connection.googleAccountEmail ?? "Aucun compte Google autorisé"}</p></div></div>{connection.connected && <><div className="mt-4 space-y-2 text-xs text-muted"><p><strong className="text-navy">Établissements :</strong> {connection.locationCount}</p><p><strong className="text-navy">Dernière synchro :</strong> {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString("fr-FR") : "Jamais"}</p><p>Mode strictement lecture seule.</p></div><button disabled={busy} onClick={() => void disconnectGoogle()} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-red-600"><Unplug size={15} />Déconnecter Google</button></>}</aside>
+      <aside className="border-t border-border bg-slate-bg p-6 lg:border-l lg:border-t-0"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">État du connecteur</p><div className="mt-4 flex items-center gap-3 border-l-2 border-teal bg-white px-4 py-3"><span className={`h-3 w-3 rounded-full ${connection.connected ? "bg-teal" : "bg-slate-300"}`} /><div><p className="font-bold text-navy">{connection.connected ? "Connecté" : "Non connecté"}</p><p className="text-xs text-muted">{connection.googleAccountEmail ?? "Aucun compte Google autorisé"}</p></div></div>{connection.connected && <><div className="mt-4 space-y-2 text-xs text-muted"><p><strong className="text-navy">Établissements :</strong> {connection.locationCount}</p><p><strong className="text-navy">Dernière synchro réussie :</strong> {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString("fr-FR") : "Jamais"}</p>{connection.lastSyncStatus !== "success" && connection.lastSyncStatus !== "never" && <p className="rounded-md bg-orange-light px-3 py-2 text-orange-dark">La dernière tentative est {connection.lastSyncStatus === "running" ? "en cours" : "incomplète"}. Les dernières données réussies sont conservées.</p>}<p>Mode strictement lecture seule.</p></div><button disabled={busy} onClick={() => void disconnectGoogle()} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-red-600"><Unplug size={15} />Déconnecter Google</button></>}</aside>
     </section>}
   </div>;
 }
