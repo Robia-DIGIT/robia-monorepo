@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ECFDF9',
+    backgroundColor: Brand.tealLight,
     borderWidth: 0,
   },
   assistantRobot: {

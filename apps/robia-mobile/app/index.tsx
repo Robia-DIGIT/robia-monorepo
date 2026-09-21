@@ -1,3 +1,4 @@
+import { Brand, Fonts } from "@/constants/theme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -17,8 +18,6 @@ import {
   type ViewToken,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { Brand, Fonts } from "@/constants/theme";
 
 const SLIDES = [
   {
@@ -78,7 +77,7 @@ export default function OnboardingScreen() {
       .then((enabled) => {
         if (mounted && !receivedChange) setReduceMotion(enabled);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       mounted = false;
       subscription.remove();
@@ -112,13 +111,13 @@ export default function OnboardingScreen() {
     reduceMotion
       ? {}
       : {
-          opacity: interpolatePage(index, [0.15, 1, 0.15]),
-          transform: [
-            { translateX: interpolatePage(index, [distance, 0, -distance]) },
-            { translateY: interpolatePage(index, [12, 0, 12]) },
-            { scale: interpolatePage(index, [scale, 1, scale]) },
-          ],
-        };
+        opacity: interpolatePage(index, [0.15, 1, 0.15]),
+        transform: [
+          { translateX: interpolatePage(index, [distance, 0, -distance]) },
+          { translateY: interpolatePage(index, [12, 0, 12]) },
+          { scale: interpolatePage(index, [scale, 1, scale]) },
+        ],
+      };
 
   const compact = height < 720;
   const stageWidth = Math.min(width - 40, 360);
@@ -219,13 +218,13 @@ export default function OnboardingScreen() {
                     reduceMotion
                       ? undefined
                       : {
-                          transform: [
-                            {
-                              translateY: interpolatePage(index, [18, 0, -18]),
-                            },
-                            { scale: 1.12 },
-                          ],
-                        },
+                        transform: [
+                          {
+                            translateY: interpolatePage(index, [18, 0, -18]),
+                          },
+                          { scale: 1.12 },
+                        ],
+                      },
                   ]}
                 >
                   <Image
@@ -248,13 +247,13 @@ export default function OnboardingScreen() {
                     reduceMotion
                       ? undefined
                       : {
-                          transform: [
-                            {
-                              translateY: interpolatePage(index, [-12, 0, 12]),
-                            },
-                            { scale: 1.1 },
-                          ],
-                        },
+                        transform: [
+                          {
+                            translateY: interpolatePage(index, [-12, 0, 12]),
+                          },
+                          { scale: 1.1 },
+                        ],
+                      },
                   ]}
                 >
                   <Image
@@ -287,20 +286,20 @@ export default function OnboardingScreen() {
                         styles.dotHighlight,
                         reduceMotion
                           ? {
-                              opacity: dotIndex === activeIndex ? 1 : 0,
-                              transform: [{ scaleX: 1 }],
-                            }
+                            opacity: dotIndex === activeIndex ? 1 : 0,
+                            transform: [{ scaleX: 1 }],
+                          }
                           : {
-                              opacity: interpolatePage(dotIndex, [0, 1, 0]),
-                              transform: [
-                                {
-                                  scaleX: interpolatePage(
-                                    dotIndex,
-                                    [0.2, 1, 0.2],
-                                  ),
-                                },
-                              ],
-                            },
+                            opacity: interpolatePage(dotIndex, [0, 1, 0]),
+                            transform: [
+                              {
+                                scaleX: interpolatePage(
+                                  dotIndex,
+                                  [0.2, 1, 0.2],
+                                ),
+                              },
+                            ],
+                          },
                       ]}
                     />
                   </View>
@@ -400,7 +399,7 @@ const styles = StyleSheet.create({
     width: "74%",
     height: "77%",
     borderRadius: 30,
-    backgroundColor: "#F1F8E2",
+    backgroundColor: Brand.tealLight,
     transform: [{ rotate: "13deg" }],
   },
   backdropAlternate: { transform: [{ rotate: "-12deg" }] },
@@ -412,7 +411,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     borderWidth: 2,
     borderColor: Brand.white,
-    backgroundColor: "#EEF2EA",
+    backgroundColor: Brand.surfaceSoft,
   },
   backPhoto: { left: "6%", top: "19%", transform: [{ rotate: "-11deg" }] },
   frontPhoto: { right: "5%", top: "8%", transform: [{ rotate: "7deg" }] },
@@ -431,7 +430,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "#E9ECE4" },
+  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Brand.slate200 },
   dotHighlight: {
     position: "absolute",
     left: -10.5,
@@ -439,7 +438,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "#B9E463",
+    backgroundColor: Brand.teal,
   },
   copy: {
     alignItems: "center",
@@ -493,7 +492,7 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
     borderWidth: 1,
-    borderColor: "#B3DB60",
+    borderColor: Brand.teal,
     padding: 5,
     alignItems: "center",
     justifyContent: "center",
@@ -504,7 +503,7 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#C2E970",
+    backgroundColor: Brand.teal,
   },
   pressed: { opacity: 0.65 },
 });
