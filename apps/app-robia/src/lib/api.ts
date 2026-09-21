@@ -66,6 +66,8 @@ export interface GoogleBusinessProfileStatus {
   googleAccountEmail: string | null;
   connectedAt: string | null;
   lastSyncedAt: string | null;
+  lastSyncAttemptAt: string | null;
+  lastSyncStatus: "never" | "running" | "success" | "partial" | "failed";
   locationCount: number;
 }
 
@@ -74,12 +76,25 @@ export interface GoogleBusinessProfileLocation {
   googleAccountName: string;
   accountDisplayName: string | null;
   googleLocationName: string;
+  languageCode: string | null;
   title: string;
   storeCode: string | null;
   address: Record<string, unknown> | null;
   primaryPhone: string | null;
+  additionalPhones: string[];
   websiteUri: string | null;
   primaryCategory: string | null;
+  additionalCategories: string[];
+  description: string | null;
+  regularHours: Record<string, unknown> | null;
+  specialHours: Record<string, unknown> | null;
+  moreHours: Record<string, unknown>[] | null;
+  serviceArea: Record<string, unknown> | null;
+  labels: string[];
+  latitude: number | null;
+  longitude: number | null;
+  openStatus: string | null;
+  metadata: Record<string, unknown> | null;
   lastSyncedAt: string;
   robiaLocationId: string | null;
   robiaLocation: Pick<BusinessLocation, "id" | "name" | "address" | "city" | "country"> | null;
@@ -810,6 +825,24 @@ export async function createBusinessLocation(payload: {
   });
 }
 
+export async function importLegacyBusinessLocations(
+  locations: Array<{
+    legacyId: string;
+    name: string;
+    address?: string;
+    city?: string;
+    country?: string;
+    phone?: string;
+    isPrimary?: boolean;
+  }>,
+) {
+  return request<BusinessLocation[]>("/locations/legacy-import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ locations }),
+  });
+}
+
 export async function deleteBusinessLocation(id: string) {
   return request<{ deleted: boolean }>(`/locations/${encodeURIComponent(id)}`, {
     method: "DELETE",
@@ -836,7 +869,12 @@ export async function listGoogleBusinessProfileLocations() {
 }
 
 export async function syncGoogleBusinessProfileLocations() {
-  return request<{ synced: boolean; locationCount: number; syncedAt: string }>(
+  return request<{
+    synced: boolean;
+    status: "success" | "partial";
+    locationCount: number;
+    syncedAt: string | null;
+  }>(
     "/integrations/google/business-profile/sync",
     { method: "POST" },
   );
@@ -864,7 +902,7 @@ export async function unlinkGoogleBusinessProfileLocation(id: string) {
 }
 
 export async function disconnectGoogleBusinessProfile() {
-  return request<{ disconnected: boolean }>(
+  return request<{ disconnected: boolean; revokedByGoogle?: boolean }>(
     "/integrations/google/business-profile",
     { method: "DELETE" },
   );
