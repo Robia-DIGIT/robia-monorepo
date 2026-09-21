@@ -266,7 +266,14 @@ export function FilterChips({
   onChange: (value: string) => void;
 }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips} accessibilityRole="tablist">
+    <ScrollView
+      horizontal
+      nestedScrollEnabled
+      directionalLockEnabled
+      alwaysBounceHorizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.filterChips}
+      accessibilityRole="tablist">
       {options.map((option) => {
         const active = option === selected;
         return (
