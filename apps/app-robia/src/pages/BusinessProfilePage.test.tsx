@@ -40,8 +40,11 @@ describe('BusinessProfilePage', () => {
   it('renders the real connected state and maps an imported Google location', async () => {
     mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
-      id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1', title: 'ROBIA Google', storeCode: null,
-      address: { addressLines: ['12 Avenue'], locality: 'Antananarivo', regionCode: 'MG' }, primaryPhone: null, websiteUri: null, primaryCategory: 'Agence marketing', lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
+      id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1', title: 'ROBIA Google', storeCode: 'STORE-42',
+      address: { addressLines: ['12 Avenue'], locality: 'Antananarivo', regionCode: 'MG' }, primaryPhone: null,
+      websiteUri: 'https://robia.example.com', primaryCategory: 'Agence marketing',
+      metadata: { mapsUri: 'https://maps.google.com/?cid=123' },
+      lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
     }])
     mockedApi.linkGoogleBusinessProfileLocation.mockResolvedValue({} as api.GoogleBusinessProfileLocation)
 
@@ -52,8 +55,38 @@ describe('BusinessProfilePage', () => {
     expect(screen.getByText('owner@example.com')).toBeInTheDocument()
     expect(screen.getByText(/Mode strictement lecture seule/i)).toBeInTheDocument()
 
+    // RC-38 display fix — data the backend already returns (account name,
+    // store code, website, Maps link) must actually be shown, not just
+    // fetched and silently dropped.
+    expect(screen.getByText(/Compte Google : ROBIA/)).toBeInTheDocument()
+    expect(screen.getByText(/STORE-42/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Site web/i })).toHaveAttribute(
+      'href',
+      'https://robia.example.com',
+    )
+    expect(
+      screen.getByRole('link', { name: /Voir sur Google Maps/i }),
+    ).toHaveAttribute('href', 'https://maps.google.com/?cid=123')
+
     fireEvent.change(screen.getByLabelText('Associer à ROBIA'), { target: { value: 'loc-1' } })
     await waitFor(() => expect(mockedApi.linkGoogleBusinessProfileLocation).toHaveBeenCalledWith('gbp-1', 'loc-1'))
+  })
+
+  it('never renders a website/Maps link when Google did not provide one', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
+    mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
+      id: 'gbp-2', googleAccountName: 'accounts/1', accountDisplayName: null, googleLocationName: 'locations/2', title: 'ROBIA sans site', storeCode: null,
+      address: null, primaryPhone: null, websiteUri: null, primaryCategory: null, metadata: null,
+      lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
+    }])
+
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    expect(await screen.findByText('ROBIA sans site')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Site web/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Voir sur Google Maps/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Compte Google :/)).not.toBeInTheDocument()
   })
 
   it('migrates legacy browser locations only when the server has none, then clears the cache', async () => {

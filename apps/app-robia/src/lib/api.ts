@@ -80,6 +80,7 @@ export interface GoogleBusinessProfileLocation {
   primaryPhone: string | null;
   websiteUri: string | null;
   primaryCategory: string | null;
+  metadata: Record<string, unknown> | null;
   lastSyncedAt: string;
   robiaLocationId: string | null;
   robiaLocation: Pick<BusinessLocation, "id" | "name" | "address" | "city" | "country"> | null;
