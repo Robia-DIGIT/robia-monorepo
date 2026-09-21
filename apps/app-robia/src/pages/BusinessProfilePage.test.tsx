@@ -40,9 +40,20 @@ describe('BusinessProfilePage', () => {
   it('renders the real connected state and maps an imported Google location', async () => {
     mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
-      id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1', title: 'ROBIA Google', storeCode: 'STORE-42',
+      id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1',
+      languageCode: 'fr', title: 'ROBIA Google', storeCode: 'STORE-42',
       address: { addressLines: ['12 Avenue'], locality: 'Antananarivo', regionCode: 'MG' }, primaryPhone: null,
+      additionalPhones: ['+261 34 11 111 11'],
       websiteUri: 'https://robia.example.com', primaryCategory: 'Agence marketing',
+      additionalCategories: ['Consultant SEO'],
+      description: 'Une agence marketing locale à Antananarivo.',
+      regularHours: { periods: [{ openDay: 'MONDAY', openTime: { hours: 9 }, closeDay: 'MONDAY', closeTime: { hours: 18 } }] },
+      specialHours: { specialHourPeriods: [{ startDate: { year: 2026, month: 12, day: 25 }, closed: true }] },
+      moreHours: [{ hoursTypeId: 'DELIVERY', periods: [{ openDay: 'TUESDAY', openTime: { hours: 10 }, closeDay: 'TUESDAY', closeTime: { hours: 16 } }] }],
+      serviceArea: { businessType: 'CUSTOMER_AND_BUSINESS_LOCATION' },
+      labels: ['VIP'],
+      latitude: -18.9, longitude: 47.5,
+      openStatus: 'OPEN',
       metadata: { mapsUri: 'https://maps.google.com/?cid=123' },
       lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
     }])
@@ -72,11 +83,59 @@ describe('BusinessProfilePage', () => {
     await waitFor(() => expect(mockedApi.linkGoogleBusinessProfileLocation).toHaveBeenCalledWith('gbp-1', 'loc-1'))
   })
 
-  it('never renders a website/Maps link when Google did not provide one', async () => {
+  it('expands the full fiche and shows every field Google provided', async () => {
     mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
-      id: 'gbp-2', googleAccountName: 'accounts/1', accountDisplayName: null, googleLocationName: 'locations/2', title: 'ROBIA sans site', storeCode: null,
-      address: null, primaryPhone: null, websiteUri: null, primaryCategory: null, metadata: null,
+      id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1',
+      languageCode: 'fr', title: 'ROBIA Google', storeCode: 'STORE-42',
+      address: { addressLines: ['12 Avenue'], locality: 'Antananarivo', regionCode: 'MG' }, primaryPhone: null,
+      additionalPhones: ['+261 34 11 111 11'],
+      websiteUri: 'https://robia.example.com', primaryCategory: 'Agence marketing',
+      additionalCategories: ['Consultant SEO'],
+      description: 'Une agence marketing locale à Antananarivo.',
+      regularHours: { periods: [{ openDay: 'MONDAY', openTime: { hours: 9 }, closeDay: 'MONDAY', closeTime: { hours: 18 } }] },
+      specialHours: { specialHourPeriods: [{ startDate: { year: 2026, month: 12, day: 25 }, closed: true }] },
+      moreHours: [{ hoursTypeId: 'DELIVERY', periods: [{ openDay: 'TUESDAY', openTime: { hours: 10 }, closeDay: 'TUESDAY', closeTime: { hours: 16 } }] }],
+      serviceArea: { businessType: 'CUSTOMER_AND_BUSINESS_LOCATION' },
+      labels: ['VIP'],
+      latitude: -18.9, longitude: 47.5,
+      openStatus: 'OPEN',
+      metadata: { mapsUri: 'https://maps.google.com/?cid=123' },
+      lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
+    }])
+
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    await screen.findByText('ROBIA Google')
+
+    expect(screen.getByText('Ouvert')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Voir la fiche complète' }))
+
+    expect(screen.getByText(/Consultant SEO/)).toBeInTheDocument()
+    expect(screen.getByText(/VIP/)).toBeInTheDocument()
+    expect(screen.getByText(/Langue de la fiche : fr/)).toBeInTheDocument()
+    expect(screen.getByText(/\+261 34 11 111 11/)).toBeInTheDocument()
+    expect(screen.getByText(/-18\.90000, 47\.50000/)).toBeInTheDocument()
+    expect(screen.getByText(/Une agence marketing locale à Antananarivo\./)).toBeInTheDocument()
+    expect(screen.getByText(/Se déplace chez le client et accueille sur place/)).toBeInTheDocument()
+    expect(screen.getByText(/09:00 – 18:00/)).toBeInTheDocument()
+    expect(screen.getByText(/25\/12\/2026.*Fermé/)).toBeInTheDocument()
+    expect(screen.getByText('Livraison')).toBeInTheDocument()
+    expect(screen.getByText(/10:00 – 16:00/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Masquer la fiche complète' }))
+    expect(screen.queryByText(/Consultant SEO/)).not.toBeInTheDocument()
+  })
+
+  it('never renders a website/Maps link when Google did not provide one, and the fiche shows no data cleanly', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', locationCount: 1 })
+    mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
+      id: 'gbp-2', googleAccountName: 'accounts/1', accountDisplayName: null, googleLocationName: 'locations/2',
+      languageCode: null, title: 'ROBIA sans site', storeCode: null,
+      address: null, primaryPhone: null, additionalPhones: [], websiteUri: null, primaryCategory: null,
+      additionalCategories: [], description: null, regularHours: null, specialHours: null, moreHours: [],
+      serviceArea: null, labels: [], latitude: null, longitude: null, openStatus: null, metadata: null,
       lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
     }])
 
@@ -87,6 +146,9 @@ describe('BusinessProfilePage', () => {
     expect(screen.queryByRole('link', { name: /Site web/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Voir sur Google Maps/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/Compte Google :/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voir la fiche complète' }))
+    expect(screen.getByText(/Google n’a fourni aucun horaire pour cette fiche\./)).toBeInTheDocument()
   })
 
   it('migrates legacy browser locations only when the server has none, then clears the cache', async () => {
