@@ -57,10 +57,6 @@ export function IntelligenceProviderCard({
   const observedLabel = formatObservedAt(signal.observedAt);
   const showReason = signal.status !== "ok" && signal.status !== "partial";
   const configureRoute = intelligenceConfigureRoute(signal.provider);
-  // GBP has no real backend integration in RC-21 — never a "Connecter"
-  // CTA, whatever its status is (always 'not_connected' today, but this
-  // guard holds even if that ever changes without a real connector).
-  const isGbp = signal.provider === "gbp";
   // 'unavailable' means connected/configured but the read itself failed
   // transiently — there is nothing to "configure" in that state (Codex
   // review). Only 'not_connected'/'not_configured' are actionable here.
@@ -92,9 +88,7 @@ export function IntelligenceProviderCard({
 
       {showReason ? (
         <p className="text-xs leading-relaxed text-muted" data-testid={`intelligence-reason-${signal.provider}`}>
-          {isGbp
-            ? "Intégration à activer ultérieurement."
-            : `Raison : ${intelligenceReasonLabel(signal.unavailableReason)}.`}
+          {`Raison : ${intelligenceReasonLabel(signal.unavailableReason)}.`}
         </p>
       ) : (
         <p className="text-xs leading-relaxed text-muted">
@@ -106,7 +100,7 @@ export function IntelligenceProviderCard({
         <Badge variant="gray">
           {signal.scoreInfluence ? "Contribue au score SEO" : "Hors score SEO"}
         </Badge>
-        {!isGbp && configureRoute && needsConfiguration && (
+        {configureRoute && needsConfiguration && (
           <Link
             to={configureRoute}
             className="ml-auto rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-navy transition-colors hover:border-teal hover:text-teal-dark"

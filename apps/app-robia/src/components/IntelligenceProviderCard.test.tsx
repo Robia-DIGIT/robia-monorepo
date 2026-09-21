@@ -109,7 +109,7 @@ describe('IntelligenceProviderCard', () => {
     expect(screen.queryByRole('link', { name: 'Configurer' })).not.toBeInTheDocument()
   })
 
-  it('renders GBP as a placeholder with no fake network CTA, whatever its status', () => {
+  it('links a disconnected GBP provider to the real Business Profile connector', () => {
     renderCard(
       signal({
         provider: 'gbp',
@@ -121,12 +121,8 @@ describe('IntelligenceProviderCard', () => {
       }),
     )
     expect(screen.getByText('Non connecté')).toBeInTheDocument()
-    expect(screen.getByTestId('intelligence-reason-gbp')).toHaveTextContent(
-      'Intégration à activer ultérieurement.',
-    )
-    expect(screen.queryByRole('link', { name: 'Configurer' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /connecter/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /connecter/i })).not.toBeInTheDocument()
+    expect(screen.getByTestId('intelligence-reason-gbp')).toHaveTextContent(/non connecté/i)
+    expect(screen.getByRole('link', { name: 'Configurer' })).toHaveAttribute('href', '/business-profile')
   })
 
   it('never offers a Configurer CTA for SEO or PageSpeed (no connection to configure)', () => {

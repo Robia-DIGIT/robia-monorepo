@@ -49,6 +49,42 @@ export interface Organization {
   createdAt: string;
 }
 
+export interface BusinessLocation {
+  id: string;
+  organizationId: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  phone: string | null;
+  isPrimary: boolean;
+  status: string;
+}
+
+export interface GoogleBusinessProfileStatus {
+  connected: boolean;
+  googleAccountEmail: string | null;
+  connectedAt: string | null;
+  lastSyncedAt: string | null;
+  locationCount: number;
+}
+
+export interface GoogleBusinessProfileLocation {
+  id: string;
+  googleAccountName: string;
+  accountDisplayName: string | null;
+  googleLocationName: string;
+  title: string;
+  storeCode: string | null;
+  address: Record<string, unknown> | null;
+  primaryPhone: string | null;
+  websiteUri: string | null;
+  primaryCategory: string | null;
+  lastSyncedAt: string;
+  robiaLocationId: string | null;
+  robiaLocation: Pick<BusinessLocation, "id" | "name" | "address" | "city" | "country"> | null;
+}
+
 export interface BillingSubscription {
   plan: "starter" | "pro" | string;
   status: string;
@@ -753,6 +789,85 @@ export async function createOrganization(payload: Partial<Organization>) {
 
 export async function getCurrentOrganization() {
   return request<Organization>("/organizations/current");
+}
+
+export async function listBusinessLocations() {
+  return request<BusinessLocation[]>("/locations");
+}
+
+export async function createBusinessLocation(payload: {
+  name: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
+  isPrimary?: boolean;
+}) {
+  return request<BusinessLocation>("/locations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteBusinessLocation(id: string) {
+  return request<{ deleted: boolean }>(`/locations/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getGoogleBusinessProfileStatus() {
+  return request<GoogleBusinessProfileStatus>(
+    "/integrations/google/business-profile/status",
+  );
+}
+
+export async function getGoogleBusinessProfileAuthorizationUrl() {
+  return request<{ url: string }>(
+    "/integrations/google/business-profile/authorize",
+    { credentials: "include" },
+  );
+}
+
+export async function listGoogleBusinessProfileLocations() {
+  return request<GoogleBusinessProfileLocation[]>(
+    "/integrations/google/business-profile/locations",
+  );
+}
+
+export async function syncGoogleBusinessProfileLocations() {
+  return request<{ synced: boolean; locationCount: number; syncedAt: string }>(
+    "/integrations/google/business-profile/sync",
+    { method: "POST" },
+  );
+}
+
+export async function linkGoogleBusinessProfileLocation(
+  id: string,
+  robiaLocationId: string,
+) {
+  return request<GoogleBusinessProfileLocation>(
+    `/integrations/google/business-profile/locations/${encodeURIComponent(id)}/link`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ robiaLocationId }),
+    },
+  );
+}
+
+export async function unlinkGoogleBusinessProfileLocation(id: string) {
+  return request<GoogleBusinessProfileLocation>(
+    `/integrations/google/business-profile/locations/${encodeURIComponent(id)}/link`,
+    { method: "DELETE" },
+  );
+}
+
+export async function disconnectGoogleBusinessProfile() {
+  return request<{ disconnected: boolean }>(
+    "/integrations/google/business-profile",
+    { method: "DELETE" },
+  );
 }
 
 export async function getSearchConsoleStatus() {
@@ -1646,6 +1761,7 @@ export function intelligenceConfigureRoute(
 ): string | null {
   if (provider === "search_console" || provider === "ga4") return "/google-data";
   if (provider === "meta") return "/meta-data";
+  if (provider === "gbp") return "/business-profile";
   return null;
 }
 
