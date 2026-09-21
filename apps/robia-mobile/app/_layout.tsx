@@ -301,12 +301,12 @@ function AppLayout() {
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-circle.png')}
               resizeMode="contain"
-              style={[styles.logoLayer, circleStyle]}
+              style={[styles.logoLayer, styles.logoLayerWhite, circleStyle]}
             />
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-left.png')}
               resizeMode="contain"
-              style={[styles.logoLayer, leftStyle]}
+              style={[styles.logoLayer, styles.logoLayerWhite, leftStyle]}
             />
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-ia.png')}
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#008f7d',
+    backgroundColor: Brand.teal,
   },
   launchBackground: {
     ...StyleSheet.absoluteFillObject,
@@ -389,5 +389,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+  },
+  logoLayerWhite: {
+    tintColor: Brand.white,
   },
 });

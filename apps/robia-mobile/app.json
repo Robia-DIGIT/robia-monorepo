@@ -31,9 +31,9 @@
           "image": "./assets/images/logo-robia-copilot.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#008f7d",
+          "backgroundColor": "#14B8A6",
           "dark": {
-            "backgroundColor": "#008f7d"
+            "backgroundColor": "#14B8A6"
           }
         }
       ],
