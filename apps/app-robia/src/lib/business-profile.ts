@@ -42,3 +42,9 @@ export function readGoogleBusinessConnection(): GoogleBusinessConnection {
 export function saveGoogleBusinessConnection(connection: GoogleBusinessConnection) {
   window.localStorage.setItem(GOOGLE_KEY, JSON.stringify(connection));
 }
+
+/** Remove the RC prototype cache only after a successful server migration. */
+export function clearLegacyBusinessProfile() {
+  window.localStorage.removeItem(LOCATIONS_KEY);
+  window.localStorage.removeItem(GOOGLE_KEY);
+}

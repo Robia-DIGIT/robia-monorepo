@@ -149,7 +149,7 @@ describe('PageCommandCenter — provider status grid', () => {
     const available = screen.getByText('Providers disponibles').closest('div')
     expect(available).toHaveTextContent('2')
     const toConfigure = screen.getByText('À configurer').closest('div')
-    expect(toConfigure).toHaveTextContent('3')
+    expect(toConfigure).toHaveTextContent('4')
   })
 })
 
@@ -280,7 +280,7 @@ describe('PageCommandCenter — navigation to existing engines', () => {
     )
   })
 
-  it('links each provider needing configuration to /google-data or /meta-data, and never for GBP', async () => {
+  it('links each provider needing configuration to its real connector', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue(fullStatus())
     mockedApi.listAudits.mockResolvedValue([])
 
@@ -298,6 +298,6 @@ describe('PageCommandCenter — navigation to existing engines', () => {
     expect(ga4Card.querySelector('a[href="/google-data"]')).not.toBeNull()
 
     const gbpCard = screen.getByTestId('intelligence-card-gbp')
-    expect(gbpCard.querySelector('a')).toBeNull()
+    expect(gbpCard.querySelector('a[href="/business-profile"]')).not.toBeNull()
   })
 })

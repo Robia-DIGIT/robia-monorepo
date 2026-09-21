@@ -140,9 +140,7 @@ export default function PageCommandCenter() {
     [signals],
   )
   // Only counts providers that actually have a configuration surface
-  // (search_console/ga4/meta → /google-data or /meta-data) — GBP is
-  // always 'not_connected' in RC-21 but has no real connector to set up
-  // yet, so it must never inflate this count (Codex review).
+  // Only counts providers that have a real configuration surface.
   const toConfigureCount = useMemo(
     () =>
       signals.filter(
