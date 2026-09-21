@@ -381,8 +381,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   logoStage: {
-    width: '74%',
-    maxWidth: 360,
+    width: '68%',
+    maxWidth: 330,
     aspectRatio: 1080 / 662,
   },
   logoLayer: {
