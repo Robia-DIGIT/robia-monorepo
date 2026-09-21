@@ -2,22 +2,22 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
-    Children,
-    useEffect,
-    useRef,
-    type PropsWithChildren,
-    type ReactNode,
+  Children,
+  useEffect,
+  useRef,
+  type PropsWithChildren,
+  type ReactNode,
 } from "react";
 import {
-    Animated,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-    type StyleProp,
-    type ViewStyle,
+  Animated,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
