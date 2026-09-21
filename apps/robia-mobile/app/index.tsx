@@ -265,48 +265,6 @@ export default function OnboardingScreen() {
               </View>
             </Animated.View>
 
-            <View
-              style={styles.pagination}
-              accessibilityLabel={"Étape " + (index + 1) + " sur 4"}
-            >
-              {SLIDES.map((slide, dotIndex) => (
-                <Pressable
-                  key={slide.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    "Étape " + (dotIndex + 1) + " : " + slide.title
-                  }
-                  accessibilityState={{ selected: dotIndex === index }}
-                  onPress={() => goToSlide(dotIndex)}
-                  style={styles.dotTarget}
-                >
-                  <View style={styles.dot}>
-                    <Animated.View
-                      style={[
-                        styles.dotHighlight,
-                        reduceMotion
-                          ? {
-                            opacity: dotIndex === activeIndex ? 1 : 0,
-                            transform: [{ scaleX: 1 }],
-                          }
-                          : {
-                            opacity: interpolatePage(dotIndex, [0, 1, 0]),
-                            transform: [
-                              {
-                                scaleX: interpolatePage(
-                                  dotIndex,
-                                  [0.2, 1, 0.2],
-                                ),
-                              },
-                            ],
-                          },
-                      ]}
-                    />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-
             <View style={[styles.copy, compact && styles.copyCompact]}>
               <Animated.Text
                 accessibilityRole="header"
@@ -327,6 +285,46 @@ export default function OnboardingScreen() {
           </ScrollView>
         )}
       />
+
+      <View
+        style={styles.pagination}
+        accessibilityLabel={"Étape " + (activeIndex + 1) + " sur 4"}
+      >
+        {SLIDES.map((slide, dotIndex) => (
+          <Pressable
+            key={slide.id}
+            accessibilityRole="button"
+            hitSlop={6}
+            accessibilityLabel={
+              "Étape " + (dotIndex + 1) + " : " + slide.title
+            }
+            accessibilityState={{ selected: dotIndex === activeIndex }}
+            onPress={() => goToSlide(dotIndex)}
+            style={styles.dotTarget}
+          >
+            <View style={styles.dot}>
+              <Animated.View
+                style={[
+                  styles.dotHighlight,
+                  reduceMotion
+                    ? {
+                      opacity: dotIndex === activeIndex ? 1 : 0,
+                      transform: [{ scaleX: 1 }],
+                    }
+                    : {
+                      opacity: interpolatePage(dotIndex, [0, 1, 0]),
+                      transform: [
+                        {
+                          scaleX: interpolatePage(dotIndex, [0.2, 1, 0.2]),
+                        },
+                      ],
+                    },
+                ]}
+              />
+            </View>
+          </Pressable>
+        ))}
+      </View>
 
       <View style={styles.footer}>
         <Pressable
@@ -425,7 +423,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   dotTarget: {
-    width: 44,
+    width: 32,
     height: 44,
     alignItems: "center",
     justifyContent: "center",
