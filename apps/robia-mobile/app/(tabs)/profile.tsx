@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { RobiaCard, RobiaScreen } from "@/components/robia-ui";
 import { Brand, Fonts } from "@/constants/theme";
@@ -25,6 +25,24 @@ export default function ProfileScreen() {
   async function signOut() {
     await logout();
     router.replace("/auth");
+  }
+
+  function confirmSignOut() {
+    const message = "Voulez-vous vraiment vous déconnecter de RobIA ?";
+    if (Platform.OS === "web") {
+      if (globalThis.confirm(message)) void signOut();
+      return;
+    }
+
+    Alert.alert(
+      "Se déconnecter ?",
+      message,
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Se déconnecter", style: "destructive", onPress: () => void signOut() },
+      ],
+      { cancelable: true },
+    );
   }
 
   return (
@@ -133,7 +151,8 @@ export default function ProfileScreen() {
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => void signOut()}
+        accessibilityHint="Demande confirmation avant de fermer votre session"
+        onPress={confirmSignOut}
         style={({ pressed }) => [styles.logout, pressed && styles.pressed]}
       >
         <MaterialIcons name="logout" size={18} color={Brand.orangeDark} />
