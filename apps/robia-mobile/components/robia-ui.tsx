@@ -2,24 +2,25 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
-  Children,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  type PropsWithChildren,
-  type ReactNode,
+    Children,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type PropsWithChildren,
+    type ReactNode,
 } from "react";
 import {
-  Animated,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
+    Animated,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+    type StyleProp,
+    type ViewStyle,
 } from "react-native";
 import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-handler';
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -184,49 +185,91 @@ export function RobiaFixedHeader({ children }: PropsWithChildren) {
 
 export function FilterTransition({
   filterKey,
+  index,
   children,
 }: PropsWithChildren<{
   filterKey: string;
+  index: number;
 }>) {
   const reduceMotion = useReducedMotion();
-  const opacity = useRef(new Animated.Value(1)).current;
-  const offset = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(1)).current;
+  const [width, setWidth] = useState(0);
+  const latestPage = useRef({ filterKey, index, children });
+  const [transition, setTransition] = useState<{
+    from: ReactNode;
+    to: ReactNode;
+    direction: number;
+  } | null>(null);
 
   useEffect(() => {
-    if (reduceMotion) {
-      opacity.setValue(1);
-      offset.setValue(0);
+    if (latestPage.current.filterKey === filterKey) {
+      latestPage.current = { filterKey, index, children };
       return;
     }
 
-    opacity.setValue(0.35);
-    offset.setValue(8);
-    const animation = Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-      Animated.timing(offset, {
-        toValue: 0,
-        duration: 260,
-        useNativeDriver: true,
-      }),
-    ]);
-    animation.start();
+    const previousPage = latestPage.current;
+    latestPage.current = { filterKey, index, children };
+    const direction = index >= previousPage.index ? -1 : 1;
+
+    if (reduceMotion) {
+      progress.setValue(1);
+      setTransition(null);
+      return;
+    }
+
+    setTransition({ from: previousPage.children, to: children, direction });
+    progress.setValue(0);
+    const animation = Animated.spring(progress, {
+      toValue: 1,
+      damping: 22,
+      mass: 0.8,
+      stiffness: 180,
+      useNativeDriver: true,
+    });
+    animation.start(({ finished }) => {
+      if (finished) setTransition(null);
+    });
 
     return () => animation.stop();
-  }, [filterKey, offset, opacity, reduceMotion]);
+  }, [children, filterKey, index, progress, reduceMotion]);
 
   return (
-    <Animated.View
-      style={[
-        styles.filterTransition,
-        { opacity, transform: [{ translateY: offset }] },
-      ]}
+    <View
+      style={styles.filterTransitionViewport}
+      onLayout={({ nativeEvent }) => {
+        setWidth(nativeEvent.layout.width);
+      }}
     >
-      {children}
-    </Animated.View>
+      <Animated.View
+        style={[
+          styles.filterTransition,
+          transition && {
+            width: width * 2,
+            flexDirection: "row",
+            transform: [{
+              translateX: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, transition.direction * width],
+              }),
+            }],
+          },
+        ]}
+      >
+        {transition ? (
+          transition.direction === -1 ? (
+            <>
+              <View style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
+              <View style={[styles.filterTransitionPage, { width }]}>{transition.to}</View>
+            </>
+          ) : (
+            <>
+              <View style={[styles.filterTransitionPage, { width }]}>{transition.to}</View>
+              <View style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
+            </>
+          )
+        ) : <View style={[styles.filterTransitionPage, { width }]}>{children}</View>}
+      </Animated.View>
+    </View>
   );
 }
 
@@ -469,7 +512,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   fixedHeaderGroup: { gap: 10 },
-  filterTransition: { flexGrow: 1, gap: 22 },
+  filterTransitionViewport: { flex: 1, overflow: "hidden" },
+  filterTransition: { flexGrow: 1 },
+  filterTransitionPage: { flexShrink: 0, gap: 22 },
   screenContentBelowHeader: { paddingTop: 12 },
   screenContent: {
     flex: 1,

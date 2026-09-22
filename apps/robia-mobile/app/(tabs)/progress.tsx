@@ -94,7 +94,7 @@ export default function ProgressScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
-      <FilterTransition filterKey={filter}>
+      <FilterTransition filterKey={filter} index={filters.indexOf(filter as typeof filters[number])}>
       <LoadState loading={isLoading} error={error ?? planError} retry={refresh} />
       <AsyncButton label="Partager le plan PDF" disabled={!actions.length} action={() => shareActionPdf(request, selectedWebsiteId)} />
       <RobiaCard style={styles.hero} accent={Brand.teal}>

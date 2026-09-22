@@ -1,13 +1,13 @@
 import {
-  FilterChips,
-  FilterTransition,
-  IconBadge,
-  RobiaCard,
-  RobiaFixedHeader,
-  RobiaHeader,
-  RobiaScreen,
-  StatusPill,
-  robiaStyles,
+    FilterChips,
+    FilterTransition,
+    IconBadge,
+    RobiaCard,
+    RobiaFixedHeader,
+    RobiaHeader,
+    RobiaScreen,
+    StatusPill,
+    robiaStyles,
 } from "@/components/robia-ui";
 import { SiteSelector } from '@/components/site-selector';
 import { Brand } from "@/constants/theme";
@@ -18,11 +18,11 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from 'expo-router';
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 export default function OpportunitiesScreen() {
@@ -72,7 +72,7 @@ export default function OpportunitiesScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
-      <FilterTransition filterKey={filter}>
+      <FilterTransition filterKey={filter} index={filters.indexOf(filter as typeof filters[number])}>
         {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
       {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
       <View style={styles.summary}>

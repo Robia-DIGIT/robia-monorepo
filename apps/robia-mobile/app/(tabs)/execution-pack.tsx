@@ -57,7 +57,7 @@ export default function ExecutionPackScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
-      <FilterTransition filterKey={filter}>
+      <FilterTransition filterKey={filter} index={filters.indexOf(filter as typeof filters[number])}>
       <LoadState loading={isLoading} error={error} retry={refresh} />
       <AsyncButton label="Historique des validations" action={async () => router.push("/validations")} />
       <View style={styles.progressCard}>
