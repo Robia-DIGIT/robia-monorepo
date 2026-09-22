@@ -357,7 +357,10 @@ export type DocumentType =
 
 export interface DocumentItem {
   id: string;
-  opportunityId: string;
+  // Required on every document from the legacy opportunity-only endpoints;
+  // absent on a document created freely (RC39, no Opportunity) via the
+  // Content Studio contract.
+  opportunityId?: string;
   type: DocumentType;
   title?: string;
   content: string;
@@ -365,6 +368,13 @@ export interface DocumentItem {
   status?: string;
   createdAt?: string;
   updatedAt?: string;
+  // RC39: only present on documents created/read through the Content Studio
+  // contract (generateStudioDocument / listDocumentsByWebsite) — absent on
+  // documents from the legacy opportunity-only DocumentWorkflow.
+  websiteId?: string;
+  actionItemId?: string;
+  revision?: number;
+  brief?: DocumentBrief;
 }
 
 export type ValidationActionType = "publish" | "update" | "reply" | string;
@@ -1186,6 +1196,66 @@ export async function createValidation(payload: {
 
 export async function listValidations() {
   return request<ValidationLog[]>("/validations");
+}
+
+// ── Content Studio (RC39) ────────────────────────────────────────────────────
+// Separate from the functions above: those back the pre-existing
+// opportunity-only DocumentWorkflow (PageExecution) and must keep working
+// unchanged. The Studio (PageIA) targets the RC39 contract — a website-scoped
+// document, an optional opportunity/action link, a real brief, and optimistic
+// concurrency on save — so it gets its own functions rather than overloading
+// the legacy ones with a second, incompatible payload shape.
+
+export interface DocumentBrief {
+  objective: string;
+  audience: string;
+  tone: string;
+  locale: string;
+  facts: string[];
+}
+
+export interface GenerateStudioDocumentPayload {
+  type: DocumentType;
+  websiteId: string;
+  opportunityId?: string;
+  actionItemId?: string;
+  brief: DocumentBrief;
+}
+
+export const MAX_DOCUMENT_BRIEF_FACTS = 12;
+
+export async function generateStudioDocument(
+  payload: GenerateStudioDocumentPayload,
+) {
+  return request<DocumentItem>("/documents/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listDocumentsByWebsite(websiteId: string) {
+  return request<DocumentItem[]>("/documents", {
+    query: { website_id: websiteId },
+  });
+}
+
+// The backend rejects a stale save with 409 rather than silently
+// overwriting; request() already surfaces that as ApiError(status: 409) via
+// its generic !response.ok branch, so no special-casing is needed here.
+export async function saveDocumentRevision(
+  id: string,
+  payload: { content: string; expectedRevision: number },
+) {
+  return request<DocumentItem>(`/documents/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function isRevisionConflict(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 409;
 }
 
 export async function generateActions(opportunityId: string) {
