@@ -189,6 +189,8 @@ describe('PageAnalyse — Concurrents tab', () => {
     const actualApi = await vi.importActual<typeof api>('../lib/api')
     mockedApi.competitorScore.mockImplementation(actualApi.competitorScore)
     mockedApi.auditScore.mockImplementation(actualApi.auditScore)
+    mockedApi.auditSubscores.mockImplementation(actualApi.auditSubscores)
+    mockedApi.competitorSubscores.mockImplementation(actualApi.competitorSubscores)
 
     mockedApi.getLatestAudit.mockResolvedValue({
       id: 'a1',
@@ -293,5 +295,49 @@ describe('PageAnalyse — Concurrents tab', () => {
     await waitFor(() =>
       expect(screen.queryByText('https://concurrent.example.com')).not.toBeInTheDocument(),
     )
+  })
+
+  it('surfaces a real, category-specific recommendation when a completed competitor leads by a meaningful margin', async () => {
+    mockedApi.listCompetitors.mockResolvedValue([
+      competitor({
+        name: 'Concurrent SA',
+        status: 'completed',
+        globalScore: 70,
+        // Own site's subscores are all 0 (beforeEach) — a 45-point lead on
+        // 'content' clears the 10-point threshold, a 3-point lead on
+        // 'local' does not and must never appear as a recommendation.
+        resultJson: {
+          summary: '',
+          subscores: { local: 3, content: 45, technical: 0, performance: 0, ai_readiness: 0 },
+          global_score: 70,
+          missing_data: [],
+        },
+      }),
+    ])
+
+    await renderOnConcurrentsTab()
+
+    expect(await screen.findByText('Recommandations basées sur la concurrence')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName.toLowerCase() === 'p' &&
+          element.textContent === 'Concurrent SA vous devance de 45 points sur Contenu local (45/100 contre 0/100) — priorisez vos opportunités de cette catégorie.',
+      ),
+    ).toBeInTheDocument()
+    // 'Local' only leads by 3 points — below the meaningful-gap threshold,
+    // never surfaced as its own recommendation line.
+    expect(screen.queryByText(/vous devance.*Présence locale/)).not.toBeInTheDocument()
+  })
+
+  it('never shows a competition-based recommendation for a competitor that has not completed an analysis', async () => {
+    mockedApi.listCompetitors.mockResolvedValue([
+      competitor({ status: 'pending', globalScore: null, resultJson: null }),
+    ])
+
+    await renderOnConcurrentsTab()
+
+    expect(await screen.findByText('En attente')).toBeInTheDocument()
+    expect(screen.queryByText('Recommandations basées sur la concurrence')).not.toBeInTheDocument()
   })
 })

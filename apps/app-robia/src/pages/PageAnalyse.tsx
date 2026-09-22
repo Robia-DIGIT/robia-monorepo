@@ -48,6 +48,8 @@ import {
   runCompetitor,
   deleteCompetitor,
   competitorScore,
+  competitorSubscores,
+  type AuditSubscores,
   type Audit,
   type Opportunity,
   type Organization,
@@ -92,6 +94,17 @@ function competitorStatusLabel(status: string): string {
   }
 }
 
+// Matches the exact wording already used for these same 5 keys in the "Vue
+// d'ensemble" tab's own subscore bars (below) — never introduce a second
+// translation for the same category axis.
+const SUBSCORE_LABELS: Record<'local' | 'content' | 'technical' | 'performance' | 'ai_readiness', string> = {
+  local: 'Présence locale',
+  content: 'Contenu local',
+  technical: 'Cohérence NAP / Technique',
+  performance: 'Performance site',
+  ai_readiness: "Prêt pour l'IA",
+}
+
 export default function PageAnalyse() {
   const navigate = useNavigate()
   const [organization, setOrganization] = useState<Organization | null>(null)
@@ -129,6 +142,31 @@ export default function PageAnalyse() {
   const pageSpeedInsights = auditPageSpeedInsights(latestAudit)
   const seoScoreV2 = auditSeoScoreV2(latestAudit)
   const searchConsoleSignals = auditGoogleSearchConsole(latestAudit)
+
+  // Same 5-category breakdown the "Vue d'ensemble" tab already renders for
+  // your own site — a competitor is scored by the exact same audit engine
+  // (see competitorSubscores()'s own comment), so a category-by-category gap
+  // is a real, evidence-based comparison, not a guess. 10 points is the
+  // threshold already used elsewhere in this file for "Bon"/"À améliorer"
+  // score bands (summaryScore >= 75/50) scaled down to a single category —
+  // small enough to catch a real lead, large enough to filter out noise.
+  const competitorGapRecommendations = useMemo(() => {
+    if (!subscores) return []
+    const keys: Array<keyof AuditSubscores> = ['local', 'content', 'technical', 'performance', 'ai_readiness']
+    const gaps: Array<{ competitor: Competitor; key: keyof AuditSubscores; gap: number; competitorValue: number; ownValue: number }> = []
+    for (const competitor of competitors) {
+      if (competitor.status !== 'completed') continue
+      const compScores = competitorSubscores(competitor)
+      if (!compScores) continue
+      for (const key of keys) {
+        const gap = compScores[key] - subscores[key]
+        if (gap >= 10) {
+          gaps.push({ competitor, key, gap, competitorValue: compScores[key], ownValue: subscores[key] })
+        }
+      }
+    }
+    return gaps.sort((a, b) => b.gap - a.gap).slice(0, 6)
+  }, [competitors, subscores])
 
   const filteredRecommendations = useMemo(() => {
     return opportunities
@@ -550,6 +588,27 @@ export default function PageAnalyse() {
                       </div>
                       <div className="shrink-0 text-[28px] font-bold tracking-tight text-navy">{summaryScore}</div>
                     </div>
+
+                    {competitorGapRecommendations.length > 0 && (
+                      <div className="rounded-xl border border-orange/30 bg-orange-light/20 p-4">
+                        <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">
+                          Recommandations basées sur la concurrence
+                        </p>
+                        <div className="space-y-2.5">
+                          {competitorGapRecommendations.map(({ competitor, key, gap, competitorValue, ownValue }) => (
+                            <div key={`${competitor.id}-${key}`} className="flex items-start gap-3 rounded-lg bg-white px-3 py-2.5">
+                              <TrendingUp size={16} className="mt-0.5 shrink-0 text-orange-dark" />
+                              <p className="text-sm text-dark">
+                                <span className="font-semibold text-navy">{competitor.name || competitor.url}</span>
+                                {' '}vous devance de <span className="font-bold text-orange-dark">{gap} points</span> sur{' '}
+                                <span className="font-semibold">{SUBSCORE_LABELS[key]}</span>
+                                {' '}({competitorValue}/100 contre {ownValue}/100) — priorisez vos opportunités de cette catégorie.
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {competitors.map((competitor) => {
                       const score = competitorScore(competitor)

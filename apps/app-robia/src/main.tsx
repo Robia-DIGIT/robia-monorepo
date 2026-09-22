@@ -19,6 +19,7 @@ import ProfilePage from './pages/ProfilePage'
 import BusinessProfilePage from './pages/BusinessProfilePage'
 import GoogleDataPage from './pages/GoogleDataPage'
 import MetaDataPage from './pages/MetaDataPage'
+import PageMotsCles from './pages/PageMotsCles.tsx'
 import CreateOrganizationPage from './pages/OrganisationPage.tsx'
 import BillingPage from './pages/BillingPage.tsx'
 import PageOpsAutomations from './pages/PageOpsAutomations.tsx'
@@ -50,6 +51,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="opportunites" element={<PageOpportunites />} />
             <Route path="execution" element={<PageExecution />} />
             <Route path="rapports" element={<PageRapports />} />
+            <Route path="mots-cles" element={<PageMotsCles />} />
             <Route path="ia" element={<PageIA />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="business-profile" element={<BusinessProfilePage />} />

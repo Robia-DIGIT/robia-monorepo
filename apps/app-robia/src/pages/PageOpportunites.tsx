@@ -20,6 +20,7 @@ import {
   oppPriorityScore,
   opportunitySourceData,
   effortLabel,
+  categoryLabel,
   type Opportunity,
 } from '../lib/api'
 
@@ -79,7 +80,7 @@ function OppCard({ opp, onTransition, onCreateMetaAction }: { opp: Opportunity; 
   const buttonLabel = done ? 'Réouvrir' : inProgress ? 'Marquer comme résolue' : 'Prendre en charge'
   return (
     <article className={`group border-l-2 px-4 py-4 transition-colors ${done ? 'border-teal bg-teal-light/25' : priority.variant === 'orange' ? 'border-orange hover:bg-orange-light/15' : 'border-border hover:border-teal hover:bg-slate-bg'}`}>
-      <div className="mb-2 flex items-start justify-between gap-3"><div className="flex flex-wrap items-center gap-2"><Badge variant={priority.variant}>{priority.label}</Badge><Badge variant="gray">{opp.category ?? 'Divers'}</Badge><span className="text-[10px] font-bold text-muted">Priorité {priorityScore}/100</span></div>{done && <CheckCircle2 size={18} className="shrink-0 text-teal" />}</div>
+      <div className="mb-2 flex items-start justify-between gap-3"><div className="flex flex-wrap items-center gap-2"><Badge variant={priority.variant}>{priority.label}</Badge><Badge variant="gray">{categoryLabel(opp.category)}</Badge><span className="text-[10px] font-bold text-muted">Priorité {priorityScore}/100</span></div>{done && <CheckCircle2 size={18} className="shrink-0 text-teal" />}</div>
       <h3 className="mb-1 text-sm font-semibold text-dark">{opp.title ?? 'Opportunité sans titre'}</h3>
       <p className="mb-3 text-xs leading-relaxed text-muted">{opp.description ?? 'Détail fourni par le backend.'}</p>
       {source.summary && <p className="mb-3 rounded-lg bg-slate-bg px-3 py-2 text-xs font-medium text-dark">Constat : {source.summary}</p>}
@@ -129,12 +130,13 @@ export default function PageOpportunites() {
     if (entries.length === 1) {
       const [cat, items] = entries[0]
       const mid = Math.ceil(items.length / 2)
+      const label = categoryLabel(cat)
       return [
-        { category: `${cat} — A`, items: items.slice(0, mid) },
-        { category: `${cat} — B`, items: items.slice(mid) },
+        { key: `${cat}-a`, category: `${label} — A`, items: items.slice(0, mid) },
+        { key: `${cat}-b`, category: `${label} — B`, items: items.slice(mid) },
       ]
     }
-    return entries.map(([category, items]) => ({ category, items }))
+    return entries.map(([cat, items]) => ({ key: cat, category: categoryLabel(cat), items }))
   }, [activeOpps])
 
   const loadData = async () => {
@@ -225,8 +227,8 @@ export default function PageOpportunites() {
   const columns = categorized.length > 0
     ? categorized
     : [
-        { category: 'Visibilité & Présence', items: [] },
-        { category: 'Contenu & Technique', items: [] },
+        { key: 'visibilite', category: 'Visibilité & Présence', items: [] },
+        { key: 'contenu', category: 'Contenu & Technique', items: [] },
       ]
 
   return (
@@ -254,7 +256,7 @@ export default function PageOpportunites() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {columns.map((column) => (
           <OppColumn
-            key={column.category}
+            key={column.key}
             title={column.category}
             opps={column.items}
             onTransition={transitionOpportunity}
