@@ -6,6 +6,18 @@ const path = require('node:path');
 const ts = require('typescript');
 const React = require('react');
 
+function loadTypeScript(relativePath, mocks = {}) {
+  const filename = path.resolve(__dirname, relativePath);
+  const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const module = { exports: {} };
+  new Function('require', 'module', 'exports', compiled)(
+    name => mocks[name] ?? require(name), module, module.exports,
+  );
+  return module.exports;
+}
+
 // Exercise the tab bar's real press handlers and selected state without a
 // native runtime. Device swipes and TalkBack still require an Android device.
 function renderBar(index, { prevent = false, fontScale = 1 } = {}) {
@@ -129,4 +141,98 @@ test('the pager delegates swipes to filtered pages and keeps other pages swipeab
     progress: false,
     profile: true,
   });
+});
+
+test('native swipe completion changes filters first and ignores cancelled or short gestures', () => {
+  const visits = [];
+  const changes = [];
+  const filterLogic = loadTypeScript('../src/navigation/filter-swipe.ts');
+  function createPan() {
+    const gesture = { config: {} };
+    for (const method of ['enabled', 'maxPointers', 'activeOffsetX', 'failOffsetY', 'runOnJS']) {
+      gesture[method] = value => { gesture.config[method] = value; return gesture; };
+    }
+    gesture.onEnd = callback => { gesture.finish = callback; return gesture; };
+    return gesture;
+  }
+  const { useFilterSwipe } = loadTypeScript('../hooks/use-filter-swipe.ts', {
+    react: { useMemo: callback => callback(), useRef: value => ({ current: value }) },
+    '@react-navigation/native': { useIsFocused: () => true },
+    'react-native-gesture-handler': { Gesture: { Pan: createPan } },
+    'expo-router': { router: { navigate: route => visits.push(route) } },
+    '@/src/navigation/filter-swipe': filterLogic,
+  });
+  const swipe = selected => useFilterSwipe({
+    filters: ['Toutes', 'Prioritaires', 'Faible effort'],
+    selected,
+    onChange: value => changes.push(value),
+    previousTab: '/(tabs)/dashboard',
+    nextTab: '/(tabs)/execution-pack',
+  });
+  const first = swipe('Toutes');
+  assert.ok(first.config.activeOffsetX[0] < 0 && first.config.activeOffsetX[1] > 0);
+  assert.ok(first.config.failOffsetY[0] < 0 && first.config.failOffsetY[1] > 0);
+  first.finish({ translationX: -120, velocityX: -500 }, false);
+  first.finish({ translationX: -12, velocityX: -20 }, true);
+  assert.deepEqual(changes, []);
+  assert.deepEqual(visits, []);
+
+  first.finish({ translationX: -90, velocityX: -250 }, true);
+  assert.deepEqual(changes, ['Prioritaires']);
+  assert.deepEqual(visits, []);
+  swipe('Prioritaires').finish({ translationX: -30, velocityX: -800 }, true);
+  assert.deepEqual(changes, ['Prioritaires', 'Faible effort']);
+  assert.deepEqual(visits, []);
+  swipe('Faible effort').finish({ translationX: 90, velocityX: 250 }, true);
+  assert.equal(changes.at(-1), 'Prioritaires');
+  assert.deepEqual(visits, []);
+  swipe('Faible effort').finish({ translationX: -90, velocityX: -250 }, true);
+  swipe('Toutes').finish({ translationX: 90, velocityX: 250 }, true);
+  assert.deepEqual(visits, ['/(tabs)/execution-pack', '/(tabs)/dashboard']);
+});
+
+test('the native filter gesture covers the header and content before vertical scrolling can activate', () => {
+  const { RobiaScreen, FilterChips } = loadTypeScript('../components/robia-ui.tsx', {
+    react: {
+      ...React, useMemo: callback => callback(), useCallback: callback => callback,
+      useEffect() {}, useRef: value => ({ current: value }),
+    },
+    'react-native': {
+      ScrollView: 'ScrollView', View: 'View', Text: 'Text', Pressable: 'Pressable',
+      StyleSheet: { create: styles => styles, hairlineWidth: 1 },
+    },
+    '@expo/vector-icons/MaterialIcons': 'MaterialIcons',
+    'expo-image': { Image: 'Image' },
+    'expo-router': { router: {} },
+    '@/constants/theme': { Brand: {}, Fonts: {} },
+    '@/hooks/use-reduced-motion': { useReducedMotion: () => true },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+    'react-native-gesture-handler': {
+      GestureDetector: 'GestureDetector',
+      Gesture: { Native: () => ({
+        requireExternalGestureToFail(gesture) { this.waitFor = gesture; return this; },
+      }) },
+    },
+  });
+  const swipeGesture = {};
+  const header = React.createElement('Header', { key: 'header' });
+  const content = React.createElement('Content', { key: 'content' });
+  const screen = RobiaScreen({ fixedHeader: true, swipeGesture, children: [header, content] });
+  assert.equal(screen.type, 'GestureDetector');
+  assert.equal(screen.props.gesture, swipeGesture);
+  const [fixedHeader, scrollDetector] = screen.props.children.props.children;
+  assert.equal(fixedHeader.props.children.props.children.type, 'Header');
+  assert.equal(scrollDetector.props.gesture.waitFor, swipeGesture);
+  assert.equal(scrollDetector.props.children.type, 'ScrollView');
+
+  const chips = FilterChips({
+    options: ['Toutes', 'Prioritaires'], selected: 'Prioritaires',
+    onChange() {}, swipeToSelect: true,
+  });
+  assert.equal(chips.props.scrollEnabled, false);
+  const scrolls = [];
+  chips.props.ref.current = { scrollTo: value => scrolls.push(value) };
+  chips.props.onLayout({ nativeEvent: { layout: { width: 200 } } });
+  chips.props.children[1].props.onLayout({ nativeEvent: { layout: { x: 150, width: 100 } } });
+  assert.deepEqual(scrolls, [{ x: 100, animated: false }]);
 });
