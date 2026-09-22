@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { FileCheck2, FilePlus2, Save, ShieldCheck, XCircle } from 'lucide-react'
+import { FileCheck2, FilePlus2, RefreshCw, Save, ShieldCheck, XCircle } from 'lucide-react'
 
 import {
   createValidation,
   generateDocument,
+  getDocument,
+  isRevisionConflict,
   listDocuments,
   updateDocument,
   type DocumentItem,
@@ -34,6 +36,7 @@ export default function DocumentWorkflow({ opportunities, onValidationCreated }:
   const [content, setContent] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [conflict, setConflict] = useState<{ serverDocument: DocumentItem; localContent: string } | null>(null)
 
   useEffect(() => {
     if (!opportunities.some((item) => item.id === opportunityId)) {
@@ -42,6 +45,7 @@ export default function DocumentWorkflow({ opportunities, onValidationCreated }:
   }, [opportunities, opportunityId])
 
   useEffect(() => {
+    setConflict(null)
     if (!opportunityId) {
       setDocuments([])
       setActiveDocument(null)
@@ -68,12 +72,14 @@ export default function DocumentWorkflow({ opportunities, onValidationCreated }:
     const selected = documents.find((item) => item.id === id) ?? null
     setActiveDocument(selected)
     setContent(selected?.content ?? '')
+    setConflict(null)
   }
 
   const handleGenerate = async () => {
     if (!opportunityId) return
     setBusy(true)
     setError('')
+    setConflict(null)
     try {
       const generated = await generateDocument({ opportunityId, type: documentType })
       setDocuments((current) => [generated, ...current])
@@ -86,29 +92,63 @@ export default function DocumentWorkflow({ opportunities, onValidationCreated }:
     }
   }
 
-  const handleSave = async () => {
-    if (!activeDocument || !content.trim()) return
-    setBusy(true)
-    setError('')
+  // Returns the saved document on success, or null on a 409 conflict — the
+  // conflict banner is shown and the local text preserved for copy, but the
+  // caller (handleValidation in particular) must never treat null as "saved"
+  // and continue on to createValidation with stale content.
+  const saveActiveDocument = async (): Promise<DocumentItem | null> => {
+    if (!activeDocument) return null
     try {
-      const updated = await updateDocument(activeDocument.id, { content: content.trim() })
+      const updated = await updateDocument(activeDocument.id, {
+        content: content.trim(),
+        expectedRevision: activeDocument.revision ?? 1,
+      })
       setActiveDocument(updated)
       setDocuments((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      setConflict(null)
+      return updated
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Impossible d'enregistrer le document.")
-    } finally {
-      setBusy(false)
+      if (isRevisionConflict(saveError)) {
+        try {
+          const serverDocument = await getDocument(activeDocument.id)
+          setConflict({ serverDocument, localContent: content })
+        } catch {
+          setError('Conflit de version détecté, et impossible de recharger la dernière version.')
+        }
+      } else {
+        setError(saveError instanceof Error ? saveError.message : "Impossible d'enregistrer le document.")
+      }
+      return null
     }
   }
 
+  const handleSave = async () => {
+    if (!activeDocument || !content.trim() || busy) return
+    setBusy(true)
+    setError('')
+    await saveActiveDocument()
+    setBusy(false)
+  }
+
+  const reloadFromConflict = () => {
+    if (!conflict) return
+    setActiveDocument(conflict.serverDocument)
+    setContent(conflict.serverDocument.content)
+    setDocuments((current) => current.map((item) => (item.id === conflict.serverDocument.id ? conflict.serverDocument : item)))
+    setConflict(null)
+  }
+
   const handleValidation = async (status: 'approved' | 'rejected') => {
-    if (!activeDocument || !content.trim()) return
+    if (!activeDocument || !content.trim() || busy) return
     setBusy(true)
     setError('')
     try {
       const savedDocument = content.trim() !== activeDocument.content
-        ? await updateDocument(activeDocument.id, { content: content.trim() })
+        ? await saveActiveDocument()
         : activeDocument
+
+      if (!savedDocument) return // conflict — never proceed to createValidation with content the server just rejected
+
       await createValidation({ documentId: savedDocument.id, actionType: 'update', platform: 'website', status })
       const validatedDocument = { ...savedDocument, status: status === 'approved' ? 'validated' : savedDocument.status }
       setActiveDocument(validatedDocument)
@@ -154,12 +194,30 @@ export default function DocumentWorkflow({ opportunities, onValidationCreated }:
 
           <div className="bg-white">
             {error && <div className="mb-4 border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+            {conflict && (
+              <div className="mb-4 space-y-2 border-l-2 border-orange bg-orange-light/30 px-4 py-3">
+                <p className="text-sm font-semibold text-orange-dark">
+                  Une autre modification existe déjà pour ce document — votre version n'a pas été enregistrée.
+                </p>
+                <p className="text-xs text-muted">
+                  Votre texte local est conservé ci-dessous pour que vous puissiez le copier avant de recharger la dernière version.
+                </p>
+                <textarea
+                  readOnly
+                  value={conflict.localContent}
+                  className="min-h-24 w-full rounded-lg border border-orange/40 bg-white p-2 text-xs text-dark"
+                />
+                <Button variant="outline" size="sm" icon={<RefreshCw size={13} />} onClick={reloadFromConflict}>
+                  Recharger la dernière version
+                </Button>
+              </div>
+            )}
             {!activeDocument ? (
               <EmptyState icon={<FileCheck2 size={18} />} title="Aucun brouillon sélectionné" description="Choisissez un type de livrable puis lancez la génération." />
             ) : (
               <>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <div><p className="font-bold text-navy">{activeDocument.title ?? 'Brouillon ROBIA'}</p><p className="text-xs text-muted">Statut : {activeDocument.status ?? 'draft'}</p></div>
+                  <div><p className="font-bold text-navy">{activeDocument.title ?? 'Brouillon ROBIA'}</p><p className="text-xs text-muted">Statut : {activeDocument.status ?? 'draft'} · Révision {activeDocument.revision ?? 1}</p></div>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" loading={busy} icon={<Save size={13} />} onClick={handleSave}>Enregistrer</Button>
                     <Button variant="danger" size="sm" loading={busy} icon={<XCircle size={13} />} onClick={() => void handleValidation('rejected')}>Rejeter</Button>

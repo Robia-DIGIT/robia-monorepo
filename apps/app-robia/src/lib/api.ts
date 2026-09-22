@@ -357,7 +357,10 @@ export type DocumentType =
 
 export interface DocumentItem {
   id: string;
-  opportunityId: string;
+  // Required on every document from the legacy opportunity-only endpoints;
+  // absent on a document created freely (RC39, no Opportunity) via the
+  // Content Studio contract.
+  opportunityId?: string;
   type: DocumentType;
   title?: string;
   content: string;
@@ -365,6 +368,13 @@ export interface DocumentItem {
   status?: string;
   createdAt?: string;
   updatedAt?: string;
+  // RC39: only present on documents created/read through the Content Studio
+  // contract (generateStudioDocument / listDocumentsByWebsite) — absent on
+  // documents from the legacy opportunity-only DocumentWorkflow.
+  websiteId?: string;
+  actionItemId?: string;
+  revision?: number;
+  brief?: DocumentBrief;
 }
 
 export type ValidationActionType = "publish" | "update" | "reply" | string;
@@ -1160,9 +1170,25 @@ export async function getDocument(id: string) {
   return request<DocumentItem>(`/documents/${encodeURIComponent(id)}`);
 }
 
+export interface UpdateDocumentPayload {
+  content?: string;
+  title?: string;
+  status?: string;
+  // Recommended on every save — the backend rejects a stale write with 409
+  // rather than silently overwriting it. Left optional only because the
+  // backend still accepts an omitted value temporarily, to avoid a hard
+  // break during rollout while every caller is migrated (see
+  // DocumentWorkflow.tsx, since migrated to always send it).
+  expectedRevision?: number;
+}
+
+// Single function for the one real PATCH /documents/:id contract — the
+// legacy opportunity-only DocumentWorkflow and the Content Studio composer
+// both save through this, both now with expectedRevision. Two differently-
+// named functions hitting the same route invited them to drift out of sync.
 export async function updateDocument(
   id: string,
-  payload: Partial<DocumentItem>,
+  payload: UpdateDocumentPayload,
 ) {
   return request<DocumentItem>(`/documents/${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -1186,6 +1212,69 @@ export async function createValidation(payload: {
 
 export async function listValidations() {
   return request<ValidationLog[]>("/validations");
+}
+
+// ── Content Studio (RC39) ────────────────────────────────────────────────────
+// Separate from the functions above: those back the pre-existing
+// opportunity-only DocumentWorkflow (PageExecution) and must keep working
+// unchanged. The Studio (PageIA) targets the RC39 contract — a website-scoped
+// document, an optional opportunity/action link, a real brief, and optimistic
+// concurrency on save — so generation and listing get their own functions
+// rather than overloading the legacy ones with a second, incompatible
+// payload shape. Saving a revision, however, is the exact same
+// PATCH /documents/:id as the legacy flow — see updateDocument() above,
+// which both now share (no second, competing update function).
+
+export interface DocumentBrief {
+  // Required for a free generation (no opportunityId) — enforced client-side
+  // before ever calling generateStudioDocument, see ContentComposer. Omitted
+  // entirely when empty and an Opportunity already supplies it, rather than
+  // sent as an empty string the backend would have to (or fail to) ignore.
+  objective?: string;
+  audience?: string;
+  tone?: string;
+  locale: string;
+  facts?: string[];
+}
+
+export interface GenerateStudioDocumentPayload {
+  type: DocumentType;
+  websiteId: string;
+  opportunityId?: string;
+  actionItemId?: string;
+  brief: DocumentBrief;
+}
+
+export const MAX_DOCUMENT_BRIEF_FACTS = 12;
+export const MIN_FREE_OBJECTIVE_LENGTH = 3;
+
+export async function generateStudioDocument(
+  payload: GenerateStudioDocumentPayload,
+) {
+  return request<DocumentItem>("/documents/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listDocumentsByWebsite(websiteId: string) {
+  return request<DocumentItem[]>("/documents", {
+    query: { website_id: websiteId },
+  });
+}
+
+export function isRevisionConflict(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 409;
+}
+
+// The backend has no structured error code for this yet — matching on its
+// documented message is the only signal available. Fragile to a wording
+// change, but the alternative (treating every generation failure the same)
+// would leave a rejected opportunity/website mismatch sitting on screen as
+// if it were still valid context.
+export function isOpportunitySiteMismatch(error: unknown): error is ApiError {
+  return error instanceof ApiError && /n'appartient pas au site/i.test(error.message);
 }
 
 export async function generateActions(opportunityId: string) {
