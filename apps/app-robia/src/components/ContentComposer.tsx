@@ -67,12 +67,23 @@ export default function ContentComposer({
   const [conflict, setConflict] = useState<{ serverDocument: DocumentItem; localContent: string } | null>(null)
   const [mobilePane, setMobilePane] = useState<MobilePane>('brief')
 
-  const activeWebsiteId = useRef(websiteId)
   const requestSeq = useRef(0)
+  // Remounting via `key` on a site/selection change (see PageIA) unmounts
+  // this exact instance — but nothing stops a promise this instance is
+  // still awaiting from resolving afterwards. mountedRef is the only signal
+  // that actually reflects "this instance is gone"; requestSeq additionally
+  // catches an overlapping request within the same still-mounted instance.
+  // Both must be checked after every await, including inside catch/finally
+  // and the second await (getDocument) reached only from a 409 branch.
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    activeWebsiteId.current = websiteId
-  }, [websiteId])
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      requestSeq.current += 1
+    }
+  }, [])
 
   const isDirty = document != null && content !== document.content
   const isFreeCreation = !opportunityId
@@ -117,7 +128,6 @@ export default function ContentComposer({
     if (generating || !websiteId || !canGenerate) return // guards against a double-click firing two generations, and against a free generation with no usable objective
 
     const requestId = ++requestSeq.current
-    const requestWebsiteId = websiteId
     setGenerating(true)
     setError('')
     setConflict(null)
@@ -125,14 +135,14 @@ export default function ContentComposer({
     try {
       const generated = await generateStudioDocument({
         type,
-        websiteId: requestWebsiteId,
+        websiteId,
         opportunityId,
         actionItemId: actionItem?.id,
         brief: buildBrief(),
       })
 
-      if (requestSeq.current !== requestId || activeWebsiteId.current !== requestWebsiteId) {
-        return // site changed while this generation was in flight — drop the stale result
+      if (!mountedRef.current || requestSeq.current !== requestId) {
+        return // this instance is gone (unmounted or superseded) — never touch its state or fire its callbacks
       }
 
       setDocument(generated)
@@ -140,7 +150,7 @@ export default function ContentComposer({
       setMobilePane('content')
       onDocumentPersisted()
     } catch (generationError) {
-      if (requestSeq.current !== requestId || activeWebsiteId.current !== requestWebsiteId) return
+      if (!mountedRef.current || requestSeq.current !== requestId) return
 
       if (isOpportunitySiteMismatch(generationError)) {
         setError("L'opportunité liée ne correspond pas à ce site — contexte retiré. Relancez la génération depuis une Opportunité de ce site, ou en création libre.")
@@ -153,13 +163,13 @@ export default function ContentComposer({
         setError(generationError instanceof Error ? generationError.message : 'Impossible de générer le document.')
       }
     } finally {
-      if (requestSeq.current === requestId) setGenerating(false)
+      if (mountedRef.current && requestSeq.current === requestId) setGenerating(false)
     }
   }
 
   const handleSave = async () => {
     if (!document || saving) return
-    const requestWebsiteId = websiteId
+    const requestId = ++requestSeq.current
     setSaving(true)
     setError('')
 
@@ -169,26 +179,29 @@ export default function ContentComposer({
         expectedRevision: document.revision ?? 1,
       })
 
-      if (activeWebsiteId.current !== requestWebsiteId) return // site changed while this save was in flight — drop the stale result
+      if (!mountedRef.current || requestSeq.current !== requestId) return // this instance is gone — never touch its state or fire its callbacks
 
       setDocument(updated)
       setContent(updated.content)
       setConflict(null)
       onDocumentPersisted()
     } catch (saveError) {
-      if (activeWebsiteId.current !== requestWebsiteId) return
+      if (!mountedRef.current || requestSeq.current !== requestId) return
+
       if (isRevisionConflict(saveError)) {
         try {
           const serverDocument = await getDocument(document.id)
+          if (!mountedRef.current || requestSeq.current !== requestId) return // second await after the 409 — re-check before showing a conflict banner on a dead/superseded instance
           setConflict({ serverDocument, localContent: content })
         } catch {
+          if (!mountedRef.current || requestSeq.current !== requestId) return
           setError('Conflit de version détecté, et impossible de recharger la dernière version.')
         }
       } else {
         setError(saveError instanceof Error ? saveError.message : "Impossible d'enregistrer le document.")
       }
     } finally {
-      setSaving(false)
+      if (mountedRef.current && requestSeq.current === requestId) setSaving(false)
     }
   }
 

@@ -1,6 +1,7 @@
+import { act } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom'
 
 import PageIA from './PageIA'
 import * as api from '../lib/api'
@@ -117,6 +118,34 @@ function renderPage(initialEntries: string[] = ['/ia']) {
 // valid one up front to reach the behavior they actually exercise.
 async function fillFreeObjective(value = 'Un objectif suffisamment long') {
   fireEvent.change(await screen.findByLabelText('Objectif'), { target: { value } })
+}
+
+// MemoryRouter only reads `initialEntries` on its first mount — a later
+// `rerender` with a different value never actually navigates it (a known
+// react-router gotcha), so it cannot be used to test an in-place query-param
+// transition on an already-mounted PageIA. createMemoryRouter + navigate()
+// performs a real, in-place navigation instead.
+function renderPageWithRouter(initialPath: string) {
+  const router = createMemoryRouter([{ path: '*', element: <PageIA /> }], { initialEntries: [initialPath] })
+  const utils = render(<RouterProvider router={router} />)
+  return { ...utils, navigate: (path: string) => act(() => { router.navigate(path) }) }
+}
+
+const websiteB = { id: 'w2', url: 'https://other.example.com', name: 'Other' }
+
+// StudioWorkspace is keyed by activeWebsiteId in PageIA, so switching sites
+// unmounts the entire site-A workspace (including its ContentComposer) and
+// mounts a fresh one for B — this simulates that switch mid-test.
+function switchToWebsiteB(rerender: ReturnType<typeof renderPage>['rerender'], route = '/ia') {
+  mockedUseWebsiteContext.mockReturnValue({
+    websites: [website, websiteB],
+    activeWebsiteId: 'w2',
+    activeWebsite: websiteB,
+    loadingWebsites: false,
+    setActiveWebsiteId: vi.fn(),
+    refreshWebsites: vi.fn().mockResolvedValue(undefined),
+  } as ReturnType<typeof useWebsiteContext>)
+  rerender(<MemoryRouter initialEntries={[route]}><PageIA /></MemoryRouter>)
 }
 
 beforeEach(() => {
@@ -593,6 +622,194 @@ describe('PageIA — Content Studio (RC39)', () => {
       // Deselecting is purely client-side — the document must still be
       // listed in the library, never removed or mutated.
       expect(screen.getByText('Ancien document')).toBeInTheDocument()
+    })
+  })
+
+  describe('a dead ContentComposer instance never acts after it is gone', () => {
+    it('never shows a "contexte retiré" notice or drops site B\'s opportunity when site A\'s generation rejects for a mismatch after the switch', async () => {
+      let rejectGenerationA: (error: unknown) => void = () => {}
+      mockedApi.generateStudioDocument.mockReturnValue(new Promise((_, reject) => { rejectGenerationA = reject }))
+      mockedApi.getOpportunity.mockResolvedValue(opportunity({ id: 'opp-b', title: 'Opportunité du site B' }))
+
+      const { navigate } = renderPageWithRouter('/ia')
+      await fillFreeObjective()
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
+
+      mockedUseWebsiteContext.mockReturnValue({
+        websites: [website, websiteB],
+        activeWebsiteId: 'w2',
+        activeWebsite: websiteB,
+        loadingWebsites: false,
+        setActiveWebsiteId: vi.fn(),
+        refreshWebsites: vi.fn().mockResolvedValue(undefined),
+      } as ReturnType<typeof useWebsiteContext>)
+      navigate('/ia?opportunityId=opp-b')
+      await waitFor(() => expect(screen.getByText('Opportunité du site B')).toBeInTheDocument())
+
+      rejectGenerationA(new ApiError("L'opportunité n'appartient pas au site demandé.", 400))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      // Site A's dead instance must never call site B's onInvalidOpportunityContext.
+      expect(screen.getByText('Opportunité du site B')).toBeInTheDocument()
+      expect(screen.queryByText(/contexte retiré/)).not.toBeInTheDocument()
+    })
+
+    it('never calls onDocumentPersisted for a site-A generation that resolves successfully after the switch to B', async () => {
+      let resolveGenerationA: (value: DocumentItem) => void = () => {}
+      mockedApi.generateStudioDocument.mockReturnValue(new Promise((resolve) => { resolveGenerationA = resolve }))
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([])
+
+      const { rerender } = renderPage()
+      await fillFreeObjective()
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
+
+      switchToWebsiteB(rerender)
+      await waitFor(() => expect(mockedApi.listDocumentsByWebsite).toHaveBeenCalledWith('w2'))
+      const callsAfterSwitch = mockedApi.listDocumentsByWebsite.mock.calls.length
+
+      resolveGenerationA(documentItem({ title: 'Doc perime du site A' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      // onDocumentPersisted bumps the library's refresh token, which would
+      // trigger another listDocumentsByWebsite call — none must happen here.
+      expect(mockedApi.listDocumentsByWebsite.mock.calls.length).toBe(callsAfterSwitch)
+      expect(screen.queryByText('Doc perime du site A')).not.toBeInTheDocument()
+    })
+
+    it('never calls onDocumentPersisted for a site-A save that resolves successfully after the switch to B', async () => {
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ revision: 1 }))
+      let resolveSaveA: (value: DocumentItem) => void = () => {}
+      mockedApi.updateDocument.mockReturnValue(new Promise((resolve) => { resolveSaveA = resolve }))
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([])
+
+      const { rerender } = renderPage()
+      await fillFreeObjective()
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      const editor = await screen.findByDisplayValue(/Contenu genere/)
+      fireEvent.change(editor, { target: { value: 'Modifie avant passage a B.' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+      await waitFor(() => expect(mockedApi.updateDocument).toHaveBeenCalledTimes(1))
+
+      switchToWebsiteB(rerender)
+      await waitFor(() => expect(mockedApi.listDocumentsByWebsite).toHaveBeenCalledWith('w2'))
+      const callsAfterSwitch = mockedApi.listDocumentsByWebsite.mock.calls.length
+
+      resolveSaveA(documentItem({ revision: 2, content: 'Modifie avant passage a B.' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(mockedApi.listDocumentsByWebsite.mock.calls.length).toBe(callsAfterSwitch)
+    })
+
+    it('never shows a conflict banner on site B from site A\'s conflict whose getDocument reload resolves after the switch', async () => {
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ revision: 1 }))
+      mockedApi.updateDocument.mockRejectedValue(new ApiError('Conflit.', 409))
+      let resolveGetDocumentA: (value: DocumentItem) => void = () => {}
+      mockedApi.getDocument.mockReturnValue(new Promise((resolve) => { resolveGetDocumentA = resolve }))
+
+      const { rerender } = renderPage()
+      await fillFreeObjective()
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      const editor = await screen.findByDisplayValue(/Contenu genere/)
+      fireEvent.change(editor, { target: { value: 'Modifie en conflit avant B.' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+      // Wait until the 409 catch branch has reached its own getDocument() call.
+      await waitFor(() => expect(mockedApi.getDocument).toHaveBeenCalledTimes(1))
+
+      switchToWebsiteB(rerender)
+
+      resolveGetDocumentA(documentItem({ revision: 9, content: 'Version serveur A tardive.' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(screen.queryByText(/n'a pas été enregistrée/)).not.toBeInTheDocument()
+      expect(screen.queryByText('Version serveur A tardive.')).not.toBeInTheDocument()
+    })
+
+    it('never calls onDocumentPersisted from a stale generation once the composer instance is replaced by a library selection, on the same site', async () => {
+      // Unlike the site-switch tests above, StudioWorkspace itself stays
+      // mounted here — only ContentComposer remounts (its own key). This is
+      // the one scenario where ContentComposer's own mountedRef guard is the
+      // sole thing preventing a stale callback, not an outer unmount.
+      const docOther = documentItem({ id: 'doc-other', title: 'Autre document' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docOther])
+      let resolveGeneration: (value: DocumentItem) => void = () => {}
+      mockedApi.generateStudioDocument.mockReturnValue(new Promise((resolve) => { resolveGeneration = resolve }))
+
+      renderPage()
+      await fillFreeObjective()
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
+      const callsBeforeSelection = mockedApi.listDocumentsByWebsite.mock.calls.length
+
+      fireEvent.click(screen.getByText('Autre document'))
+      await waitFor(() => expect(screen.getByText('Vous modifiez :')).toBeInTheDocument())
+
+      resolveGeneration(documentItem({ title: 'Doc perime' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(screen.queryByText('Doc perime')).not.toBeInTheDocument()
+      expect(mockedApi.listDocumentsByWebsite.mock.calls.length).toBe(callsBeforeSelection)
+    })
+  })
+
+  describe('PageIA context resolution is invalidated the moment the site or query params change', () => {
+    it('never lets a late-resolving site-A context reappear once site B is active, and shows only B\'s context once B resolves', async () => {
+      let resolveOpportunityA: (value: Opportunity) => void = () => {}
+      mockedApi.getOpportunity.mockImplementation((id: string) => {
+        if (id === 'opp-a') return new Promise((resolve) => { resolveOpportunityA = resolve })
+        return Promise.resolve(opportunity({ id: 'opp-b', title: 'Opportunité du site B' }))
+      })
+
+      const { navigate } = renderPageWithRouter('/ia?opportunityId=opp-a')
+      await waitFor(() => expect(mockedApi.getOpportunity).toHaveBeenCalledWith('opp-a'))
+
+      mockedUseWebsiteContext.mockReturnValue({
+        websites: [website, websiteB],
+        activeWebsiteId: 'w2',
+        activeWebsite: websiteB,
+        loadingWebsites: false,
+        setActiveWebsiteId: vi.fn(),
+        refreshWebsites: vi.fn().mockResolvedValue(undefined),
+      } as ReturnType<typeof useWebsiteContext>)
+      navigate('/ia?opportunityId=opp-b')
+      await waitFor(() => expect(screen.getByText('Opportunité du site B')).toBeInTheDocument())
+
+      // Site A's request resolves only now — well after B is active.
+      resolveOpportunityA(opportunity({ id: 'opp-a', title: 'Opportunité du site A' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(screen.queryByText('Opportunité du site A')).not.toBeInTheDocument()
+      expect(screen.getByText('Opportunité du site B')).toBeInTheDocument()
+    })
+
+    it('never lets a late, out-of-order response for old query params reappear after new query params resolve, on the same site', async () => {
+      let resolveOpportunityOld: (value: Opportunity) => void = () => {}
+      mockedApi.getOpportunity.mockImplementation((id: string) => {
+        if (id === 'opp-old') return new Promise((resolve) => { resolveOpportunityOld = resolve })
+        return Promise.resolve(opportunity({ id: 'opp-new', title: 'Opportunité récente' }))
+      })
+
+      const { navigate } = renderPageWithRouter('/ia?opportunityId=opp-old')
+      await waitFor(() => expect(mockedApi.getOpportunity).toHaveBeenCalledWith('opp-old'))
+
+      // Same site — only the query param changes.
+      navigate('/ia?opportunityId=opp-new')
+      await waitFor(() => expect(screen.getByText('Opportunité récente')).toBeInTheDocument())
+
+      // The stale request for the old param resolves out of order, after the new one already landed.
+      resolveOpportunityOld(opportunity({ id: 'opp-old', title: 'Opportunité perimee' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(screen.queryByText('Opportunité perimee')).not.toBeInTheDocument()
+      expect(screen.getByText('Opportunité récente')).toBeInTheDocument()
     })
   })
 })

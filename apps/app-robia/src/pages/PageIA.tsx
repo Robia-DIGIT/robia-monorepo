@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FilePlus2, Radar } from 'lucide-react'
 
@@ -17,17 +17,34 @@ import {
   type DocumentType,
   type GoogleBusinessProfileLocation,
   type Opportunity,
+  type Website,
 } from '../lib/api'
 
-export default function PageIA() {
-  const { activeWebsite, activeWebsiteId } = useWebsiteContext()
-  const [searchParams] = useSearchParams()
+interface StudioWorkspaceProps {
+  websiteId: string
+  website: Website | null
+  opportunityIdParam?: string
+  actionItemIdParam?: string
+  businessLocationIdParam?: string
+  typeParam?: DocumentType
+}
 
-  const opportunityIdParam = searchParams.get('opportunityId') ?? undefined
-  const actionItemIdParam = searchParams.get('actionItemId') ?? undefined
-  const businessLocationIdParam = searchParams.get('businessLocationId') ?? undefined
-  const typeParam = (searchParams.get('type') as DocumentType | null) ?? undefined
-
+// Keyed by websiteId in the parent (see PageIA below): a site switch
+// unmounts this component entirely and mounts a brand new one, so a site's
+// opportunity/action/establishment/library-selection state can never leak
+// into another site's render — no render-phase state surgery needed, and no
+// stale-response guard needed for the site dimension either. A query-param
+// change alone (same site, e.g. a new ?actionItemId=) does NOT remount this
+// component, so that path is still guarded with an effect-cleanup
+// `cancelled` flag against an out-of-order late response.
+function StudioWorkspace({
+  websiteId,
+  website,
+  opportunityIdParam,
+  actionItemIdParam,
+  businessLocationIdParam,
+  typeParam,
+}: StudioWorkspaceProps) {
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null)
   const [actionItem, setActionItem] = useState<ActionItem | null>(null)
   const [businessLocation, setBusinessLocation] = useState<GoogleBusinessProfileLocation | null>(null)
@@ -35,55 +52,36 @@ export default function PageIA() {
   const [libraryRefreshToken, setLibraryRefreshToken] = useState(0)
   const [librarySelection, setLibrarySelection] = useState<DocumentItem | null>(null)
 
-  const requestSeq = useRef(0)
-
-  // Adjusting state during render (the React-blessed pattern for "reset when
-  // a prop/context value changes") rather than in a useEffect: an effect
-  // only runs after the browser has painted, so for one frame the previous
-  // site's opportunity/action/establishment/library selection would still be
-  // visible next to the newly-selected site. Comparing against a ref here
-  // and calling the setters synchronously in the render body makes React
-  // discard that stale render and re-render immediately, before paint — no
-  // flash of the wrong site's context ever reaches the screen.
-  const previousWebsiteId = useRef(activeWebsiteId)
-  if (previousWebsiteId.current !== activeWebsiteId) {
-    previousWebsiteId.current = activeWebsiteId
-    setOpportunity(null)
-    setActionItem(null)
-    setBusinessLocation(null)
-    setLibrarySelection(null)
-    setContextNotice('')
-  }
-
   // Every id in the URL is only a hint — it is re-resolved against the
   // server on every load. getOpportunity() only confirms organization
-  // scope, not that the opportunity belongs to the active website (the
-  // backend enforces that at generation time, rejecting a mismatch) — so a
+  // scope, not that the opportunity belongs to this website (the backend
+  // enforces that at generation time, rejecting a mismatch) — so a
   // successful lookup here is not proof of a site match; ContentSources
   // labels it accordingly. A lookup failure (wrong org, deleted resource,
   // wrong site for actions/locations) drops that piece of context rather
   // than presenting one the server never confirmed.
   useEffect(() => {
-    const requestId = ++requestSeq.current
-    const requestWebsiteId = activeWebsiteId
-
-    if (!requestWebsiteId) {
-      setOpportunity(null)
-      setActionItem(null)
-      setBusinessLocation(null)
-      return
-    }
+    let cancelled = false
+    // Reset synchronously at the start of a normal effect — not during
+    // render. A site change never reaches this point at all (it remounts
+    // the whole component instead); this only ever resets for a query-param
+    // change on the same, already-mounted site.
+    setOpportunity(null)
+    setActionItem(null)
+    setBusinessLocation(null)
+    setContextNotice('')
+    setLibrarySelection(null)
 
     void (async () => {
       const notices: string[] = []
 
       const [opportunityResult, actionsResult, locationsResult] = await Promise.all([
         opportunityIdParam ? getOpportunity(opportunityIdParam).catch(() => null) : Promise.resolve(null),
-        actionItemIdParam ? listActions(requestWebsiteId).catch(() => []) : Promise.resolve([]),
+        actionItemIdParam ? listActions(websiteId).catch(() => []) : Promise.resolve([]),
         businessLocationIdParam ? listGoogleBusinessProfileLocations().catch(() => []) : Promise.resolve([]),
       ])
 
-      if (requestSeq.current !== requestId) return // active site changed mid-flight
+      if (cancelled) return // params changed again before this resolved — a newer effect run owns the state now
 
       if (opportunityIdParam && !opportunityResult) notices.push("l'opportunité indiquée n'a pas pu être retrouvée")
       setOpportunity(opportunityResult)
@@ -102,7 +100,9 @@ export default function PageIA() {
 
       setContextNotice(notices.length > 0 ? `Contexte partiel : ${notices.join(', ')}.` : '')
     })()
-  }, [activeWebsiteId, opportunityIdParam, actionItemIdParam, businessLocationIdParam])
+
+    return () => { cancelled = true }
+  }, [websiteId, opportunityIdParam, actionItemIdParam, businessLocationIdParam])
 
   const handlePersisted = () => setLibraryRefreshToken((token) => token + 1)
 
@@ -125,12 +125,71 @@ export default function PageIA() {
   }
 
   return (
+    <>
+      {contextNotice && (
+        <div className="mb-6 border-l-2 border-orange bg-orange-light/30 px-4 py-3 text-sm text-orange-dark">{contextNotice}</div>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
+        <div className="space-y-4">
+          <ContentSources
+            website={website}
+            opportunity={opportunity}
+            actionItem={actionItem}
+            businessLocation={businessLocation}
+          />
+          <ContentLibrary
+            websiteId={websiteId}
+            refreshToken={libraryRefreshToken}
+            onSelect={setLibrarySelection}
+          />
+        </div>
+
+        <div className="space-y-3">
+          {librarySelection && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-border bg-slate-bg/60 px-4 py-3">
+              <p className="min-w-0 truncate text-sm text-dark">
+                Vous modifiez : <span className="font-semibold text-navy">{librarySelection.title ?? 'Document sans titre'}</span>
+              </p>
+              <Button variant="outline" size="sm" icon={<FilePlus2 size={13} />} onClick={handleNewContent}>
+                Nouveau contenu
+              </Button>
+            </div>
+          )}
+
+          <ContentComposer
+            key={librarySelection?.id ?? 'new'}
+            websiteId={websiteId}
+            opportunityId={librarySelection ? librarySelection.opportunityId : opportunity?.id}
+            actionItem={librarySelection ? null : actionItem}
+            businessLocation={businessLocation}
+            initialType={typeParam}
+            initialDocument={librarySelection}
+            onDocumentPersisted={handlePersisted}
+            onInvalidOpportunityContext={handleInvalidOpportunityContext}
+          />
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default function PageIA() {
+  const { activeWebsite, activeWebsiteId } = useWebsiteContext()
+  const [searchParams] = useSearchParams()
+
+  const opportunityIdParam = searchParams.get('opportunityId') ?? undefined
+  const actionItemIdParam = searchParams.get('actionItemId') ?? undefined
+  const businessLocationIdParam = searchParams.get('businessLocationId') ?? undefined
+  const typeParam = (searchParams.get('type') as DocumentType | null) ?? undefined
+
+  return (
     <div className="mx-auto max-w-[1600px] animate-slide-up p-5 md:p-6 lg:p-8">
       <header className="mb-7 border-b border-border pb-6">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Studio de contenu ROBIA</p>
-            <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Transformer une opportunité en contenu publié</h1>
+            <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Transformer une opportunité en contenu prêt à valider</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Générez un brouillon réel, éditez-le, puis soumettez-le à validation. ROBIA ne publie rien automatiquement.</p>
           </div>
         </div>
@@ -146,55 +205,20 @@ export default function PageIA() {
         <WebsiteSelector className="w-full sm:w-auto sm:min-w-72" />
       </div>
 
-      {contextNotice && (
-        <div className="mb-6 border-l-2 border-orange bg-orange-light/30 px-4 py-3 text-sm text-orange-dark">{contextNotice}</div>
-      )}
-
       {!activeWebsiteId ? (
         <p className="border-l-2 border-border bg-slate-bg/60 px-4 py-6 text-center text-sm text-muted">
           Sélectionnez un site pour utiliser le Studio.
         </p>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
-          <div className="space-y-4">
-            <ContentSources
-              website={activeWebsite}
-              opportunity={opportunity}
-              actionItem={actionItem}
-              businessLocation={businessLocation}
-            />
-            <ContentLibrary
-              websiteId={activeWebsiteId}
-              refreshToken={libraryRefreshToken}
-              onSelect={setLibrarySelection}
-            />
-          </div>
-
-          <div className="space-y-3">
-            {librarySelection && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-border bg-slate-bg/60 px-4 py-3">
-                <p className="min-w-0 truncate text-sm text-dark">
-                  Vous modifiez : <span className="font-semibold text-navy">{librarySelection.title ?? 'Document sans titre'}</span>
-                </p>
-                <Button variant="outline" size="sm" icon={<FilePlus2 size={13} />} onClick={handleNewContent}>
-                  Nouveau contenu
-                </Button>
-              </div>
-            )}
-
-            <ContentComposer
-              key={`${activeWebsiteId}:${librarySelection?.id ?? 'new'}`}
-              websiteId={activeWebsiteId}
-              opportunityId={librarySelection ? librarySelection.opportunityId : opportunity?.id}
-              actionItem={librarySelection ? null : actionItem}
-              businessLocation={businessLocation}
-              initialType={typeParam}
-              initialDocument={librarySelection}
-              onDocumentPersisted={handlePersisted}
-              onInvalidOpportunityContext={handleInvalidOpportunityContext}
-            />
-          </div>
-        </div>
+        <StudioWorkspace
+          key={activeWebsiteId}
+          websiteId={activeWebsiteId}
+          website={activeWebsite}
+          opportunityIdParam={opportunityIdParam}
+          actionItemIdParam={actionItemIdParam}
+          businessLocationIdParam={businessLocationIdParam}
+          typeParam={typeParam}
+        />
       )}
     </div>
   )
