@@ -812,4 +812,354 @@ describe('PageIA — Content Studio (RC39)', () => {
       expect(screen.getByText('Opportunité récente')).toBeInTheDocument()
     })
   })
+
+  describe('the workspace remounts on the full context, not just the site', () => {
+    it("clears the previous opportunity's document, content and brief when navigating from opportunity A to opportunity B on the same site", async () => {
+      mockedApi.getOpportunity.mockImplementation((id: string) =>
+        Promise.resolve(opportunity({ id, title: id === 'opp-a' ? 'Opportunité A' : 'Opportunité B' })),
+      )
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ content: 'Contenu pour A' }))
+
+      const { navigate } = renderPageWithRouter('/ia?opportunityId=opp-a')
+      await waitFor(() => expect(screen.getByText('Opportunité A')).toBeInTheDocument())
+
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      await screen.findByDisplayValue('Contenu pour A')
+      fireEvent.change(screen.getByLabelText('Audience'), { target: { value: 'Audience A' } })
+
+      navigate('/ia?opportunityId=opp-b')
+      await waitFor(() => expect(screen.getByText('Opportunité B')).toBeInTheDocument())
+
+      // A's generated document/content and brief are gone — this is a fresh
+      // ContentComposer instance for B, not the same one carrying A's state.
+      expect(screen.queryByText('Contenu pour A')).not.toBeInTheDocument()
+      expect(screen.getByText('Générez un brouillon pour commencer à éditer.')).toBeInTheDocument()
+      expect((screen.getByLabelText('Audience') as HTMLInputElement).value).toBe('')
+    })
+
+    it("prevents a document generated for opportunity A from being saved once the display has moved to opportunity B", async () => {
+      mockedApi.getOpportunity.mockImplementation((id: string) =>
+        Promise.resolve(opportunity({ id, title: id === 'opp-a' ? 'Opportunité A' : 'Opportunité B' })),
+      )
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ content: 'Contenu pour A' }))
+
+      const { navigate } = renderPageWithRouter('/ia?opportunityId=opp-a')
+      await waitFor(() => expect(screen.getByText('Opportunité A')).toBeInTheDocument())
+
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      const editor = await screen.findByDisplayValue('Contenu pour A')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie sous A' } })
+
+      navigate('/ia?opportunityId=opp-b')
+      await waitFor(() => expect(screen.getByText('Opportunité B')).toBeInTheDocument())
+
+      // A's edited document is gone entirely — there is no Save button left
+      // that could persist it under B's display.
+      expect(screen.queryByDisplayValue('Contenu modifie sous A')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument()
+      expect(mockedApi.updateDocument).not.toHaveBeenCalled()
+    })
+
+    it("clears the previous action's approval workflow when navigating from action A to action B on the same site", async () => {
+      mockedApi.listActions.mockResolvedValue([
+        actionItem({ id: 'action-a', title: 'Action A' }),
+        actionItem({ id: 'action-b', title: 'Action B' }),
+      ])
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ actionItemId: 'action-a' }))
+
+      const { navigate } = renderPageWithRouter('/ia?actionItemId=action-a')
+      await waitFor(() => expect(screen.getByText('Action A')).toBeInTheDocument())
+
+      await fillFreeObjective()
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      await waitFor(() => expect(screen.getByText('Validation humaine')).toBeInTheDocument())
+
+      navigate('/ia?actionItemId=action-b')
+      await waitFor(() => expect(screen.getByText('Action B')).toBeInTheDocument())
+      expect(screen.queryByText('Validation humaine')).not.toBeInTheDocument()
+    })
+
+    it("clears the previous establishment's GBP context when navigating from establishment A to establishment B on the same site", async () => {
+      mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([
+        businessLocation({ id: 'loc-a', title: 'Etablissement A' }),
+        businessLocation({ id: 'loc-b', title: 'Etablissement B' }),
+      ])
+
+      const { navigate } = renderPageWithRouter('/ia?businessLocationId=loc-a')
+      await waitFor(() => expect(screen.getByText('Etablissement A')).toBeInTheDocument())
+
+      navigate('/ia?businessLocationId=loc-b')
+      await waitFor(() => expect(screen.getByText('Etablissement B')).toBeInTheDocument())
+      expect(screen.queryByText('Etablissement A')).not.toBeInTheDocument()
+    })
+
+    it('ignores a late-resolving opportunity-A context once opportunity B is already active on the same site', async () => {
+      let resolveOpportunityA: (value: Opportunity) => void = () => {}
+      mockedApi.getOpportunity.mockImplementation((id: string) => {
+        if (id === 'opp-a') return new Promise((resolve) => { resolveOpportunityA = resolve })
+        return Promise.resolve(opportunity({ id: 'opp-b', title: 'Opportunité B' }))
+      })
+
+      const { navigate } = renderPageWithRouter('/ia?opportunityId=opp-a')
+      await waitFor(() => expect(mockedApi.getOpportunity).toHaveBeenCalledWith('opp-a'))
+
+      navigate('/ia?opportunityId=opp-b')
+      await waitFor(() => expect(screen.getByText('Opportunité B')).toBeInTheDocument())
+
+      resolveOpportunityA(opportunity({ id: 'opp-a', title: 'Opportunité A perimee' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(screen.queryByText('Opportunité A perimee')).not.toBeInTheDocument()
+      expect(screen.getByText('Opportunité B')).toBeInTheDocument()
+    })
+  })
+
+  describe('generation and save use independent sequences', () => {
+    it('disables "Enregistrer" while a generation is in flight, and "Générer le brouillon" while a save is in flight', async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Document existant', content: 'Contenu initial', opportunityId: 'opp-1' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+      mockedApi.generateStudioDocument.mockReturnValue(new Promise(() => {}))
+
+      renderPage()
+      fireEvent.click(await screen.findByText('Document existant'))
+      const editor = await screen.findByDisplayValue('Contenu initial')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie' } })
+
+      const generateButton = screen.getByRole('button', { name: /Générer le brouillon/i })
+      const saveButton = screen.getByRole('button', { name: 'Enregistrer' })
+      expect(generateButton).not.toBeDisabled()
+      expect(saveButton).not.toBeDisabled()
+
+      fireEvent.click(generateButton)
+      expect(saveButton).toBeDisabled()
+    })
+
+    it('disables "Générer le brouillon" while a save is in flight', async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Document existant', content: 'Contenu initial', opportunityId: 'opp-1' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+      mockedApi.updateDocument.mockReturnValue(new Promise(() => {}))
+
+      renderPage()
+      fireEvent.click(await screen.findByText('Document existant'))
+      const editor = await screen.findByDisplayValue('Contenu initial')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie' } })
+
+      const generateButton = screen.getByRole('button', { name: /Générer le brouillon/i })
+      const saveButton = screen.getByRole('button', { name: 'Enregistrer' })
+      expect(generateButton).not.toBeDisabled()
+
+      fireEvent.click(saveButton)
+      expect(generateButton).toBeDisabled()
+    })
+
+    it('never leaves generating or saving stuck when a generation and a save race concurrently (generation clicked first)', async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Document existant', content: 'Contenu initial', opportunityId: 'opp-1' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+      let resolveGeneration: (value: DocumentItem) => void = () => {}
+      let resolveSave: (value: DocumentItem) => void = () => {}
+      mockedApi.generateStudioDocument.mockReturnValue(new Promise((resolve) => { resolveGeneration = resolve }))
+      mockedApi.updateDocument.mockReturnValue(new Promise((resolve) => { resolveSave = resolve }))
+
+      renderPage()
+      fireEvent.click(await screen.findByText('Document existant'))
+      const editor = await screen.findByDisplayValue('Contenu initial')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie' } })
+
+      const generateButton = screen.getByRole('button', { name: /Générer le brouillon/i })
+      const saveButton = screen.getByRole('button', { name: 'Enregistrer' })
+
+      // Simulate the real race the UI's mutual disable is meant to prevent:
+      // both clicks land before React commits either's `disabled` state —
+      // proving the independent generationSeq/saveSeq refs (not the
+      // disabled attribute alone) are what keeps this safe.
+      act(() => {
+        fireEvent.click(generateButton)
+        fireEvent.click(saveButton)
+      })
+
+      expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1)
+      expect(mockedApi.updateDocument).toHaveBeenCalledTimes(1)
+
+      resolveGeneration(documentItem({ id: 'doc-a', content: 'Contenu regenere' }))
+      await waitFor(() => expect(generateButton.querySelector('.animate-spin-slow')).toBeNull())
+
+      resolveSave(documentItem({ id: 'doc-a', content: 'Contenu sauvegarde', revision: 2 }))
+      await waitFor(() => expect(saveButton.querySelector('.animate-spin-slow')).toBeNull())
+
+      // Generate's own disable was only ever the cross-guard (saving) — once
+      // saving is done too, it is fully clear, never stuck.
+      expect(generateButton).not.toBeDisabled()
+    })
+
+    it('never leaves generating or saving stuck when a generation and a save race concurrently (save clicked first)', async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Document existant', content: 'Contenu initial', opportunityId: 'opp-1' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+      let resolveGeneration: (value: DocumentItem) => void = () => {}
+      let resolveSave: (value: DocumentItem) => void = () => {}
+      mockedApi.generateStudioDocument.mockReturnValue(new Promise((resolve) => { resolveGeneration = resolve }))
+      mockedApi.updateDocument.mockReturnValue(new Promise((resolve) => { resolveSave = resolve }))
+
+      renderPage()
+      fireEvent.click(await screen.findByText('Document existant'))
+      const editor = await screen.findByDisplayValue('Contenu initial')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie' } })
+
+      const generateButton = screen.getByRole('button', { name: /Générer le brouillon/i })
+      const saveButton = screen.getByRole('button', { name: 'Enregistrer' })
+
+      act(() => {
+        fireEvent.click(saveButton)
+        fireEvent.click(generateButton)
+      })
+
+      expect(mockedApi.updateDocument).toHaveBeenCalledTimes(1)
+      expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1)
+
+      resolveSave(documentItem({ id: 'doc-a', content: 'Contenu sauvegarde', revision: 2 }))
+      await waitFor(() => expect(saveButton.querySelector('.animate-spin-slow')).toBeNull())
+
+      resolveGeneration(documentItem({ id: 'doc-a', content: 'Contenu regenere' }))
+      await waitFor(() => expect(generateButton.querySelector('.animate-spin-slow')).toBeNull())
+
+      // Save's own disable was only ever the cross-guard (generating) — once
+      // generating is done too, its loading indicator is gone, never stuck.
+      expect(saveButton.querySelector('.animate-spin-slow')).toBeNull()
+    })
+
+    it("a new generation invalidates only the previous generation, never an independent save", async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Document existant', content: 'Contenu initial', opportunityId: 'opp-1' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+      let resolveGen1: (value: DocumentItem) => void = () => {}
+      let resolveGen2: (value: DocumentItem) => void = () => {}
+      mockedApi.generateStudioDocument
+        .mockReturnValueOnce(new Promise((resolve) => { resolveGen1 = resolve }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveGen2 = resolve }))
+
+      renderPage()
+      fireEvent.click(await screen.findByText('Document existant'))
+      await screen.findByDisplayValue('Contenu initial')
+
+      const generateButton = screen.getByRole('button', { name: /Générer le brouillon/i })
+
+      // Two overlapping clicks bypassing the `generating` guard's stale
+      // closure — the ref-based generationSeq, not the React state check, is
+      // what must keep this safe.
+      act(() => {
+        fireEvent.click(generateButton)
+        fireEvent.click(generateButton)
+      })
+
+      expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(2)
+
+      // Resolve the newer request first, then the stale one out of order.
+      resolveGen2(documentItem({ id: 'doc-a', content: 'Contenu genere 2' }))
+      await screen.findByDisplayValue('Contenu genere 2')
+
+      resolveGen1(documentItem({ id: 'doc-a', content: 'Contenu genere 1 perime' }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(screen.queryByDisplayValue('Contenu genere 1 perime')).not.toBeInTheDocument()
+      expect(screen.getByDisplayValue('Contenu genere 2')).toBeInTheDocument()
+      expect(generateButton.querySelector('.animate-spin-slow')).toBeNull()
+
+      // An unrelated save started afterward is unaffected by the generation
+      // race — its own saveSeq was never touched by generationSeq.
+      const editor = screen.getByDisplayValue('Contenu genere 2')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie apres la course' } })
+      mockedApi.updateDocument.mockResolvedValue(documentItem({ id: 'doc-a', content: 'Contenu modifie apres la course', revision: 2 }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+      await waitFor(() => expect(mockedApi.updateDocument).toHaveBeenCalledTimes(1))
+    })
+
+    it("a new save invalidates only the previous save, never an independent generation", async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Document existant', content: 'Contenu initial', opportunityId: 'opp-1' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+      let resolveSave1: (value: DocumentItem) => void = () => {}
+      let resolveSave2: (value: DocumentItem) => void = () => {}
+      mockedApi.updateDocument
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSave1 = resolve }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSave2 = resolve }))
+
+      renderPage()
+      fireEvent.click(await screen.findByText('Document existant'))
+      const editor = await screen.findByDisplayValue('Contenu initial')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie' } })
+
+      const saveButton = screen.getByRole('button', { name: 'Enregistrer' })
+
+      act(() => {
+        fireEvent.click(saveButton)
+        fireEvent.click(saveButton)
+      })
+
+      expect(mockedApi.updateDocument).toHaveBeenCalledTimes(2)
+
+      resolveSave2(documentItem({ id: 'doc-a', content: 'Contenu sauvegarde 2', revision: 3 }))
+      await screen.findByDisplayValue('Contenu sauvegarde 2')
+
+      resolveSave1(documentItem({ id: 'doc-a', content: 'Contenu sauvegarde 1 perime', revision: 2 }))
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(screen.queryByDisplayValue('Contenu sauvegarde 1 perime')).not.toBeInTheDocument()
+      expect(screen.getByDisplayValue('Contenu sauvegarde 2')).toBeInTheDocument()
+      expect(saveButton.querySelector('.animate-spin-slow')).toBeNull()
+
+      // An unrelated generation afterward is unaffected by the save race —
+      // its own generationSeq was never touched by saveSeq.
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ id: 'doc-a', content: 'Contenu genere apres la course' }))
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+      await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
+    })
+
+    it('unmounting still blocks a late generation and a late save from acting on a dead instance, with the separated sequences', async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Document existant', content: 'Contenu initial', opportunityId: 'opp-a' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+      mockedApi.getOpportunity.mockImplementation((id: string) =>
+        Promise.resolve(opportunity({ id, title: id === 'opp-a' ? 'Opportunité A' : 'Opportunité B' })),
+      )
+      let resolveGeneration: (value: DocumentItem) => void = () => {}
+      let resolveSave: (value: DocumentItem) => void = () => {}
+      mockedApi.generateStudioDocument.mockReturnValue(new Promise((resolve) => { resolveGeneration = resolve }))
+      mockedApi.updateDocument.mockReturnValue(new Promise((resolve) => { resolveSave = resolve }))
+
+      const { navigate } = renderPageWithRouter('/ia?opportunityId=opp-a')
+      await waitFor(() => expect(screen.getByText('Opportunité A')).toBeInTheDocument())
+      fireEvent.click(await screen.findByText('Document existant'))
+      const editor = await screen.findByDisplayValue('Contenu initial')
+      fireEvent.change(editor, { target: { value: 'Contenu modifie' } })
+
+      const generateButton = screen.getByRole('button', { name: /Générer le brouillon/i })
+      const saveButton = screen.getByRole('button', { name: 'Enregistrer' })
+      act(() => {
+        fireEvent.click(generateButton)
+        fireEvent.click(saveButton)
+      })
+      expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1)
+      expect(mockedApi.updateDocument).toHaveBeenCalledTimes(1)
+
+      navigate('/ia?opportunityId=opp-b')
+      await waitFor(() => expect(screen.getByText('Opportunité B')).toBeInTheDocument())
+      await waitFor(() => expect(mockedApi.listDocumentsByWebsite).toHaveBeenCalled())
+      const callsAfterUnmount = mockedApi.listDocumentsByWebsite.mock.calls.length
+
+      // Both stale promises resolve only now — well after the instance that
+      // started them is gone.
+      resolveGeneration(documentItem({ id: 'doc-a', content: 'Genere tardivement' }))
+      resolveSave(documentItem({ id: 'doc-a', content: 'Sauvegarde tardivement' }))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+
+      // Neither late resolution touched anything: no extra library refresh
+      // (onDocumentPersisted never fired), and none of A's content leaked
+      // into B's fresh, document-less composer.
+      expect(mockedApi.listDocumentsByWebsite.mock.calls.length).toBe(callsAfterUnmount)
+      expect(screen.queryByDisplayValue('Genere tardivement')).not.toBeInTheDocument()
+      expect(screen.queryByDisplayValue('Sauvegarde tardivement')).not.toBeInTheDocument()
+      expect(screen.getByText('Générez un brouillon pour commencer à éditer.')).toBeInTheDocument()
+    })
+  })
 })

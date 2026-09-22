@@ -67,21 +67,28 @@ export default function ContentComposer({
   const [conflict, setConflict] = useState<{ serverDocument: DocumentItem; localContent: string } | null>(null)
   const [mobilePane, setMobilePane] = useState<MobilePane>('brief')
 
-  const requestSeq = useRef(0)
-  // Remounting via `key` on a site/selection change (see PageIA) unmounts
-  // this exact instance — but nothing stops a promise this instance is
-  // still awaiting from resolving afterwards. mountedRef is the only signal
-  // that actually reflects "this instance is gone"; requestSeq additionally
-  // catches an overlapping request within the same still-mounted instance.
-  // Both must be checked after every await, including inside catch/finally
-  // and the second await (getDocument) reached only from a 409 branch.
+  // Separate counters for each operation: generating and saving share no
+  // sequence, so a new save can never invalidate an in-flight generation's
+  // own finally block (and vice versa) — that used to be possible with one
+  // shared counter, which could leave `generating` (or `saving`) stuck true
+  // forever once the OTHER operation's click happened to bump the shared
+  // value first. mountedRef stays common: remounting via `key` on a site/
+  // selection/context change (see PageIA) unmounts this exact instance, and
+  // nothing stops a promise it's still awaiting from resolving afterwards —
+  // mountedRef is the only signal that actually reflects "this instance is
+  // gone", for either operation. All three must be checked after every
+  // await, including inside catch/finally and the second await
+  // (getDocument) reached only from a 409 branch.
+  const generationSeq = useRef(0)
+  const saveSeq = useRef(0)
   const mountedRef = useRef(true)
 
   useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
-      requestSeq.current += 1
+      generationSeq.current += 1
+      saveSeq.current += 1
     }
   }, [])
 
@@ -125,9 +132,9 @@ export default function ContentComposer({
   }
 
   const handleGenerate = async () => {
-    if (generating || !websiteId || !canGenerate) return // guards against a double-click firing two generations, and against a free generation with no usable objective
+    if (generating || saving || !websiteId || !canGenerate) return // guards against a double-click firing two generations, a generation while a save is in flight, and a free generation with no usable objective
 
-    const requestId = ++requestSeq.current
+    const requestId = ++generationSeq.current
     setGenerating(true)
     setError('')
     setConflict(null)
@@ -141,8 +148,8 @@ export default function ContentComposer({
         brief: buildBrief(),
       })
 
-      if (!mountedRef.current || requestSeq.current !== requestId) {
-        return // this instance is gone (unmounted or superseded) — never touch its state or fire its callbacks
+      if (!mountedRef.current || generationSeq.current !== requestId) {
+        return // this instance is gone, or a newer generation superseded this one — never touch its state or fire its callbacks
       }
 
       setDocument(generated)
@@ -150,7 +157,7 @@ export default function ContentComposer({
       setMobilePane('content')
       onDocumentPersisted()
     } catch (generationError) {
-      if (!mountedRef.current || requestSeq.current !== requestId) return
+      if (!mountedRef.current || generationSeq.current !== requestId) return
 
       if (isOpportunitySiteMismatch(generationError)) {
         setError("L'opportunité liée ne correspond pas à ce site — contexte retiré. Relancez la génération depuis une Opportunité de ce site, ou en création libre.")
@@ -163,13 +170,13 @@ export default function ContentComposer({
         setError(generationError instanceof Error ? generationError.message : 'Impossible de générer le document.')
       }
     } finally {
-      if (mountedRef.current && requestSeq.current === requestId) setGenerating(false)
+      if (mountedRef.current && generationSeq.current === requestId) setGenerating(false)
     }
   }
 
   const handleSave = async () => {
-    if (!document || saving) return
-    const requestId = ++requestSeq.current
+    if (!document || saving || generating) return // guards against a double-click firing two saves, and against a save while a generation is in flight
+    const requestId = ++saveSeq.current
     setSaving(true)
     setError('')
 
@@ -179,29 +186,29 @@ export default function ContentComposer({
         expectedRevision: document.revision ?? 1,
       })
 
-      if (!mountedRef.current || requestSeq.current !== requestId) return // this instance is gone — never touch its state or fire its callbacks
+      if (!mountedRef.current || saveSeq.current !== requestId) return // this instance is gone, or a newer save superseded this one — never touch its state or fire its callbacks
 
       setDocument(updated)
       setContent(updated.content)
       setConflict(null)
       onDocumentPersisted()
     } catch (saveError) {
-      if (!mountedRef.current || requestSeq.current !== requestId) return
+      if (!mountedRef.current || saveSeq.current !== requestId) return
 
       if (isRevisionConflict(saveError)) {
         try {
           const serverDocument = await getDocument(document.id)
-          if (!mountedRef.current || requestSeq.current !== requestId) return // second await after the 409 — re-check before showing a conflict banner on a dead/superseded instance
+          if (!mountedRef.current || saveSeq.current !== requestId) return // second await after the 409 — re-check before showing a conflict banner on a dead/superseded instance
           setConflict({ serverDocument, localContent: content })
         } catch {
-          if (!mountedRef.current || requestSeq.current !== requestId) return
+          if (!mountedRef.current || saveSeq.current !== requestId) return
           setError('Conflit de version détecté, et impossible de recharger la dernière version.')
         }
       } else {
         setError(saveError instanceof Error ? saveError.message : "Impossible d'enregistrer le document.")
       }
     } finally {
-      if (mountedRef.current && requestSeq.current === requestId) setSaving(false)
+      if (mountedRef.current && saveSeq.current === requestId) setSaving(false)
     }
   }
 
@@ -361,7 +368,7 @@ export default function ContentComposer({
             </div>
           )}
 
-          <Button variant="primary" className="w-full" loading={generating} disabled={!canGenerate} icon={<FilePlus2 size={14} />} onClick={() => void handleGenerate()}>
+          <Button variant="primary" className="w-full" loading={generating} disabled={!canGenerate || saving} icon={<FilePlus2 size={14} />} onClick={() => void handleGenerate()}>
             Générer le brouillon
           </Button>
         </div>
@@ -380,7 +387,7 @@ export default function ContentComposer({
                     Statut : {document.status ?? 'draft'} · Révision {document.revision ?? 1}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" loading={saving} disabled={!isDirty} icon={<Save size={13} />} onClick={() => void handleSave()}>
+                <Button variant="outline" size="sm" loading={saving} disabled={!isDirty || generating} icon={<Save size={13} />} onClick={() => void handleSave()}>
                   Enregistrer
                 </Button>
               </div>

@@ -29,14 +29,17 @@ interface StudioWorkspaceProps {
   typeParam?: DocumentType
 }
 
-// Keyed by websiteId in the parent (see PageIA below): a site switch
-// unmounts this component entirely and mounts a brand new one, so a site's
-// opportunity/action/establishment/library-selection state can never leak
-// into another site's render — no render-phase state surgery needed, and no
-// stale-response guard needed for the site dimension either. A query-param
-// change alone (same site, e.g. a new ?actionItemId=) does NOT remount this
-// component, so that path is still guarded with an effect-cleanup
-// `cancelled` flag against an out-of-order late response.
+// Keyed by a composite of site + every context param in the parent (see
+// PageIA below): any change to the site, the linked opportunity/action/
+// establishment, or the content type fully unmounts this component and
+// mounts a brand new one — a document/brief/content built for one context
+// can never survive into a different one, and a ContentComposer generation
+// or save still in flight for the old context can never act on the new
+// one's state (its mountedRef goes false on that unmount). No render-phase
+// state surgery is needed, and no stale-response guard is needed for any of
+// these dimensions either — the effect's `cancelled` flag below only
+// matters in the (currently unreachable, since every param is now part of
+// the key) case a future change reuses this instance across a param change.
 function StudioWorkspace({
   websiteId,
   website,
@@ -183,6 +186,22 @@ export default function PageIA() {
   const businessLocationIdParam = searchParams.get('businessLocationId') ?? undefined
   const typeParam = (searchParams.get('type') as DocumentType | null) ?? undefined
 
+  // A workspace instance owns exactly one context: one site generating for
+  // one opportunity/action/establishment/type combination. Keying only on
+  // activeWebsiteId let a same-site context switch (e.g. opportunityId=A ->
+  // opportunityId=B) reuse the same ContentComposer instance, keeping its
+  // document/brief/content around under the new context. Folding every
+  // context param into the key forces a full remount instead.
+  const workspaceKey = activeWebsiteId
+    ? [
+        activeWebsiteId,
+        opportunityIdParam ?? 'free',
+        actionItemIdParam ?? 'no-action',
+        businessLocationIdParam ?? 'no-location',
+        typeParam ?? 'default',
+      ].join(':')
+    : undefined
+
   return (
     <div className="mx-auto max-w-[1600px] animate-slide-up p-5 md:p-6 lg:p-8">
       <header className="mb-7 border-b border-border pb-6">
@@ -211,7 +230,7 @@ export default function PageIA() {
         </p>
       ) : (
         <StudioWorkspace
-          key={activeWebsiteId}
+          key={workspaceKey}
           websiteId={activeWebsiteId}
           website={activeWebsite}
           opportunityIdParam={opportunityIdParam}
