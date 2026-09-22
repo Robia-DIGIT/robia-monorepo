@@ -100,6 +100,54 @@ export interface GoogleBusinessProfileLocation {
   robiaLocation: Pick<BusinessLocation, "id" | "name" | "address" | "city" | "country"> | null;
 }
 
+// RC-40 — a review, exactly as stored server-side (Google's own reviewer
+// display name/photo, star rating, comment, and Google's own owner reply if
+// one was already posted directly on Google — never something ROBIA can
+// post on the owner's behalf).
+export interface GoogleBusinessProfileReview {
+  id: string;
+  googleReviewName: string;
+  reviewerDisplayName: string | null;
+  reviewerPhotoUri: string | null;
+  starRating: number | null;
+  comment: string | null;
+  createTime: string | null;
+  updateTime: string | null;
+  replyComment: string | null;
+  replyUpdateTime: string | null;
+  lastSyncedAt: string;
+}
+
+export interface GoogleBusinessProfileReviewsSync {
+  synced: boolean;
+  reviewCount: number;
+  syncedAt: string;
+}
+
+export interface GoogleBusinessProfileDailyPerformance {
+  date: string;
+  impressions: number;
+  calls: number;
+  websiteClicks: number;
+  directionRequests: number;
+  conversations: number;
+}
+
+export interface GoogleBusinessProfilePerformance {
+  locationId: string;
+  startDate: string;
+  endDate: string;
+  summary: {
+    impressions: number;
+    calls: number;
+    websiteClicks: number;
+    directionRequests: number;
+    conversations: number;
+  };
+  daily: GoogleBusinessProfileDailyPerformance[];
+  syncedAt: string;
+}
+
 export interface BillingSubscription {
   plan: "starter" | "pro" | string;
   status: string;
@@ -908,6 +956,25 @@ export async function unlinkGoogleBusinessProfileLocation(id: string) {
   return request<GoogleBusinessProfileLocation>(
     `/integrations/google/business-profile/locations/${encodeURIComponent(id)}/link`,
     { method: "DELETE" },
+  );
+}
+
+export async function listGoogleBusinessProfileReviews(locationId: string) {
+  return request<GoogleBusinessProfileReview[]>(
+    `/integrations/google/business-profile/locations/${encodeURIComponent(locationId)}/reviews`,
+  );
+}
+
+export async function syncGoogleBusinessProfileReviews(locationId: string) {
+  return request<GoogleBusinessProfileReviewsSync>(
+    `/integrations/google/business-profile/locations/${encodeURIComponent(locationId)}/reviews/sync`,
+    { method: "POST" },
+  );
+}
+
+export async function getGoogleBusinessProfilePerformance(locationId: string) {
+  return request<GoogleBusinessProfilePerformance>(
+    `/integrations/google/business-profile/locations/${encodeURIComponent(locationId)}/performance`,
   );
 }
 

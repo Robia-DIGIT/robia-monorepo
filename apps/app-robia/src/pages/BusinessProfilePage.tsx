@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Building2, Check, ChevronDown, ChevronRight, ChevronUp, CircleAlert, Clock, ExternalLink, Globe, Link2, MapPin, Navigation, Plus, Radar, RefreshCw, Store, Tag, Trash2, Unplug } from "lucide-react";
+import { Building2, Check, ChevronDown, ChevronRight, ChevronUp, CircleAlert, Clock, ExternalLink, Eye, Globe, Link2, MapPin, Navigation, Plus, Radar, RefreshCw, Star, Store, Tag, Trash2, Unplug } from "lucide-react";
 import {
   createBusinessLocation, deleteBusinessLocation, disconnectGoogleBusinessProfile,
-  getCurrentOrganization, getGoogleBusinessProfileAuthorizationUrl, getGoogleBusinessProfileStatus,
+  getCurrentOrganization, getGoogleBusinessProfileAuthorizationUrl, getGoogleBusinessProfilePerformance, getGoogleBusinessProfileStatus,
   importLegacyBusinessLocations,
-  linkGoogleBusinessProfileLocation, listBusinessLocations, listGoogleBusinessProfileLocations,
-  syncGoogleBusinessProfileLocations, unlinkGoogleBusinessProfileLocation,
-  type BusinessLocation, type GoogleBusinessProfileLocation, type GoogleBusinessProfileStatus, type Organization,
+  linkGoogleBusinessProfileLocation, listBusinessLocations, listGoogleBusinessProfileLocations, listGoogleBusinessProfileReviews,
+  syncGoogleBusinessProfileLocations, syncGoogleBusinessProfileReviews, unlinkGoogleBusinessProfileLocation,
+  type BusinessLocation, type GoogleBusinessProfileLocation, type GoogleBusinessProfilePerformance, type GoogleBusinessProfileReview, type GoogleBusinessProfileStatus, type Organization,
 } from "../lib/api";
 import { clearLegacyBusinessProfile, readBusinessLocations } from "../lib/business-profile";
 
@@ -135,6 +135,135 @@ const OPEN_STATUS_LABELS: Record<string, string> = {
   CLOSED_TEMPORARILY: "Fermé temporairement",
   CLOSED_PERMANENTLY: "Fermé définitivement",
 };
+
+function formatReviewDate(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("fr-FR");
+}
+
+function averageRating(reviews: GoogleBusinessProfileReview[]) {
+  const rated = reviews.filter((review): review is GoogleBusinessProfileReview & { starRating: number } => review.starRating !== null);
+  if (rated.length === 0) return null;
+  return rated.reduce((total, review) => total + review.starRating, 0) / rated.length;
+}
+
+/** RC-40 — Google's own avis, read-only: no reply UI is ever rendered here. */
+function ReviewsSection({ locationId }: { locationId: string }) {
+  const [reviews, setReviews] = useState<GoogleBusinessProfileReview[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true); setError("");
+    try { setReviews(await listGoogleBusinessProfileReviews(locationId)); }
+    catch (err) { setError(errorMessage(err)); }
+    finally { setLoading(false); }
+  }, [locationId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function sync() {
+    setLoading(true); setError("");
+    try { await syncGoogleBusinessProfileReviews(locationId); await load(); }
+    catch (err) { setError(errorMessage(err)); setLoading(false); }
+  }
+
+  const average = reviews ? averageRating(reviews) : null;
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-muted"><Star size={12} />Avis Google</p>
+        <button type="button" disabled={loading} onClick={() => void sync()} className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-dark disabled:opacity-50 hover:underline">
+          <RefreshCw size={11} />Synchroniser les avis
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {loading && !reviews && <p className="text-xs text-muted">Chargement des avis…</p>}
+      {reviews && (
+        average !== null ? (
+          <p className="mb-2 text-xs text-dark"><strong className="text-navy">{average.toFixed(1)}/5</strong> · {reviews.length} avis</p>
+        ) : (
+          <p className="mb-2 text-xs text-muted">Aucun avis pour cette fiche.</p>
+        )
+      )}
+      {reviews && reviews.length > 0 && (
+        <ul className="max-h-56 space-y-3 overflow-y-auto pr-1">
+          {reviews.map((review) => (
+            <li key={review.id} className="border-b border-border/60 pb-2 last:border-0">
+              <div className="flex items-center gap-2">
+                {review.starRating !== null && <span className="text-[11px] font-bold text-orange-dark">{"★".repeat(review.starRating)}{"☆".repeat(5 - review.starRating)}</span>}
+                <span className="text-xs font-semibold text-navy">{review.reviewerDisplayName ?? "Client Google"}</span>
+                <span className="text-[10px] text-muted">{formatReviewDate(review.createTime)}</span>
+              </div>
+              {review.comment && <p className="mt-1 text-xs leading-relaxed text-dark">{review.comment}</p>}
+              {review.replyComment && (
+                <p className="mt-1.5 border-l-2 border-teal/40 pl-2 text-[11px] leading-relaxed text-muted">
+                  <strong className="text-navy">Réponse du propriétaire :</strong> {review.replyComment}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** RC-40 — live 30-day read from the Performance API; nothing persisted, matches the existing GA4 performance pattern. */
+function PerformanceSection({ locationId }: { locationId: string }) {
+  const [performance, setPerformance] = useState<GoogleBusinessProfilePerformance | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showDaily, setShowDaily] = useState(false);
+
+  async function load() {
+    setLoading(true); setError("");
+    try { setPerformance(await getGoogleBusinessProfilePerformance(locationId)); }
+    catch (err) { setError(errorMessage(err)); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-muted"><Eye size={12} />Performances (30 jours)</p>
+        <button type="button" disabled={loading} onClick={() => void load()} className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-dark disabled:opacity-50 hover:underline">
+          <RefreshCw size={11} />{performance ? "Actualiser" : "Charger"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {loading && !performance && <p className="text-xs text-muted">Chargement des statistiques…</p>}
+      {!performance && !loading && !error && <p className="text-xs text-muted">Non chargées — Google n'est interrogé qu'à la demande.</p>}
+      {performance && (
+        <>
+          <div className="grid grid-cols-2 gap-2 text-xs text-dark sm:grid-cols-3">
+            <p><strong className="text-navy">{performance.summary.impressions}</strong> impressions</p>
+            <p><strong className="text-navy">{performance.summary.calls}</strong> appels</p>
+            <p><strong className="text-navy">{performance.summary.websiteClicks}</strong> clics site</p>
+            <p><strong className="text-navy">{performance.summary.directionRequests}</strong> itinéraires</p>
+            <p><strong className="text-navy">{performance.summary.conversations}</strong> messages</p>
+          </div>
+          <button type="button" onClick={() => setShowDaily((current) => !current)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-navy hover:underline">
+            {showDaily ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            {showDaily ? "Masquer le détail quotidien" : "Voir le détail quotidien"}
+          </button>
+          {showDaily && (
+            <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto pr-1 text-[11px] text-dark">
+              {performance.daily.map((day) => (
+                <li key={day.date} className="flex justify-between gap-2">
+                  <span className="text-muted">{new Date(day.date).toLocaleDateString("fr-FR")}</span>
+                  <span>{day.impressions} impr. · {day.calls} appels · {day.websiteClicks} clics · {day.directionRequests} itin.</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 function GoogleLocationCard({
   item,
@@ -266,6 +395,14 @@ function GoogleLocationCard({
                 )}
               </>
             )}
+          </div>
+
+          <div className="border-t border-border pt-4 sm:col-span-2">
+            <ReviewsSection locationId={item.id} />
+          </div>
+
+          <div className="border-t border-border pt-4 sm:col-span-2">
+            <PerformanceSection locationId={item.id} />
           </div>
         </div>
       )}

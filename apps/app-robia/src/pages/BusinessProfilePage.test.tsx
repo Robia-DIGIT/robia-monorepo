@@ -20,6 +20,9 @@ vi.mock('../lib/api', async (importOriginal) => {
     linkGoogleBusinessProfileLocation: vi.fn(),
     unlinkGoogleBusinessProfileLocation: vi.fn(),
     disconnectGoogleBusinessProfile: vi.fn(),
+    listGoogleBusinessProfileReviews: vi.fn(),
+    syncGoogleBusinessProfileReviews: vi.fn(),
+    getGoogleBusinessProfilePerformance: vi.fn(),
   }
 })
 
@@ -35,6 +38,7 @@ beforeEach(() => {
   mockedApi.listBusinessLocations.mockResolvedValue([robiaLocation])
   mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0 })
   mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([])
+  mockedApi.listGoogleBusinessProfileReviews.mockResolvedValue([])
 })
 
 describe('BusinessProfilePage', () => {
@@ -194,5 +198,96 @@ describe('BusinessProfilePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
     expect(await screen.findByText(/importe vos établissements sans modifier vos fiches Google/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /publier|modifier la fiche|répondre/i })).not.toBeInTheDocument()
+  })
+
+  // RC-40 — reviews and performance, both read-only.
+  describe('reviews and performance (RC-40)', () => {
+    const googleLocation: api.GoogleBusinessProfileLocation = {
+      id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1',
+      languageCode: 'fr', title: 'ROBIA Google', storeCode: null, address: null, primaryPhone: null,
+      additionalPhones: [], websiteUri: null, primaryCategory: null, additionalCategories: [], description: null,
+      regularHours: null, specialHours: null, moreHours: [], serviceArea: null, labels: [],
+      latitude: null, longitude: null, openStatus: null, metadata: null,
+      lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
+    }
+
+    beforeEach(() => {
+      mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
+      mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([googleLocation])
+    })
+
+    async function expandCard() {
+      render(<BusinessProfilePage />)
+      await screen.findByText('ROBIA Analakely')
+      fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+      await screen.findByText('ROBIA Google')
+      fireEvent.click(screen.getByRole('button', { name: 'Voir les détails de la fiche' }))
+    }
+
+    it('loads stored reviews automatically on expand and shows the average rating', async () => {
+      mockedApi.listGoogleBusinessProfileReviews.mockResolvedValue([
+        { id: 'r1', googleReviewName: 'n1', reviewerDisplayName: 'Alice', reviewerPhotoUri: null, starRating: 5, comment: 'Top', createTime: '2026-09-01T00:00:00Z', updateTime: null, replyComment: null, replyUpdateTime: null, lastSyncedAt: '2026-09-21T09:00:00Z' },
+        { id: 'r2', googleReviewName: 'n2', reviewerDisplayName: 'Bob', reviewerPhotoUri: null, starRating: 3, comment: 'Correct', createTime: '2026-09-02T00:00:00Z', updateTime: null, replyComment: 'Merci Bob !', replyUpdateTime: '2026-09-03T00:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z' },
+      ])
+
+      await expandCard()
+
+      expect(mockedApi.listGoogleBusinessProfileReviews).toHaveBeenCalledWith('gbp-1')
+      expect(await screen.findByText('4.0/5')).toBeInTheDocument()
+      expect(screen.getByText('Alice')).toBeInTheDocument()
+      expect(screen.getByText('Top')).toBeInTheDocument()
+      expect(screen.getByText(/Merci Bob !/)).toBeInTheDocument()
+      // Read-only: never a reply input/button anywhere in the reviews section.
+      expect(screen.queryByRole('button', { name: /répondre/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: /réponse/i })).not.toBeInTheDocument()
+    })
+
+    it('shows an honest empty state when Google has no reviews for this fiche', async () => {
+      mockedApi.listGoogleBusinessProfileReviews.mockResolvedValue([])
+      await expandCard()
+      expect(await screen.findByText('Aucun avis pour cette fiche.')).toBeInTheDocument()
+    })
+
+    it('re-syncs reviews from Google on demand and reloads the list', async () => {
+      mockedApi.listGoogleBusinessProfileReviews
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { id: 'r1', googleReviewName: 'n1', reviewerDisplayName: 'Alice', reviewerPhotoUri: null, starRating: 4, comment: 'Bien', createTime: '2026-09-01T00:00:00Z', updateTime: null, replyComment: null, replyUpdateTime: null, lastSyncedAt: '2026-09-21T10:00:00Z' },
+        ])
+      mockedApi.syncGoogleBusinessProfileReviews.mockResolvedValue({ synced: true, reviewCount: 1, syncedAt: '2026-09-21T10:00:00Z' })
+
+      await expandCard()
+      await screen.findByText('Aucun avis pour cette fiche.')
+      fireEvent.click(screen.getByRole('button', { name: 'Synchroniser les avis' }))
+
+      await waitFor(() => expect(mockedApi.syncGoogleBusinessProfileReviews).toHaveBeenCalledWith('gbp-1'))
+      expect(await screen.findByText('Alice')).toBeInTheDocument()
+    })
+
+    it('never fetches performance on expand — only on explicit request', async () => {
+      mockedApi.getGoogleBusinessProfilePerformance.mockResolvedValue({
+        locationId: 'gbp-1', startDate: '2026-08-23', endDate: '2026-09-21',
+        summary: { impressions: 120, calls: 8, websiteClicks: 15, directionRequests: 4, conversations: 2 },
+        daily: [{ date: '2026-09-21', impressions: 5, calls: 1, websiteClicks: 1, directionRequests: 0, conversations: 0 }],
+        syncedAt: '2026-09-21T10:00:00Z',
+      })
+
+      await expandCard()
+      expect(await screen.findByText(/Non chargées/)).toBeInTheDocument()
+      expect(mockedApi.getGoogleBusinessProfilePerformance).not.toHaveBeenCalled()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Charger' }))
+
+      expect(await screen.findByText('120')).toBeInTheDocument()
+      expect(screen.getByText('impressions')).toBeInTheDocument()
+      expect(mockedApi.getGoogleBusinessProfilePerformance).toHaveBeenCalledWith('gbp-1')
+    })
+
+    it('surfaces a real fetch error instead of silently showing zeros', async () => {
+      mockedApi.getGoogleBusinessProfilePerformance.mockRejectedValue(new Error('Google indisponible'))
+      await expandCard()
+      fireEvent.click(screen.getByRole('button', { name: 'Charger' }))
+      expect(await screen.findByText('Google indisponible')).toBeInTheDocument()
+    })
   })
 })
