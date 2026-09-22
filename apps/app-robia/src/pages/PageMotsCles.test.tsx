@@ -49,20 +49,30 @@ function performance(topQueries: SearchConsoleMetric[]): SearchConsolePerformanc
 beforeEach(() => vi.resetAllMocks())
 
 describe('opportunityTier', () => {
-  it('classifies a page-1-but-not-top-3 position as a quick win', () => {
+  it('classifies positions 1 to 3 as a strong position, never confused with beyond-20', () => {
+    expect(opportunityTier(1)).toBe('fort')
+    expect(opportunityTier(3)).toBe('fort')
+  })
+
+  it('classifies a page-1-but-not-top-3 position (4 to 10) as a quick win', () => {
     expect(opportunityTier(4)).toBe('quick_win')
     expect(opportunityTier(10)).toBe('quick_win')
   })
 
-  it('classifies a page-2 position as needing more work', () => {
+  it('classifies a page-2 position (11 to 20) as needing more work', () => {
     expect(opportunityTier(10.5)).toBe('a_developper')
     expect(opportunityTier(20)).toBe('a_developper')
   })
 
-  it('classifies top-3 and beyond-page-2 as already strong / not prioritized', () => {
-    expect(opportunityTier(1)).toBe('fort')
-    expect(opportunityTier(3)).toBe('fort')
-    expect(opportunityTier(25)).toBe('fort')
+  it('classifies anything beyond position 20 as its own "hors Top 20" tier, not as strong', () => {
+    expect(opportunityTier(21)).toBe('hors_top20')
+    expect(opportunityTier(87)).toBe('hors_top20')
+  })
+
+  it('classifies a missing or invalid position as unknown rather than defaulting to strong', () => {
+    expect(opportunityTier(Number.NaN)).toBe('position_inconnue')
+    expect(opportunityTier(0)).toBe('position_inconnue')
+    expect(opportunityTier(-1)).toBe('position_inconnue')
   })
 })
 
@@ -104,5 +114,27 @@ describe('PageMotsCles', () => {
     render(<MemoryRouter><PageMotsCles /></MemoryRouter>)
 
     await waitFor(() => expect(screen.getByText('Aucune requête disponible')).toBeInTheDocument())
+  })
+
+  it('displays which Search Console property is actually being analyzed', async () => {
+    mockedApi.getSearchConsoleStatus.mockResolvedValue(status({ selectedSiteUrl: 'https://autre-site.mg' }))
+    mockedApi.getSearchConsolePerformance.mockResolvedValue(performance([query({})]))
+
+    render(<MemoryRouter><PageMotsCles /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('https://autre-site.mg')).toBeInTheDocument())
+    expect(screen.getByText(/Propriété Search Console analysée/)).toBeInTheDocument()
+  })
+
+  it('renders a query with a missing/invalid position under its own tier, never mislabelled as strong', async () => {
+    mockedApi.getSearchConsoleStatus.mockResolvedValue(status())
+    mockedApi.getSearchConsolePerformance.mockResolvedValue(
+      performance([query({ key: 'position non fournie', position: Number.NaN })]),
+    )
+
+    render(<MemoryRouter><PageMotsCles /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('Position inconnue')).toBeInTheDocument())
+    expect(screen.queryByText('Position forte')).not.toBeInTheDocument()
   })
 })

@@ -15,7 +15,7 @@ const errorMessage = (error: unknown) =>
 const percent = (value: number) => `${(value * 100).toFixed(1)} %`
 const number = (value: number) => new Intl.NumberFormat('fr-FR').format(Math.round(value))
 
-type OpportunityTier = 'quick_win' | 'a_developper' | 'fort'
+type OpportunityTier = 'quick_win' | 'a_developper' | 'fort' | 'hors_top20' | 'position_inconnue'
 
 // Google ne classe pas nativement une requête comme "opportunité" — ce sont
 // les mêmes clics/impressions/position bruts que Search Console renvoie déjà
@@ -23,14 +23,21 @@ type OpportunityTier = 'quick_win' | 'a_developper' | 'fort'
 // par volume brut. Une position 4-10 est la plus rentable à travailler :
 // déjà visible, un petit gain suffit souvent à atteindre le top 3. Une
 // position 11-20 (page 2) demande plus d'effort mais reste atteignable.
-// Position 1-3 est déjà acquise — affichée pour référence, jamais en tête.
+// Position 1-3 est déjà acquise. Au-delà de 20 (hors des deux premières
+// pages), la requête est quasiment invisible — distinct d'une position
+// forte, jamais confondu avec elle. `position` vient d'une réponse HTTP
+// JSON, donc le typage TS ne garantit rien à l'exécution : une valeur
+// manquante, NaN ou négative doit être son propre palier plutôt que de
+// tomber, par accident, dans "Position forte".
 export function opportunityTier(position: number): OpportunityTier {
-  if (position > 3 && position <= 10) return 'quick_win'
-  if (position > 10 && position <= 20) return 'a_developper'
-  return 'fort'
+  if (!Number.isFinite(position) || position <= 0) return 'position_inconnue'
+  if (position <= 3) return 'fort'
+  if (position <= 10) return 'quick_win'
+  if (position <= 20) return 'a_developper'
+  return 'hors_top20'
 }
 
-const TIER_META: Record<OpportunityTier, { label: string; badge: 'orange' | 'blue' | 'teal'; description: string }> = {
+const TIER_META: Record<OpportunityTier, { label: string; badge: 'orange' | 'blue' | 'teal' | 'gray' | 'red'; description: string }> = {
   quick_win: {
     label: 'Gain rapide',
     badge: 'orange',
@@ -44,7 +51,17 @@ const TIER_META: Record<OpportunityTier, { label: string; badge: 'orange' | 'blu
   fort: {
     label: 'Position forte',
     badge: 'teal',
-    description: 'Déjà bien positionnée (top 3) ou hors des deux premières pages — à surveiller, pas prioritaire.',
+    description: 'Déjà dans le top 3 — à surveiller, pas prioritaire.',
+  },
+  hors_top20: {
+    label: 'Hors Top 20',
+    badge: 'gray',
+    description: "Au-delà de la position 20 — quasiment invisible, un travail de fond peut être nécessaire avant d'y revenir.",
+  },
+  position_inconnue: {
+    label: 'Position inconnue',
+    badge: 'red',
+    description: "Google n'a pas fourni de position exploitable pour cette requête sur la période.",
   },
 }
 
@@ -61,7 +78,7 @@ function KeywordRow({ query }: { query: SearchConsoleMetric }) {
         <p className="text-xs text-muted">{meta.description}</p>
       </div>
       <div className="grid shrink-0 grid-cols-4 gap-4 text-right sm:gap-6">
-        <div><p className="text-[10px] uppercase tracking-wide text-muted">Position</p><p className="text-sm font-bold text-dark">{query.position.toFixed(1)}</p></div>
+        <div><p className="text-[10px] uppercase tracking-wide text-muted">Position</p><p className="text-sm font-bold text-dark">{Number.isFinite(query.position) && query.position > 0 ? query.position.toFixed(1) : '—'}</p></div>
         <div><p className="text-[10px] uppercase tracking-wide text-muted">Impressions</p><p className="text-sm font-bold text-dark">{number(query.impressions)}</p></div>
         <div><p className="text-[10px] uppercase tracking-wide text-muted">Clics</p><p className="text-sm font-bold text-dark">{number(query.clicks)}</p></div>
         <div><p className="text-[10px] uppercase tracking-wide text-muted">CTR</p><p className="text-sm font-bold text-dark">{percent(query.ctr)}</p></div>
@@ -120,7 +137,13 @@ export default function PageMotsCles() {
   const sorted = (queries ?? [])
     .slice()
     .sort((left, right) => {
-      const order: Record<OpportunityTier, number> = { quick_win: 0, a_developper: 1, fort: 2 }
+      const order: Record<OpportunityTier, number> = {
+        quick_win: 0,
+        a_developper: 1,
+        hors_top20: 2,
+        fort: 3,
+        position_inconnue: 4,
+      }
       const tierDiff = order[opportunityTier(left.position)] - order[opportunityTier(right.position)]
       if (tierDiff !== 0) return tierDiff
       return right.impressions - left.impressions
@@ -139,6 +162,9 @@ export default function PageMotsCles() {
             <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Target size={15} /> Opportunités mots-clés</p>
             <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Quels mots-clés faire progresser ?</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Données réelles Google Search Console, triées par potentiel de gain plutôt que par volume — les requêtes déjà en page 1 ou 2 sont les plus rapides à améliorer.</p>
+            {status?.connected && status.selectedSiteUrl && (
+              <p className="mt-2 text-xs text-muted">Propriété Search Console analysée : <span className="font-semibold text-dark">{status.selectedSiteUrl}</span></p>
+            )}
           </div>
           {status?.connected && status.selectedSiteUrl && (
             <Button variant="primary" size="sm" icon={<RefreshCw size={14} className={busy ? 'animate-spin' : ''} />} loading={busy} onClick={handleRefresh}>Actualiser</Button>

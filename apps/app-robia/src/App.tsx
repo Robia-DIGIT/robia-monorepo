@@ -41,7 +41,7 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('loading')
 
   const activePath = location.pathname
-  const pageTitle = resolvePageTitle(activePath)
+  const pageTitle = resolvePageTitle(activePath, location.search)
   const metaOAuthStatus = useMemo(() => {
     if (location.pathname !== '/meta-data') return null
     const value = new URLSearchParams(location.search).get('meta')
