@@ -11,6 +11,7 @@ import {
 } from "@/components/robia-ui";
 import { SiteSelector } from '@/components/site-selector';
 import { Brand } from "@/constants/theme";
+import { useFilterSwipe } from '@/hooks/use-filter-swipe';
 import { useRobiaData } from "@/src/api/data";
 import type { Opportunity } from "@/src/api/types";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -37,6 +38,13 @@ export default function OpportunitiesScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState("Toutes");
   const filters = ["Toutes", "Prioritaires", "Faible effort"] as const;
+  const swipeGesture = useFilterSwipe({
+    filters,
+    selected: filter,
+    onChange: setFilter,
+    previousTab: '/(tabs)/dashboard',
+    nextTab: '/(tabs)/execution-pack',
+  });
   const visibleOpportunities = opportunities.filter((item) => {
     if (filter === "Prioritaires") return item.impactScore >= 7;
     if (filter === "Faible effort") return item.effortScore <= 4;
@@ -54,7 +62,7 @@ export default function OpportunitiesScreen() {
     }
   }
   return (
-    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
+    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh} swipeGesture={swipeGesture}>
       <RobiaFixedHeader>
         <RobiaHeader compact
           eyebrow="RECOMMANDATIONS IA"
@@ -62,7 +70,7 @@ export default function OpportunitiesScreen() {
           subtitle="Les actions les plus utiles détectées à partir de votre dernier audit."
         />
         <SiteSelector />
-        <FilterChips options={filters} selected={filter} onChange={setFilter} />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
       <FilterTransition filterKey={filter}>
         {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}

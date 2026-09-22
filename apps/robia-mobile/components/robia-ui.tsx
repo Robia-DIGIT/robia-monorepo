@@ -3,7 +3,9 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
   Children,
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
   type PropsWithChildren,
   type ReactNode,
@@ -19,6 +21,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-handler';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Brand, Fonts } from "@/constants/theme";
@@ -33,13 +36,21 @@ export function RobiaScreen({
   fixedHeader = false,
   refreshing = false,
   onRefresh,
+  swipeGesture,
 }: PropsWithChildren<{
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   fixedHeader?: boolean;
   refreshing?: boolean;
   onRefresh?: () => Promise<unknown>;
+  swipeGesture?: PanGesture;
 }>) {
+  // The vertical scroll waits only until the horizontal gesture fails. This
+  // lets native direction detection decide before a ScrollView takes the touch.
+  const nativeScrollGesture = useMemo(() => {
+    const gesture = Gesture.Native();
+    return swipeGesture ? gesture.requireExternalGestureToFail(swipeGesture) : gesture;
+  }, [swipeGesture]);
   const items = Children.toArray(children);
   const header = fixedHeader ? items.shift() : null;
   const content = (
@@ -54,8 +65,23 @@ export function RobiaScreen({
     </View>
   );
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+  const scrollView = (
+    <ScrollView
+      accessibilityRole="none"
+      style={styles.scroll}
+      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      automaticallyAdjustKeyboardInsets
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {content}
+    </ScrollView>
+  );
+
+  const screen = (
+    <SafeAreaView collapsable={false} style={styles.safeArea} edges={["top", "bottom"]}>
       {/* <View pointerEvents="none" style={styles.ambientTop} />
       <View pointerEvents="none" style={styles.ambientSide} /> */}
       {header ? (
@@ -64,23 +90,22 @@ export function RobiaScreen({
         </View>
       ) : null}
       {scroll ? (
-        <ScrollView
-          accessibilityRole={'none'}
-          style={styles.scroll}
-          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {content}
-        </ScrollView>
+        swipeGesture ? (
+          <GestureDetector gesture={nativeScrollGesture} touchAction="pan-y">
+            {scrollView}
+          </GestureDetector>
+        ) : scrollView
       ) : (
         content
       )}
     </SafeAreaView>
   );
+
+  return swipeGesture ? (
+    <GestureDetector gesture={swipeGesture} touchAction="pan-y">
+      {screen}
+    </GestureDetector>
+  ) : screen;
 }
 export function RobiaHeader({
   title,
@@ -160,7 +185,9 @@ export function RobiaFixedHeader({ children }: PropsWithChildren) {
 export function FilterTransition({
   filterKey,
   children,
-}: PropsWithChildren<{ filterKey: string }>) {
+}: PropsWithChildren<{
+  filterKey: string;
+}>) {
   const reduceMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(1)).current;
   const offset = useRef(new Animated.Value(0)).current;
@@ -260,14 +287,37 @@ export function FilterChips({
   options,
   selected,
   onChange,
+  swipeToSelect = false,
 }: {
   options: readonly string[];
   selected: string;
   onChange: (value: string) => void;
+  swipeToSelect?: boolean;
 }) {
+  const scroll = useRef<ScrollView>(null);
+  const viewportWidth = useRef(0);
+  const positions = useRef<Record<string, { x: number; width: number }>>({});
+  const reduceMotion = useReducedMotion();
+  const revealSelected = useCallback(() => {
+    const position = positions.current[selected];
+    if (!position || !viewportWidth.current) return;
+    scroll.current?.scrollTo({
+      x: Math.max(0, position.x - (viewportWidth.current - position.width) / 2),
+      animated: !reduceMotion,
+    });
+  }, [selected, reduceMotion]);
+
+  useEffect(revealSelected, [revealSelected]);
+
   return (
     <ScrollView
+      ref={scroll}
       horizontal
+      scrollEnabled={!swipeToSelect}
+      onLayout={(event) => {
+        viewportWidth.current = event.nativeEvent.layout.width;
+        revealSelected();
+      }}
       nestedScrollEnabled
       directionalLockEnabled
       alwaysBounceHorizontal
@@ -279,6 +329,11 @@ export function FilterChips({
         return (
           <Pressable
             key={option}
+            onLayout={(event) => {
+              const { x, width } = event.nativeEvent.layout;
+              positions.current[option] = { x, width };
+              if (active) revealSelected();
+            }}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(option)}
@@ -414,7 +469,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   fixedHeaderGroup: { gap: 10 },
-  filterTransition: { gap: 22 },
+  filterTransition: { flexGrow: 1, gap: 22 },
   screenContentBelowHeader: { paddingTop: 12 },
   screenContent: {
     flex: 1,

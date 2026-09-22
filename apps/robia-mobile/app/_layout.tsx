@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { CopilotProvider } from 'react-native-copilot';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { Brand, Colors, Fonts } from '@/constants/theme';
@@ -28,7 +29,11 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export const unstable_settings = { anchor: '(tabs)', initialRouteName: 'index' };
 
 export default function RootLayout() {
-  return <SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider>;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider>
+    </GestureHandlerRootView>
+  );
 }
 
 function AppLayout() {
@@ -250,7 +255,7 @@ function AppLayout() {
             animation: reduceMotion ? 'none' : 'slide_from_bottom',
           }}
         />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen

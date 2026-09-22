@@ -13,6 +13,7 @@ import {
 } from "@/components/robia-ui";
 import { SiteSelector } from '@/components/site-selector';
 import { Brand, Fonts } from "@/constants/theme";
+import { useFilterSwipe } from '@/hooks/use-filter-swipe';
 import { useRobiaData } from "@/src/api/data";
 import { shareActionPdf } from '@/src/api/export';
 import type { ActionStatus } from "@/src/api/types";
@@ -53,6 +54,13 @@ export default function ProgressScreen() {
   const [planning, setPlanning] = useState(false);
   const [filter, setFilter] = useState("Toutes");
   const filters = ["Toutes", "À faire", "En cours", "Terminées"] as const;
+  const swipeGesture = useFilterSwipe({
+    filters,
+    selected: filter,
+    onChange: setFilter,
+    previousTab: '/(tabs)/execution-pack',
+    nextTab: '/(tabs)/profile',
+  });
   const visibleActions = actions.filter((item) => {
     if (filter === "À faire") return item.status === "todo";
     if (filter === "En cours") return item.status === "in_progress";
@@ -76,7 +84,7 @@ export default function ProgressScreen() {
     }
   }
   return (
-    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
+    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh} swipeGesture={swipeGesture}>
       <RobiaFixedHeader>
         <RobiaHeader compact
           eyebrow="PLAN D’ACTION"
@@ -84,7 +92,7 @@ export default function ProgressScreen() {
           subtitle="Pilotez les actions générées par RobIA et leurs échéances."
         />
         <SiteSelector />
-        <FilterChips options={filters} selected={filter} onChange={setFilter} />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
       <FilterTransition filterKey={filter}>
       <LoadState loading={isLoading} error={error ?? planError} retry={refresh} />

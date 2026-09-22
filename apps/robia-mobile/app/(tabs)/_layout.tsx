@@ -41,6 +41,8 @@ const TABS = [
   { name: "profile", title: "Profil", icon: "person.crop.circle.fill" },
 ] as const;
 
+const FILTERED_TABS = new Set(['opportunities', 'execution-pack', 'progress']);
+
 // Use the navigator's selected route as the only source of selection. The
 // default tab bar cross-fades two icon trees, which conflicts with icon-level
 // entering/exiting animations, especially when jumping over several pages.
@@ -151,7 +153,7 @@ export default function TabLayout() {
         <SwipeTabs.Screen
           key={tab.name}
           name={tab.name}
-          options={{ title: tab.title }}
+          options={{ title: tab.title, swipeEnabled: !FILTERED_TABS.has(tab.name) }}
         />
       ))}
     </SwipeTabs>

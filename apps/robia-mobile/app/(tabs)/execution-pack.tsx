@@ -12,6 +12,7 @@ import {
 } from "@/components/robia-ui";
 import { SiteSelector } from '@/components/site-selector';
 import { Brand } from "@/constants/theme";
+import { useFilterSwipe } from '@/hooks/use-filter-swipe';
 import { useRobiaData } from "@/src/api/data";
 import { DOCUMENT_STATUS_LABELS } from '@/src/api/presentation';
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -33,13 +34,20 @@ export default function ExecutionPackScreen() {
   const [filter, setFilter] = useState("Tous");
   const ready = documents.filter((item) => ["edited", "approved", "validated"].includes(item.status)).length;
   const filters = ["Tous", "À valider", "Validés"] as const;
+  const swipeGesture = useFilterSwipe({
+    filters,
+    selected: filter,
+    onChange: setFilter,
+    previousTab: '/(tabs)/opportunities',
+    nextTab: '/(tabs)/progress',
+  });
   const visibleDocuments = documents.filter((item) => {
     if (filter === "À valider") return ["draft", "needs_review"].includes(item.status);
     if (filter === "Validés") return ["approved", "validated"].includes(item.status);
     return true;
   });
   return (
-    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
+    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh} swipeGesture={swipeGesture}>
       <RobiaFixedHeader>
         <RobiaHeader compact
           eyebrow="CENTRE DE PRODUCTION"
@@ -47,7 +55,7 @@ export default function ExecutionPackScreen() {
           subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."
         />
         <SiteSelector />
-        <FilterChips options={filters} selected={filter} onChange={setFilter} />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
       <FilterTransition filterKey={filter}>
       <LoadState loading={isLoading} error={error} retry={refresh} />
