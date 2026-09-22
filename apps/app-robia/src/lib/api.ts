@@ -100,15 +100,16 @@ export interface GoogleBusinessProfileLocation {
   robiaLocation: Pick<BusinessLocation, "id" | "name" | "address" | "city" | "country"> | null;
 }
 
-// RC-40 — a review, exactly as stored server-side (Google's own reviewer
-// display name/photo, star rating, comment, and Google's own owner reply if
-// one was already posted directly on Google — never something ROBIA can
-// post on the owner's behalf).
+// RC-40 fix — a review, exactly as stored server-side (Google's own
+// reviewer display name, star rating, comment, and Google's own owner
+// reply if one was already posted directly on Google — never something
+// ROBIA can post on the owner's behalf). `expiresAt` reflects the backend's
+// <30-day Google data-retention policy: an expired review is never
+// returned by the API in the first place.
 export interface GoogleBusinessProfileReview {
   id: string;
   googleReviewName: string;
   reviewerDisplayName: string | null;
-  reviewerPhotoUri: string | null;
   starRating: number | null;
   comment: string | null;
   createTime: string | null;
@@ -116,12 +117,29 @@ export interface GoogleBusinessProfileReview {
   replyComment: string | null;
   replyUpdateTime: string | null;
   lastSyncedAt: string;
+  expiresAt: string;
+}
+
+// RC-40 fix — the backend's explicit reviews envelope. averageRating and
+// totalReviewCount are Google's own aggregate (from reviews.list), never
+// recomputed client-side. All four cache fields are null when the cache has
+// expired or nothing has ever been synced — an honest "no fresh data"
+// state, never a stale value served silently.
+export interface GoogleBusinessProfileReviewsEnvelope {
+  reviews: GoogleBusinessProfileReview[];
+  averageRating: number | null;
+  totalReviewCount: number | null;
+  lastSyncedAt: string | null;
+  expiresAt: string | null;
 }
 
 export interface GoogleBusinessProfileReviewsSync {
   synced: boolean;
   reviewCount: number;
+  averageRating: number | null;
+  totalReviewCount: number | null;
   syncedAt: string;
+  expiresAt: string;
 }
 
 export interface GoogleBusinessProfileDailyPerformance {
@@ -960,7 +978,7 @@ export async function unlinkGoogleBusinessProfileLocation(id: string) {
 }
 
 export async function listGoogleBusinessProfileReviews(locationId: string) {
-  return request<GoogleBusinessProfileReview[]>(
+  return request<GoogleBusinessProfileReviewsEnvelope>(
     `/integrations/google/business-profile/locations/${encodeURIComponent(locationId)}/reviews`,
   );
 }

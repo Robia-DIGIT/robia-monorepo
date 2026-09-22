@@ -6,7 +6,7 @@ import {
   importLegacyBusinessLocations,
   linkGoogleBusinessProfileLocation, listBusinessLocations, listGoogleBusinessProfileLocations, listGoogleBusinessProfileReviews,
   syncGoogleBusinessProfileLocations, syncGoogleBusinessProfileReviews, unlinkGoogleBusinessProfileLocation,
-  type BusinessLocation, type GoogleBusinessProfileLocation, type GoogleBusinessProfilePerformance, type GoogleBusinessProfileReview, type GoogleBusinessProfileStatus, type Organization,
+  type BusinessLocation, type GoogleBusinessProfileLocation, type GoogleBusinessProfilePerformance, type GoogleBusinessProfileReviewsEnvelope, type GoogleBusinessProfileStatus, type Organization,
 } from "../lib/api";
 import { clearLegacyBusinessProfile, readBusinessLocations } from "../lib/business-profile";
 
@@ -142,21 +142,41 @@ function formatReviewDate(value: string | null) {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("fr-FR");
 }
 
-function averageRating(reviews: GoogleBusinessProfileReview[]) {
-  const rated = reviews.filter((review): review is GoogleBusinessProfileReview & { starRating: number } => review.starRating !== null);
-  if (rated.length === 0) return null;
-  return rated.reduce((total, review) => total + review.starRating, 0) / rated.length;
+/** A real timestamp (has its own time-of-day and zone), so converting to the
+ * viewer's local time and formatting it is correct — unlike a bare "YYYY-MM-DD"
+ * calendar date (see formatIsoDate below), there is no ambiguous day to shift. */
+function formatDateTime(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("fr-FR");
 }
 
-/** RC-40 — Google's own avis, read-only: no reply UI is ever rendered here. */
+/** RC-40 fix — parses a bare "YYYY-MM-DD" calendar date (Google's Performance
+ * API day/period format) directly from its digits, never through `new
+ * Date(string)`: that path treats the string as UTC midnight and then renders
+ * it in the viewer's local timezone, which can shift the displayed day
+ * backward or forward for negative-UTC-offset viewers. Returns "" for
+ * anything that doesn't match, rather than crashing. */
+function formatIsoDate(value: string | null | undefined): string {
+  if (typeof value !== "string") return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return "";
+  const [, year, month, day] = match;
+  return `${day}/${month}/${year}`;
+}
+
+/** RC-40 fix — Google's own avis, read-only: no reply UI is ever rendered
+ * here. averageRating/totalReviewCount come straight from the backend
+ * envelope (Google's own aggregate), never recomputed from the reviews
+ * shown below. */
 function ReviewsSection({ locationId }: { locationId: string }) {
-  const [reviews, setReviews] = useState<GoogleBusinessProfileReview[] | null>(null);
+  const [data, setData] = useState<GoogleBusinessProfileReviewsEnvelope | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { setReviews(await listGoogleBusinessProfileReviews(locationId)); }
+    try { setData(await listGoogleBusinessProfileReviews(locationId)); }
     catch (err) { setError(errorMessage(err)); }
     finally { setLoading(false); }
   }, [locationId]);
@@ -169,7 +189,8 @@ function ReviewsSection({ locationId }: { locationId: string }) {
     catch (err) { setError(errorMessage(err)); setLoading(false); }
   }
 
-  const average = reviews ? averageRating(reviews) : null;
+  const reviews = data?.reviews ?? [];
+  const hasFreshData = data !== null && data.lastSyncedAt !== null;
 
   return (
     <div>
@@ -180,15 +201,24 @@ function ReviewsSection({ locationId }: { locationId: string }) {
         </button>
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
-      {loading && !reviews && <p className="text-xs text-muted">Chargement des avis…</p>}
-      {reviews && (
-        average !== null ? (
-          <p className="mb-2 text-xs text-dark"><strong className="text-navy">{average.toFixed(1)}/5</strong> · {reviews.length} avis</p>
-        ) : (
-          <p className="mb-2 text-xs text-muted">Aucun avis pour cette fiche.</p>
-        )
+      {loading && !data && <p className="text-xs text-muted">Chargement des avis…</p>}
+      {data && !hasFreshData && (
+        <p className="mb-2 text-xs text-muted">Avis jamais synchronisés ou expirés — cliquez sur « Synchroniser les avis ».</p>
       )}
-      {reviews && reviews.length > 0 && (
+      {data && hasFreshData && (data.totalReviewCount ?? 0) === 0 && (
+        <p className="mb-2 text-xs text-muted">Aucun avis pour cette fiche.</p>
+      )}
+      {data && hasFreshData && (data.totalReviewCount ?? 0) > 0 && (
+        <p className="mb-2 text-xs text-dark">
+          <strong className="text-navy">{data.averageRating !== null ? `${data.averageRating.toFixed(1)}/5` : "—"}</strong>
+          {" · "}{data.totalReviewCount} avis Google
+          {data.totalReviewCount !== reviews.length && ` (${reviews.length} affiché${reviews.length > 1 ? "s" : ""})`}
+        </p>
+      )}
+      {hasFreshData && (
+        <p className="mb-2 text-[10px] text-muted">Dernière synchronisation : {formatDateTime(data!.lastSyncedAt)}</p>
+      )}
+      {reviews.length > 0 && (
         <ul className="max-h-56 space-y-3 overflow-y-auto pr-1">
           {reviews.map((review) => (
             <li key={review.id} className="border-b border-border/60 pb-2 last:border-0">
@@ -238,6 +268,10 @@ function PerformanceSection({ locationId }: { locationId: string }) {
       {!performance && !loading && !error && <p className="text-xs text-muted">Non chargées — Google n'est interrogé qu'à la demande.</p>}
       {performance && (
         <>
+          <p className="mb-1.5 text-[10px] text-muted">
+            Période : {formatIsoDate(performance.startDate)} → {formatIsoDate(performance.endDate)}
+            {" · "}Récupéré le {formatDateTime(performance.syncedAt)}
+          </p>
           <div className="grid grid-cols-2 gap-2 text-xs text-dark sm:grid-cols-3">
             <p><strong className="text-navy">{performance.summary.impressions}</strong> impressions</p>
             <p><strong className="text-navy">{performance.summary.calls}</strong> appels</p>
@@ -253,7 +287,7 @@ function PerformanceSection({ locationId }: { locationId: string }) {
             <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto pr-1 text-[11px] text-dark">
               {performance.daily.map((day) => (
                 <li key={day.date} className="flex justify-between gap-2">
-                  <span className="text-muted">{new Date(day.date).toLocaleDateString("fr-FR")}</span>
+                  <span className="text-muted">{formatIsoDate(day.date)}</span>
                   <span>{day.impressions} impr. · {day.calls} appels · {day.websiteClicks} clics · {day.directionRequests} itin.</span>
                 </li>
               ))}
