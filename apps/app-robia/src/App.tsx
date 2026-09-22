@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Menu, Search } from 'lucide-react'
 import { getCurrentOrganization, getCurrentUser, logout, type Organization, type UserSummary } from './lib/api'
 import Sidebar from './components/Sidebar'
+import { resolvePageTitle } from './lib/navigation'
 import { clearAuthResponse, isAuthenticated } from './lib/auth'
 import { WebsiteProvider } from './components/WebsiteContext'
 
@@ -40,6 +41,7 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('loading')
 
   const activePath = location.pathname
+  const pageTitle = resolvePageTitle(activePath)
   const metaOAuthStatus = useMemo(() => {
     if (location.pathname !== '/meta-data') return null
     const value = new URLSearchParams(location.search).get('meta')
@@ -159,6 +161,20 @@ export default function App() {
             <span className="font-semibold text-dark text-sm">ROBIA Copilot</span>
           </div>
         </div>
+
+        {/* Desktop topbar — orientation constante (section active), la
+            sidebar seule n'affiche pas où on se trouve une fois repliée,
+            et les routes de détail (ex. une automatisation précise) n'ont
+            pas d'entrée de nav pour se resituer. */}
+        {pageTitle && (
+          <div className="hidden lg:flex items-center h-14 shrink-0 px-6 bg-white border-b border-border">
+            <nav aria-label="Fil d'ariane" className="flex items-center gap-1.5 text-sm">
+              <span className="text-muted">ROBIA</span>
+              <span className="text-border" aria-hidden="true">/</span>
+              <span className="font-semibold text-navy">{pageTitle}</span>
+            </nav>
+          </div>
+        )}
 
         <main className="flex-1 overflow-y-auto">
           <WebsiteProvider>

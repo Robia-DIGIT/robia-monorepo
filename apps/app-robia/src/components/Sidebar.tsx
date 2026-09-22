@@ -1,31 +1,18 @@
 import type { ReactNode } from "react";
 import {
-  Building2,
   CreditCard,
-  BarChart3,
-  BellRing,
-  FileText,
   HelpCircle,
-  LayoutDashboard,
-  Layers,
   type LucideIcon,
-  MessageSquare,
   PanelLeft,
   PanelLeftClose,
-  Search,
   Settings,
-  Share2,
-  Target,
-  Workflow,
-  Zap,
-  ClipboardList,
-  GraduationCap,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import logoSnom from "../assets/logo_snom.png";
 import type { Organization, UserSummary } from "../lib/api";
 import type { ConnectionStatus } from "../App";
+import { NAV_ODC, NAV_OPS, NAV_VISIBILITE, type NavItemConfig } from "../lib/navigation";
 
 // ---------------------------------------------------------------------------
 // En mode réduit, on vise le "rail d'icônes" façon Claude.ai : pas de
@@ -34,46 +21,6 @@ import type { ConnectionStatus } from "../App";
 // généreusement, avec la couleur d'accent qui fait tout le travail.
 // En mode étendu, on garde le style carte/bordures existant.
 // ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Static config
-// ---------------------------------------------------------------------------
-
-interface NavItemConfig {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-  badge?: string;
-  match?: "prefix" | "odc-appel" | "odc-formation";
-}
-
-const NAV_VISIBILITE: NavItemConfig[] = [
-  { to: "/command-center", label: "Command Center", icon: LayoutDashboard },
-  { to: "/analyse", label: "Visibilité", icon: Search },
-  { to: "/opportunites", label: "Opportunités", icon: Zap },
-  { to: "/execution", label: "Actions", icon: Layers },
-  { to: "/rapports", label: "Rapports", icon: FileText },
-  { to: "/mots-cles", label: "Mots-clés", icon: Target },
-  { to: "/ia", label: "Copilot", icon: MessageSquare, badge: "IA" },
-  { to: "/business-profile", label: "Business Profile", icon: Building2 },
-  { to: "/google-data", label: "Données Google", icon: BarChart3 },
-  { to: "/meta-data", label: "Données Meta", icon: Share2 },
-];
-
-const NAV_ODC: NavItemConfig[] = [
-  { to: "/odc/programmes", label: "Candidatures ODC", icon: ClipboardList, match: "odc-appel" },
-  {
-    to: "/odc/programmes?vue=formation",
-    label: "Formation",
-    icon: GraduationCap,
-    match: "odc-formation",
-  },
-];
-
-const NAV_OPS: NavItemConfig[] = [
-  { to: "/ops/automations", label: "Automatisations", icon: Workflow },
-  { to: "/ops/notifications", label: "Notifications", icon: BellRing },
-];
 
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-navy";
