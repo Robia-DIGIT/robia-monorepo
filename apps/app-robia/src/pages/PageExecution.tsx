@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertCircle, Download, MapPin, Play, Radar, RefreshCw, Settings2, ShieldCheck } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronRight, Download, MapPin, Play, Radar, RefreshCw, Settings2, ShieldCheck } from 'lucide-react'
 
 import { Button, Card, Badge, ProgressBar, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
@@ -18,6 +18,8 @@ import {
   updateActionStatus,
   actionStatusLabel,
   actionProgressPct,
+  opportunitySourceData,
+  categoryLabel,
   type ActionItem,
   type Opportunity,
   type ValidationLog,
@@ -63,6 +65,69 @@ function ActionCard({ item, onUpdate, onWorkflowChanged }: { item: ActionItem; o
     </article>
   )
 }
+// Groups every ActionItem generated from the same Opportunity under one
+// collapsible entry — the backend already consolidates a whole class of
+// problem (e.g. "H1 manquant") into a single Opportunity covering every
+// affected page (see OpportunityGeneratorService.generateForSite()); the
+// flat action-by-action list here was the only place that lost that
+// grouping again, showing one full card per generated step even when they
+// all belonged to the same underlying recommendation. Collapsed by default
+// so a non-technical user sees "H1 manquant — 3 actions" instead of 3
+// separate cards repeating the same context; a click reveals the steps.
+function ActionGroup({
+  opportunity,
+  items,
+  defaultOpen,
+  onUpdate,
+  onWorkflowChanged,
+}: {
+  opportunity: Opportunity | null
+  items: ActionItem[]
+  defaultOpen: boolean
+  onUpdate: (id: string, status: string) => Promise<void>
+  onWorkflowChanged: () => void | Promise<void>
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const title = opportunity?.title ?? 'Autres actions'
+  const category = opportunity ? categoryLabel(opportunity.category) : null
+  const affectedUrls = opportunity ? (opportunitySourceData(opportunity).affectedUrls ?? []) : []
+  const doneInGroup = items.filter((item) => actionProgressPct(item.status) >= 100).length
+  const allDone = items.length > 0 && doneInGroup === items.length
+
+  return (
+    <Card className={`overflow-hidden ${allDone ? 'border-teal/40' : ''}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-bg"
+        aria-expanded={open}
+      >
+        {open ? <ChevronDown size={16} className="shrink-0 text-muted" /> : <ChevronRight size={16} className="shrink-0 text-muted" />}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {category && <Badge variant="gray">{category}</Badge>}
+            {allDone && <Badge variant="teal">Terminé</Badge>}
+            <h3 className="truncate text-sm font-bold text-navy">{title}</h3>
+          </div>
+          <p className="mt-0.5 text-xs text-muted">
+            {items.length} action{items.length > 1 ? 's' : ''}
+            {affectedUrls.length > 0 ? ` · ${affectedUrls.length} page(s) concernée(s)` : ''}
+            {' · '}{doneInGroup}/{items.length} terminée{items.length > 1 ? 's' : ''}
+          </p>
+        </div>
+        <span className="shrink-0 text-xs font-bold text-teal-dark">{open ? 'Masquer' : 'Détails'}</span>
+      </button>
+      {open && (
+        <div className="space-y-3 border-t border-border bg-slate-bg/40 p-3">
+          {items.map((item) => (
+            <ActionCard key={String(item.id)} item={item} onUpdate={onUpdate} onWorkflowChanged={onWorkflowChanged} />
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 export default function PageExecution() {
   const [organizationName, setOrganizationName] = useState('')
   const { activeWebsiteId, activeWebsite } = useWebsiteContext()
@@ -80,6 +145,34 @@ export default function PageExecution() {
   const errorCount = useMemo(() => actions.filter((a) => ['error', 'fail', 'reject', 'blocked'].some((status) => a.status.toLowerCase().includes(status))).length, [actions])
   const progressPct = actions.length > 0 ? Math.round((doneCount / actions.length) * 100) : 0
   const nextAction = useMemo(() => actions.find((item) => item.status.toLowerCase().includes('progress')) ?? actions.find((item) => actionProgressPct(item.status) < 100) ?? null, [actions])
+
+  // One group per Opportunity — see ActionGroup's own comment for why:
+  // the backend already consolidates a whole recommendation type (e.g.
+  // "H1 manquant") into one Opportunity, this is just not losing that
+  // grouping again when listing the actions generated from it.
+  const groupedActions = useMemo(() => {
+    const byOpportunity = new Map<string, ActionItem[]>()
+    for (const item of actions) {
+      const key = item.opportunityId ? String(item.opportunityId) : ''
+      if (!byOpportunity.has(key)) byOpportunity.set(key, [])
+      byOpportunity.get(key)!.push(item)
+    }
+    const groups: Array<{ key: string; opportunity: Opportunity | null; items: ActionItem[] }> = []
+    // Preserve the opportunities' own order — already impact-sorted by the backend.
+    for (const opp of opportunities) {
+      const key = String(opp.id)
+      const items = byOpportunity.get(key)
+      if (items && items.length > 0) {
+        groups.push({ key, opportunity: opp, items })
+        byOpportunity.delete(key)
+      }
+    }
+    const leftover = Array.from(byOpportunity.values()).flat()
+    if (leftover.length > 0) {
+      groups.push({ key: '__other__', opportunity: null, items: leftover })
+    }
+    return groups
+  }, [actions, opportunities])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -191,9 +284,22 @@ export default function PageExecution() {
 
       {nextAction && <section className="mb-8 grid border-l-2 border-orange bg-orange-light/30 p-5 md:grid-cols-[1fr_auto] md:items-center md:gap-8"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">À faire maintenant</p><h2 className="mt-2 text-lg font-bold text-navy">{nextAction.title}</h2><p className="mt-2 text-sm leading-6 text-muted">{nextAction.description ?? 'Cette action est la prochaine étape active du plan pour ce site.'}</p></div><Button variant="primary" className="mt-4 md:mt-0" icon={<Play size={14} />} onClick={() => void handleUpdateStatus(String(nextAction.id), 'in_progress')}>Démarrer cette action</Button></section>}
 
-      <div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">File d’exécution</p><h2 className="mt-1 text-xl font-bold text-navy">Toutes les actions du site</h2></div>
+      <div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">File d’exécution</p><h2 className="mt-1 text-xl font-bold text-navy">Recommandations par catégorie</h2><p className="mt-1 text-sm text-muted">Chaque recommandation regroupe toutes les actions et pages concernées — cliquez sur « Détails » pour les voir.</p></div>
       <div className="space-y-3">
-        {actions.length === 0 ? <EmptyState icon={<RefreshCw size={18} />} title="Aucune action disponible" description={`Générez un plan à partir des ${opportunityCount} opportunité(s) connues pour ce site.`} action={<Button variant="primary" onClick={handleGenerate}>Générer les actions</Button>} /> : actions.map((item) => <ActionCard key={String(item.id)} item={item} onUpdate={handleUpdateStatus} onWorkflowChanged={loadData} />)}
+        {actions.length === 0 ? (
+          <EmptyState icon={<RefreshCw size={18} />} title="Aucune action disponible" description={`Générez un plan à partir des ${opportunityCount} opportunité(s) connues pour ce site.`} action={<Button variant="primary" onClick={handleGenerate}>Générer les actions</Button>} />
+        ) : (
+          groupedActions.map((group) => (
+            <ActionGroup
+              key={group.key}
+              opportunity={group.opportunity}
+              items={group.items}
+              defaultOpen={group.items.some((item) => item.status.toLowerCase().includes('progress'))}
+              onUpdate={handleUpdateStatus}
+              onWorkflowChanged={loadData}
+            />
+          ))
+        )}
       </div>
       <DocumentWorkflow opportunities={opportunities} onValidationCreated={() => void loadData()} />
     </div>

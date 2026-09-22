@@ -1083,6 +1083,36 @@ export function competitorScore(competitor: Competitor): number | null {
   return typeof fromResult === "number" ? fromResult : null;
 }
 
+// A competitor is analyzed by the exact same audit engine as your own site
+// (docker-compose/audit-runner.service.ts multi-page pipeline) — its
+// resultJson carries the same subscores shape, so a per-category gap
+// comparison never needs its own backend endpoint.
+export function competitorSubscores(
+  competitor: Competitor,
+): AuditSubscores | null {
+  return competitor.resultJson?.subscores ?? null;
+}
+
+// The 5 category keys the audit engine actually writes (technical | content
+// | local | performance | ai_readiness — see python-service/app/agents/
+// audit_rules.py and AuditSubscores above) are the same values Opportunity.
+// category holds. Centralized here so every place that renders a raw
+// category key (Actions grouping, competitor gap analysis) shows the same
+// non-technical French label instead of the raw enum string.
+const CATEGORY_LABELS: Record<string, string> = {
+  technical: "Technique",
+  content: "Contenu",
+  local: "Local",
+  performance: "Performance",
+  ai_readiness: "Données structurées",
+  social: "Réseaux sociaux",
+};
+
+export function categoryLabel(category: string | null | undefined): string {
+  if (!category) return "Divers";
+  return CATEGORY_LABELS[category] ?? category;
+}
+
 export async function generateOpportunities(payload: { auditId: string }) {
   return request<Opportunity[]>("/opportunities/generate", {
     method: "POST",
