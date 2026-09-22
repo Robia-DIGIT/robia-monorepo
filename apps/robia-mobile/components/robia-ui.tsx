@@ -249,7 +249,9 @@ export function FilterTransition({
             transform: [{
               translateX: progress.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, transition.direction * width],
+                outputRange: transition.direction === -1
+                  ? [0, -width]
+                  : [-width, 0],
               }),
             }],
           },
