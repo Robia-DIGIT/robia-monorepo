@@ -16,7 +16,7 @@ vi.mock('../lib/api', async (importOriginal) => {
     listGoogleBusinessProfileLocations: vi.fn(),
     generateStudioDocument: vi.fn(),
     listDocumentsByWebsite: vi.fn(),
-    saveDocumentRevision: vi.fn(),
+    updateDocument: vi.fn(),
     getDocument: vi.fn(),
   }
 })
@@ -112,6 +112,13 @@ function renderPage(initialEntries: string[] = ['/ia']) {
   )
 }
 
+// A free generation (no Opportunity in context) requires a real objective —
+// most tests below aren't testing that rule itself, so they opt in to a
+// valid one up front to reach the behavior they actually exercise.
+async function fillFreeObjective(value = 'Un objectif suffisamment long') {
+  fireEvent.change(await screen.findByLabelText('Objectif'), { target: { value } })
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
   mockedUseWebsiteContext.mockReturnValue({
@@ -187,7 +194,8 @@ describe('PageIA — Content Studio (RC39)', () => {
     )
 
     const { rerender } = renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
     await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
 
     // Site switches away while the generation call is still in flight.
@@ -212,7 +220,8 @@ describe('PageIA — Content Studio (RC39)', () => {
     mockedApi.generateStudioDocument.mockRejectedValue(new Error('Le moteur de génération est indisponible.'))
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
 
     await waitFor(() => expect(screen.getByText('Le moteur de génération est indisponible.')).toBeInTheDocument())
   })
@@ -224,7 +233,8 @@ describe('PageIA — Content Studio (RC39)', () => {
     )
 
     renderPage()
-    const button = await screen.findByRole('button', { name: /Générer le brouillon/i })
+    await fillFreeObjective()
+    const button = screen.getByRole('button', { name: /Générer le brouillon/i })
     fireEvent.click(button)
     fireEvent.click(button)
     fireEvent.click(button)
@@ -245,15 +255,16 @@ describe('PageIA — Content Studio (RC39)', () => {
 
   it('saves an edit with expectedRevision and reflects the incremented revision', async () => {
     mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ revision: 1 }))
-    mockedApi.saveDocumentRevision.mockResolvedValue(documentItem({ revision: 2, content: 'Contenu modifie.' }))
+    mockedApi.updateDocument.mockResolvedValue(documentItem({ revision: 2, content: 'Contenu modifie.' }))
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
     const editor = await screen.findByDisplayValue(/Contenu genere/)
     fireEvent.change(editor, { target: { value: 'Contenu modifie.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
 
-    await waitFor(() => expect(mockedApi.saveDocumentRevision).toHaveBeenCalledWith('doc-1', {
+    await waitFor(() => expect(mockedApi.updateDocument).toHaveBeenCalledWith('doc-1', {
       content: 'Contenu modifie.',
       expectedRevision: 1,
     }))
@@ -262,11 +273,12 @@ describe('PageIA — Content Studio (RC39)', () => {
 
   it('on a 409 conflict, never overwrites and offers to reload the latest version', async () => {
     mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ revision: 1 }))
-    mockedApi.saveDocumentRevision.mockRejectedValue(new ApiError('Conflit de version.', 409))
+    mockedApi.updateDocument.mockRejectedValue(new ApiError('Conflit de version.', 409))
     mockedApi.getDocument.mockResolvedValue(documentItem({ revision: 3, content: 'Version serveur plus recente.' }))
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
     const editor = await screen.findByDisplayValue(/Contenu genere/)
     fireEvent.change(editor, { target: { value: 'Mon texte local non enregistre.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
@@ -287,6 +299,7 @@ describe('PageIA — Content Studio (RC39)', () => {
 
     renderPage(['/ia?actionItemId=action-1'])
     await waitFor(() => expect(screen.getByText('Publier la fiche')).toBeInTheDocument())
+    await fillFreeObjective()
     fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
 
     await waitFor(() => expect(screen.getByText('Validation humaine')).toBeInTheDocument())
@@ -296,7 +309,8 @@ describe('PageIA — Content Studio (RC39)', () => {
     mockedApi.generateStudioDocument.mockResolvedValue(documentItem())
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
 
     await waitFor(() => expect(screen.getByText(/n'est pas encore relié à une Action/)).toBeInTheDocument())
     expect(screen.queryByText('Validation humaine')).not.toBeInTheDocument()
@@ -306,9 +320,11 @@ describe('PageIA — Content Studio (RC39)', () => {
     mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ type: 'gbp_post' }))
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
 
-    await waitFor(() => expect(screen.getAllByText('Aperçu indicatif').length).toBeGreaterThan(0))
+    await waitFor(() => expect(screen.getAllByText(/Contenu genere/).length).toBeGreaterThan(0))
+    expect(screen.getAllByText('Aperçu indicatif').length).toBeGreaterThan(0)
     expect(screen.getByText(/ne reproduit pas l'interface Google/)).toBeInTheDocument()
   })
 
@@ -325,7 +341,8 @@ describe('PageIA — Content Studio (RC39)', () => {
     )
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
 
     await waitFor(() => expect(screen.getAllByText(/Bonjour/).length).toBeGreaterThan(0))
     expect(document.querySelector('script')).toBeNull()
@@ -336,12 +353,123 @@ describe('PageIA — Content Studio (RC39)', () => {
     mockedApi.generateStudioDocument.mockResolvedValue(documentItem())
 
     renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /Générer le brouillon/i }))
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
     await waitFor(() => expect(screen.getAllByText('Brouillon généré').length).toBeGreaterThan(0))
 
     const previewTab = screen.getByRole('button', { name: 'Aperçu' })
     fireEvent.click(previewTab)
     expect(previewTab.className).toContain('bg-navy')
+  })
+
+  it('never keeps a generated document visible after switching to a different site', async () => {
+    mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ title: 'Doc du site A' }))
+
+    const { rerender } = renderPage()
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+    await waitFor(() => expect(screen.getAllByText('Doc du site A').length).toBeGreaterThan(0))
+
+    const websiteB = { id: 'w2', url: 'https://other.example.com', name: 'Other' }
+    mockedUseWebsiteContext.mockReturnValue({
+      websites: [website, websiteB],
+      activeWebsiteId: 'w2',
+      activeWebsite: websiteB,
+      loadingWebsites: false,
+      setActiveWebsiteId: vi.fn(),
+      refreshWebsites: vi.fn().mockResolvedValue(undefined),
+    } as ReturnType<typeof useWebsiteContext>)
+    rerender(<MemoryRouter initialEntries={['/ia']}><PageIA /></MemoryRouter>)
+
+    expect(screen.queryByText('Doc du site A')).not.toBeInTheDocument()
+    // The composer itself must be a fresh, empty instance for site B, not
+    // the site-A instance with its document/content/brief still attached.
+    expect(screen.queryByDisplayValue(/Un objectif suffisamment long/)).not.toBeInTheDocument()
+  })
+
+  it('clears a library selection made on one site when switching to another', async () => {
+    const docA = documentItem({ id: 'doc-a', title: 'Document de A' })
+    mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+
+    const { rerender } = renderPage()
+    fireEvent.click(await screen.findByText('Document de A'))
+    await waitFor(() => expect(screen.getByText('Vous modifiez :')).toBeInTheDocument())
+
+    const websiteB = { id: 'w2', url: 'https://other.example.com', name: 'Other' }
+    mockedUseWebsiteContext.mockReturnValue({
+      websites: [website, websiteB],
+      activeWebsiteId: 'w2',
+      activeWebsite: websiteB,
+      loadingWebsites: false,
+      setActiveWebsiteId: vi.fn(),
+      refreshWebsites: vi.fn().mockResolvedValue(undefined),
+    } as ReturnType<typeof useWebsiteContext>)
+    mockedApi.listDocumentsByWebsite.mockResolvedValue([])
+    rerender(<MemoryRouter initialEntries={['/ia']}><PageIA /></MemoryRouter>)
+
+    expect(screen.queryByText('Vous modifiez :')).not.toBeInTheDocument()
+  })
+
+  it('ignores a save response that resolves after the active website changed', async () => {
+    mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ revision: 1 }))
+    let resolveSave: (value: DocumentItem) => void = () => {}
+    mockedApi.updateDocument.mockReturnValue(new Promise((resolve) => { resolveSave = resolve }))
+
+    const { rerender } = renderPage()
+    await fillFreeObjective()
+    fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+    const editor = await screen.findByDisplayValue(/Contenu genere/)
+    fireEvent.change(editor, { target: { value: 'Modifie avant changement de site.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockedApi.updateDocument).toHaveBeenCalledTimes(1))
+
+    const websiteB = { id: 'w2', url: 'https://other.example.com', name: 'Other' }
+    mockedUseWebsiteContext.mockReturnValue({
+      websites: [website, websiteB],
+      activeWebsiteId: 'w2',
+      activeWebsite: websiteB,
+      loadingWebsites: false,
+      setActiveWebsiteId: vi.fn(),
+      refreshWebsites: vi.fn().mockResolvedValue(undefined),
+    } as ReturnType<typeof useWebsiteContext>)
+    rerender(<MemoryRouter initialEntries={['/ia']}><PageIA /></MemoryRouter>)
+
+    resolveSave(documentItem({ revision: 2, content: 'Modifie avant changement de site.' }))
+    await Promise.resolve()
+
+    expect(screen.queryByDisplayValue('Modifie avant changement de site.')).not.toBeInTheDocument()
+  })
+
+  it('never shows the previous site\'s Opportunity/Action/establishment context while the new site is still loading', async () => {
+    mockedApi.getOpportunity.mockResolvedValue(opportunity())
+    mockedApi.listActions.mockResolvedValue([actionItem()])
+    mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([businessLocation()])
+
+    const { rerender } = renderPage(['/ia?opportunityId=opp-1&actionItemId=action-1&businessLocationId=loc-1'])
+    await waitFor(() => expect(screen.getByText('Ajouter un H1')).toBeInTheDocument())
+    expect(screen.getByText('Publier la fiche')).toBeInTheDocument()
+    expect(screen.getByText('Boutique Analakely')).toBeInTheDocument()
+
+    // Site B's own lookups never resolve within this test — only whether
+    // site A's context disappears immediately matters here.
+    mockedApi.getOpportunity.mockReturnValue(new Promise(() => {}))
+    mockedApi.listActions.mockReturnValue(new Promise(() => {}))
+    mockedApi.listGoogleBusinessProfileLocations.mockReturnValue(new Promise(() => {}))
+
+    const websiteB = { id: 'w2', url: 'https://other.example.com', name: 'Other' }
+    mockedUseWebsiteContext.mockReturnValue({
+      websites: [website, websiteB],
+      activeWebsiteId: 'w2',
+      activeWebsite: websiteB,
+      loadingWebsites: false,
+      setActiveWebsiteId: vi.fn(),
+      refreshWebsites: vi.fn().mockResolvedValue(undefined),
+    } as ReturnType<typeof useWebsiteContext>)
+    rerender(<MemoryRouter initialEntries={['/ia?opportunityId=opp-1&actionItemId=action-1&businessLocationId=loc-1']}><PageIA /></MemoryRouter>)
+
+    expect(screen.queryByText('Ajouter un H1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Publier la fiche')).not.toBeInTheDocument()
+    expect(screen.queryByText('Boutique Analakely')).not.toBeInTheDocument()
   })
 
   it('exposes accessible form labels and a labelled remove-fact action', async () => {
@@ -360,5 +488,111 @@ describe('PageIA — Content Studio (RC39)', () => {
     const addButton = await screen.findByRole('button', { name: /Ajouter un fait/i })
     for (let i = 0; i < 12; i++) fireEvent.click(addButton)
     expect(addButton).toBeDisabled()
+  })
+
+  describe('brief validation and payload shape', () => {
+    it('makes a free generation impossible with no objective at all', async () => {
+      renderPage()
+      const button = await screen.findByRole('button', { name: /Générer le brouillon/i })
+      expect(button).toBeDisabled()
+      fireEvent.click(button)
+      expect(mockedApi.generateStudioDocument).not.toHaveBeenCalled()
+    })
+
+    it('makes a free generation impossible with a 1-2 character objective', async () => {
+      renderPage()
+      await fillFreeObjective('Ok')
+      const button = screen.getByRole('button', { name: /Générer le brouillon/i })
+      expect(button).toBeDisabled()
+      expect(screen.getByText(/Encore un peu court/)).toBeInTheDocument()
+      fireEvent.click(button)
+      expect(mockedApi.generateStudioDocument).not.toHaveBeenCalled()
+    })
+
+    it('allows a free generation once the objective reaches 3 characters', async () => {
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem())
+      renderPage()
+      await fillFreeObjective('Ouv')
+      const button = screen.getByRole('button', { name: /Générer le brouillon/i })
+      expect(button).not.toBeDisabled()
+      fireEvent.click(button)
+      await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
+      expect(mockedApi.generateStudioDocument.mock.calls[0][0].brief.objective).toBe('Ouv')
+    })
+
+    it('omits an empty objective from the payload when generating from an Opportunity, rather than sending an empty string', async () => {
+      mockedApi.getOpportunity.mockResolvedValue(opportunity())
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ opportunityId: 'opp-1' }))
+
+      renderPage(['/ia?opportunityId=opp-1'])
+      await waitFor(() => expect(screen.getByText('Ajouter un H1')).toBeInTheDocument())
+      // No objective typed — an Opportunity is present, so the button must
+      // already be enabled (no free-creation requirement applies).
+      const button = screen.getByRole('button', { name: /Générer le brouillon/i })
+      expect(button).not.toBeDisabled()
+      fireEvent.click(button)
+
+      await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
+      const brief = mockedApi.generateStudioDocument.mock.calls[0][0].brief
+      expect(brief).not.toHaveProperty('objective')
+      expect(brief.locale).toBe('fr-MG')
+    })
+
+    it('still transmits audience/tone/facts when the user actually filled them in', async () => {
+      mockedApi.getOpportunity.mockResolvedValue(opportunity())
+      mockedApi.generateStudioDocument.mockResolvedValue(documentItem({ opportunityId: 'opp-1' }))
+
+      renderPage(['/ia?opportunityId=opp-1'])
+      await waitFor(() => expect(screen.getByText('Ajouter un H1')).toBeInTheDocument())
+      fireEvent.change(screen.getByLabelText('Audience'), { target: { value: 'Clients locaux' } })
+      fireEvent.change(screen.getByLabelText('Ton'), { target: { value: 'Chaleureux' } })
+      fireEvent.change(screen.getByPlaceholderText('Ex. Ouvert 7j/7 de 8h à 20h'), { target: { value: 'Ouvert le dimanche' } })
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+
+      await waitFor(() => expect(mockedApi.generateStudioDocument).toHaveBeenCalledTimes(1))
+      const brief = mockedApi.generateStudioDocument.mock.calls[0][0].brief
+      expect(brief.audience).toBe('Clients locaux')
+      expect(brief.tone).toBe('Chaleureux')
+      expect(brief.facts).toEqual(['Ouvert le dimanche'])
+      expect(brief).not.toHaveProperty('objective')
+    })
+  })
+
+  describe('opportunity/website mismatch reported by the backend', () => {
+    it('drops the opportunity context and shows an honest message when the backend rejects a site mismatch', async () => {
+      mockedApi.getOpportunity.mockResolvedValue(opportunity())
+      mockedApi.generateStudioDocument.mockRejectedValue(
+        new ApiError("L'opportunité n'appartient pas au site demandé.", 400),
+      )
+
+      renderPage(['/ia?opportunityId=opp-1'])
+      await waitFor(() => expect(screen.getByText('Ajouter un H1')).toBeInTheDocument())
+      fireEvent.click(screen.getByRole('button', { name: /Générer le brouillon/i }))
+
+      // Both the page-level notice and the composer's own error mention the
+      // dropped context — legitimately shown together.
+      await waitFor(() => expect(screen.getAllByText(/contexte retiré/).length).toBeGreaterThan(0))
+      // The stale Opportunity context the server just rejected must not
+      // linger in ContentSources once it's been dropped.
+      expect(screen.queryByText('Ajouter un H1')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('"Nouveau contenu"', () => {
+    it('lets the user leave a selected library document for a blank composer without deleting it', async () => {
+      const docA = documentItem({ id: 'doc-a', title: 'Ancien document' })
+      mockedApi.listDocumentsByWebsite.mockResolvedValue([docA])
+
+      renderPage()
+      fireEvent.click(await screen.findByText('Ancien document'))
+      await waitFor(() => expect(screen.getByText('Vous modifiez :')).toBeInTheDocument())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Nouveau contenu' }))
+
+      expect(screen.queryByText('Vous modifiez :')).not.toBeInTheDocument()
+      // Deselecting is purely client-side — the document must still be
+      // listed in the library, never removed or mutated.
+      expect(screen.getByText('Ancien document')).toBeInTheDocument()
+    })
   })
 })

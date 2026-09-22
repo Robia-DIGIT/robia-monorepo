@@ -1170,9 +1170,25 @@ export async function getDocument(id: string) {
   return request<DocumentItem>(`/documents/${encodeURIComponent(id)}`);
 }
 
+export interface UpdateDocumentPayload {
+  content?: string;
+  title?: string;
+  status?: string;
+  // Recommended on every save — the backend rejects a stale write with 409
+  // rather than silently overwriting it. Left optional only because the
+  // backend still accepts an omitted value temporarily, to avoid a hard
+  // break during rollout while every caller is migrated (see
+  // DocumentWorkflow.tsx, since migrated to always send it).
+  expectedRevision?: number;
+}
+
+// Single function for the one real PATCH /documents/:id contract — the
+// legacy opportunity-only DocumentWorkflow and the Content Studio composer
+// both save through this, both now with expectedRevision. Two differently-
+// named functions hitting the same route invited them to drift out of sync.
 export async function updateDocument(
   id: string,
-  payload: Partial<DocumentItem>,
+  payload: UpdateDocumentPayload,
 ) {
   return request<DocumentItem>(`/documents/${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -1203,15 +1219,22 @@ export async function listValidations() {
 // opportunity-only DocumentWorkflow (PageExecution) and must keep working
 // unchanged. The Studio (PageIA) targets the RC39 contract — a website-scoped
 // document, an optional opportunity/action link, a real brief, and optimistic
-// concurrency on save — so it gets its own functions rather than overloading
-// the legacy ones with a second, incompatible payload shape.
+// concurrency on save — so generation and listing get their own functions
+// rather than overloading the legacy ones with a second, incompatible
+// payload shape. Saving a revision, however, is the exact same
+// PATCH /documents/:id as the legacy flow — see updateDocument() above,
+// which both now share (no second, competing update function).
 
 export interface DocumentBrief {
-  objective: string;
-  audience: string;
-  tone: string;
+  // Required for a free generation (no opportunityId) — enforced client-side
+  // before ever calling generateStudioDocument, see ContentComposer. Omitted
+  // entirely when empty and an Opportunity already supplies it, rather than
+  // sent as an empty string the backend would have to (or fail to) ignore.
+  objective?: string;
+  audience?: string;
+  tone?: string;
   locale: string;
-  facts: string[];
+  facts?: string[];
 }
 
 export interface GenerateStudioDocumentPayload {
@@ -1223,6 +1246,7 @@ export interface GenerateStudioDocumentPayload {
 }
 
 export const MAX_DOCUMENT_BRIEF_FACTS = 12;
+export const MIN_FREE_OBJECTIVE_LENGTH = 3;
 
 export async function generateStudioDocument(
   payload: GenerateStudioDocumentPayload,
@@ -1240,22 +1264,17 @@ export async function listDocumentsByWebsite(websiteId: string) {
   });
 }
 
-// The backend rejects a stale save with 409 rather than silently
-// overwriting; request() already surfaces that as ApiError(status: 409) via
-// its generic !response.ok branch, so no special-casing is needed here.
-export async function saveDocumentRevision(
-  id: string,
-  payload: { content: string; expectedRevision: number },
-) {
-  return request<DocumentItem>(`/documents/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-}
-
 export function isRevisionConflict(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 409;
+}
+
+// The backend has no structured error code for this yet — matching on its
+// documented message is the only signal available. Fragile to a wording
+// change, but the alternative (treating every generation failure the same)
+// would leave a rejected opportunity/website mismatch sitting on screen as
+// if it were still valid context.
+export function isOpportunitySiteMismatch(error: unknown): error is ApiError {
+  return error instanceof ApiError && /n'appartient pas au site/i.test(error.message);
 }
 
 export async function generateActions(opportunityId: string) {

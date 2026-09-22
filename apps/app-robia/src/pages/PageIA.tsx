@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Radar } from 'lucide-react'
+import { FilePlus2, Radar } from 'lucide-react'
 
+import { Button } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import ContentSources from '../components/ContentSources'
@@ -36,14 +37,35 @@ export default function PageIA() {
 
   const requestSeq = useRef(0)
 
+  // Adjusting state during render (the React-blessed pattern for "reset when
+  // a prop/context value changes") rather than in a useEffect: an effect
+  // only runs after the browser has painted, so for one frame the previous
+  // site's opportunity/action/establishment/library selection would still be
+  // visible next to the newly-selected site. Comparing against a ref here
+  // and calling the setters synchronously in the render body makes React
+  // discard that stale render and re-render immediately, before paint — no
+  // flash of the wrong site's context ever reaches the screen.
+  const previousWebsiteId = useRef(activeWebsiteId)
+  if (previousWebsiteId.current !== activeWebsiteId) {
+    previousWebsiteId.current = activeWebsiteId
+    setOpportunity(null)
+    setActionItem(null)
+    setBusinessLocation(null)
+    setLibrarySelection(null)
+    setContextNotice('')
+  }
+
   // Every id in the URL is only a hint — it is re-resolved against the
-  // server on every load, and a lookup failure (wrong org, deleted
-  // resource, wrong site) silently drops that piece of context rather than
-  // presenting a context the server never confirmed.
+  // server on every load. getOpportunity() only confirms organization
+  // scope, not that the opportunity belongs to the active website (the
+  // backend enforces that at generation time, rejecting a mismatch) — so a
+  // successful lookup here is not proof of a site match; ContentSources
+  // labels it accordingly. A lookup failure (wrong org, deleted resource,
+  // wrong site for actions/locations) drops that piece of context rather
+  // than presenting one the server never confirmed.
   useEffect(() => {
     const requestId = ++requestSeq.current
     const requestWebsiteId = activeWebsiteId
-    setContextNotice('')
 
     if (!requestWebsiteId) {
       setOpportunity(null)
@@ -83,6 +105,24 @@ export default function PageIA() {
   }, [activeWebsiteId, opportunityIdParam, actionItemIdParam, businessLocationIdParam])
 
   const handlePersisted = () => setLibraryRefreshToken((token) => token + 1)
+
+  // The backend is the only source of truth for an opportunity/website
+  // mismatch (it rejects generation rather than the frontend pre-checking
+  // it) — when ContentComposer reports that rejection, drop the invalid
+  // opportunity context instead of leaving a context on screen the server
+  // has just refused to honor.
+  const handleInvalidOpportunityContext = () => {
+    setOpportunity(null)
+    setContextNotice("L'opportunité liée ne correspond pas à ce site — contexte retiré.")
+  }
+
+  const handleNewContent = () => {
+    // Deselecting a library item never deletes or mutates it server-side —
+    // it only stops the composer from editing it, falling back to whatever
+    // context the URL itself actually carries (still valid: it was already
+    // resolved above, independently of any library selection).
+    setLibrarySelection(null)
+  }
 
   return (
     <div className="mx-auto max-w-[1600px] animate-slide-up p-5 md:p-6 lg:p-8">
@@ -130,16 +170,30 @@ export default function PageIA() {
             />
           </div>
 
-          <ContentComposer
-            key={librarySelection?.id ?? 'new'}
-            websiteId={activeWebsiteId}
-            opportunityId={librarySelection ? librarySelection.opportunityId : opportunity?.id}
-            actionItem={librarySelection ? null : actionItem}
-            businessLocation={businessLocation}
-            initialType={typeParam}
-            initialDocument={librarySelection}
-            onDocumentPersisted={handlePersisted}
-          />
+          <div className="space-y-3">
+            {librarySelection && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-border bg-slate-bg/60 px-4 py-3">
+                <p className="min-w-0 truncate text-sm text-dark">
+                  Vous modifiez : <span className="font-semibold text-navy">{librarySelection.title ?? 'Document sans titre'}</span>
+                </p>
+                <Button variant="outline" size="sm" icon={<FilePlus2 size={13} />} onClick={handleNewContent}>
+                  Nouveau contenu
+                </Button>
+              </div>
+            )}
+
+            <ContentComposer
+              key={`${activeWebsiteId}:${librarySelection?.id ?? 'new'}`}
+              websiteId={activeWebsiteId}
+              opportunityId={librarySelection ? librarySelection.opportunityId : opportunity?.id}
+              actionItem={librarySelection ? null : actionItem}
+              businessLocation={businessLocation}
+              initialType={typeParam}
+              initialDocument={librarySelection}
+              onDocumentPersisted={handlePersisted}
+              onInvalidOpportunityContext={handleInvalidOpportunityContext}
+            />
+          </div>
         </div>
       )}
     </div>

@@ -33,6 +33,12 @@ export default function ContentSources({ website, opportunity, actionItem, busin
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Opportunité liée</p>
             <p className="truncate text-sm font-semibold text-navy">{opportunity.title}</p>
+            {/* getOpportunity() only confirms this belongs to the current
+                organization, never that it belongs to the active website —
+                only the backend, at generation time, verifies and can
+                reject that. Never claim a site match this component can't
+                actually prove. */}
+            <p className="mt-0.5 text-[11px] text-muted">Rattachement à ce site à confirmer par le serveur à la génération.</p>
           </div>
         </div>
       )}

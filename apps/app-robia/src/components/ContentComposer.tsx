@@ -6,11 +6,14 @@ import ContentPreview from './ContentPreview'
 import ActionApprovalWorkflow from './ActionApprovalWorkflow'
 import {
   generateStudioDocument,
-  saveDocumentRevision,
+  updateDocument,
   isRevisionConflict,
+  isOpportunitySiteMismatch,
   getDocument,
   MAX_DOCUMENT_BRIEF_FACTS,
+  MIN_FREE_OBJECTIVE_LENGTH,
   type ActionItem,
+  type DocumentBrief,
   type DocumentItem,
   type DocumentType,
   type GoogleBusinessProfileLocation,
@@ -34,6 +37,7 @@ interface Props {
   initialType?: DocumentType
   initialDocument?: DocumentItem | null
   onDocumentPersisted: () => void
+  onInvalidOpportunityContext?: () => void
 }
 
 export default function ContentComposer({
@@ -44,6 +48,7 @@ export default function ContentComposer({
   initialType,
   initialDocument,
   onDocumentPersisted,
+  onInvalidOpportunityContext,
 }: Props) {
   const [type, setType] = useState<DocumentType>((initialDocument?.type as DocumentType | undefined) ?? initialType ?? 'gbp_post')
   const [objective, setObjective] = useState(initialDocument?.brief?.objective ?? '')
@@ -70,6 +75,13 @@ export default function ContentComposer({
   }, [websiteId])
 
   const isDirty = document != null && content !== document.content
+  const isFreeCreation = !opportunityId
+  const trimmedObjective = objective.trim()
+  // A free generation (no Opportunity to fall back on) has nothing to build
+  // content around without a real objective — enforced here, before ever
+  // calling the API, rather than surfaced later as an HTTP 400.
+  const objectiveTooShort = isFreeCreation && trimmedObjective.length > 0 && trimmedObjective.length < MIN_FREE_OBJECTIVE_LENGTH
+  const canGenerate = !isFreeCreation || trimmedObjective.length >= MIN_FREE_OBJECTIVE_LENGTH
 
   const updateFact = (index: number, value: string) => {
     setFacts((current) => current.map((fact, i) => (i === index ? value : fact)))
@@ -83,8 +95,26 @@ export default function ContentComposer({
     setFacts((current) => current.filter((_, i) => i !== index))
   }
 
+  // Never send a field the user left blank just because the shape has a slot
+  // for it — an Opportunity-linked generation already has its own objective
+  // server-side, so an empty one here is "not provided", not "provided as
+  // empty string". locale always has a real default and is always sent.
+  const buildBrief = (): DocumentBrief => {
+    const brief: DocumentBrief = { locale: locale.trim() || 'fr-MG' }
+    const trimmedAudience = audience.trim()
+    const trimmedTone = tone.trim()
+    const trimmedFacts = facts.map((fact) => fact.trim()).filter(Boolean).slice(0, MAX_DOCUMENT_BRIEF_FACTS)
+
+    if (trimmedObjective) brief.objective = trimmedObjective
+    if (trimmedAudience) brief.audience = trimmedAudience
+    if (trimmedTone) brief.tone = trimmedTone
+    if (trimmedFacts.length > 0) brief.facts = trimmedFacts
+
+    return brief
+  }
+
   const handleGenerate = async () => {
-    if (generating || !websiteId) return // guards against a double-click firing two generations
+    if (generating || !websiteId || !canGenerate) return // guards against a double-click firing two generations, and against a free generation with no usable objective
 
     const requestId = ++requestSeq.current
     const requestWebsiteId = websiteId
@@ -98,13 +128,7 @@ export default function ContentComposer({
         websiteId: requestWebsiteId,
         opportunityId,
         actionItemId: actionItem?.id,
-        brief: {
-          objective: objective.trim(),
-          audience: audience.trim(),
-          tone: tone.trim(),
-          locale: locale.trim() || 'fr-MG',
-          facts: facts.map((fact) => fact.trim()).filter(Boolean).slice(0, MAX_DOCUMENT_BRIEF_FACTS),
-        },
+        brief: buildBrief(),
       })
 
       if (requestSeq.current !== requestId || activeWebsiteId.current !== requestWebsiteId) {
@@ -118,7 +142,10 @@ export default function ContentComposer({
     } catch (generationError) {
       if (requestSeq.current !== requestId || activeWebsiteId.current !== requestWebsiteId) return
 
-      if (isRevisionConflict(generationError) && actionItem) {
+      if (isOpportunitySiteMismatch(generationError)) {
+        setError("L'opportunité liée ne correspond pas à ce site — contexte retiré. Relancez la génération depuis une Opportunité de ce site, ou en création libre.")
+        onInvalidOpportunityContext?.()
+      } else if (isRevisionConflict(generationError) && actionItem) {
         setError(
           "L'Action sélectionnée a changé entre-temps et le document n'a pas pu y être relié. Rechargez le contexte de l'Action avant de réessayer.",
         )
@@ -132,19 +159,24 @@ export default function ContentComposer({
 
   const handleSave = async () => {
     if (!document || saving) return
+    const requestWebsiteId = websiteId
     setSaving(true)
     setError('')
 
     try {
-      const updated = await saveDocumentRevision(document.id, {
+      const updated = await updateDocument(document.id, {
         content,
         expectedRevision: document.revision ?? 1,
       })
+
+      if (activeWebsiteId.current !== requestWebsiteId) return // site changed while this save was in flight — drop the stale result
+
       setDocument(updated)
       setContent(updated.content)
       setConflict(null)
       onDocumentPersisted()
     } catch (saveError) {
+      if (activeWebsiteId.current !== requestWebsiteId) return
       if (isRevisionConflict(saveError)) {
         try {
           const serverDocument = await getDocument(document.id)
@@ -227,12 +259,21 @@ export default function ContentComposer({
           <label className="block text-xs font-bold text-navy">
             Objectif
             <input
-              className="mt-2 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className={`mt-2 w-full rounded-lg border bg-white px-3 py-2 text-sm ${objectiveTooShort ? 'border-red-400' : 'border-border'}`}
               value={objective}
               onChange={(event) => setObjective(event.target.value)}
               placeholder="Ex. Annoncer une nouvelle offre"
+              aria-describedby={isFreeCreation ? 'objective-help' : undefined}
+              aria-invalid={objectiveTooShort || undefined}
             />
           </label>
+          {isFreeCreation && (
+            <p id="objective-help" className={`-mt-2.5 text-[11px] ${objectiveTooShort ? 'text-red-600' : 'text-muted'}`}>
+              {objectiveTooShort
+                ? `Encore un peu court — ${MIN_FREE_OBJECTIVE_LENGTH} caractères minimum.`
+                : `Obligatoire pour une création libre (${MIN_FREE_OBJECTIVE_LENGTH} caractères minimum) — aucune Opportunité ne le fournit ici.`}
+            </p>
+          )}
 
           <label className="block text-xs font-bold text-navy">
             Audience
@@ -307,7 +348,7 @@ export default function ContentComposer({
             </div>
           )}
 
-          <Button variant="primary" className="w-full" loading={generating} icon={<FilePlus2 size={14} />} onClick={() => void handleGenerate()}>
+          <Button variant="primary" className="w-full" loading={generating} disabled={!canGenerate} icon={<FilePlus2 size={14} />} onClick={() => void handleGenerate()}>
             Générer le brouillon
           </Button>
         </div>
