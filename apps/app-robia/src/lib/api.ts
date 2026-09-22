@@ -69,6 +69,12 @@ export interface GoogleBusinessProfileStatus {
   lastSyncAttemptAt: string | null;
   lastSyncStatus: "never" | "running" | "success" | "partial" | "failed";
   locationCount: number;
+  // RC-41 — true when the fiche mirror hasn't been resynced in over 24h.
+  // The backend resyncs automatically on a schedule, so this should stay
+  // false in practice; it only surfaces true if that automatic refresh has
+  // itself been failing (e.g. a revoked token) — an honest signal instead
+  // of silently trusting a mirror that may be going stale.
+  stale: boolean;
 }
 
 export interface GoogleBusinessProfileLocation {
