@@ -214,7 +214,7 @@ describe('BusinessProfilePage', () => {
       lastSyncedAt: '2026-09-21T09:00:00Z', robiaLocationId: null, robiaLocation: null,
     }
     const review = (overrides: Partial<api.GoogleBusinessProfileReview> = {}): api.GoogleBusinessProfileReview => ({
-      id: 'r1', googleReviewName: 'n1', reviewerDisplayName: 'Alice', starRating: 5, comment: 'Top',
+      id: 'r1', reviewerDisplayName: 'Alice', starRating: 5, comment: 'Top',
       createTime: '2026-09-01T00:00:00Z', updateTime: null, replyComment: null, replyUpdateTime: null,
       lastSyncedAt: '2026-09-21T09:00:00Z', expiresAt: '2026-09-22T09:00:00Z', ...overrides,
     })

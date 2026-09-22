@@ -108,7 +108,6 @@ export interface GoogleBusinessProfileLocation {
 // returned by the API in the first place.
 export interface GoogleBusinessProfileReview {
   id: string;
-  googleReviewName: string;
   reviewerDisplayName: string | null;
   starRating: number | null;
   comment: string | null;
