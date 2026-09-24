@@ -4,6 +4,7 @@ import { FilePlus2, Plus, RefreshCw, Save, X } from 'lucide-react'
 import { Badge, Button } from './ui'
 import ContentPreview from './ContentPreview'
 import ActionApprovalWorkflow from './ActionApprovalWorkflow'
+import WordPressDraftPanel from './WordPressDraftPanel'
 import {
   generateStudioDocument,
   updateDocument,
@@ -398,7 +399,15 @@ export default function ContentComposer({
               />
 
               {actionItem ? (
-                <ActionApprovalWorkflow action={actionItem} onChanged={onDocumentPersisted} />
+                <>
+                  <ActionApprovalWorkflow action={actionItem} onChanged={onDocumentPersisted} />
+                  <WordPressDraftPanel
+                    key={`${document.id}:${document.revision ?? 1}`}
+                    websiteId={websiteId}
+                    document={document}
+                    actionItem={actionItem}
+                  />
+                </>
               ) : (
                 <p className="mt-2 text-xs text-muted">
                   Ce document n'est pas encore relié à une Action — il reste consultable depuis Mes contenus.
