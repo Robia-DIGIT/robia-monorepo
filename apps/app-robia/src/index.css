@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 
@@ -22,7 +23,20 @@
   --color-border: #E2E8F0;
   --color-border-light: #F1F5F9;
   --font-sans: 'Inter', system-ui, sans-serif;
+  /* RC43 — display face for the wordmark, nav, and page headings: a
+     geometric, slightly technical grotesk that gives the "AI copilot"
+     identity a distinct silhouette at a glance, distinct from the Inter
+     body copy used everywhere else (dense tables, forms, paragraphs) where
+     legibility at small sizes matters more than character. Adopted
+     component-by-component as each page gets its own modernization pass —
+     RC43 only applies it to the global chrome (Sidebar, topbar). */
+  --font-display: 'Sora', 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 *, *::before, *::after {
@@ -62,6 +76,18 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* RC43 — sidebar atmosphere: a soft, fixed radial glow anchored to the top
+   of the rail so the navy panel reads as a lit surface rather than a flat
+   fill, without introducing any new color into the palette (pure teal/navy
+   at very low opacity). Purely decorative — painted once, never animated,
+   so it costs nothing on scroll or reduced-motion. */
+.robia-sidebar-atmosphere {
+  background:
+    radial-gradient(120% 60% at 15% 0%, rgba(20, 184, 166, 0.16), transparent 60%),
+    radial-gradient(80% 50% at 100% 100%, rgba(20, 184, 166, 0.07), transparent 65%),
+    var(--color-navy);
+}
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }

@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import {
+  ChevronRight,
   CreditCard,
   HelpCircle,
+  Lock,
   type LucideIcon,
   PanelLeft,
   PanelLeftClose,
@@ -118,13 +120,27 @@ function ComingSoonRow({
       aria-label={collapsed ? `${label} (bientôt disponible)` : undefined}
       title="Bientôt disponible"
       className={cx(
-        "flex w-full cursor-not-allowed items-center text-sm font-medium text-white/40 opacity-70",
+        "group flex w-full cursor-not-allowed items-center text-sm font-medium text-white/35",
         collapsed ? "justify-center py-3" : "gap-3 rounded-lg px-3 py-2.5",
       )}
     >
       <Icon size={17} className="shrink-0" aria-hidden="true" />
-      {!collapsed && label}
+      {!collapsed && (
+        <>
+          <span className="flex-1 text-left">{label}</span>
+          <Lock size={11} className="shrink-0 text-white/20" aria-hidden="true" />
+        </>
+      )}
     </button>
+  );
+}
+
+function SectionEyebrow({ children }: { children: ReactNode }) {
+  return (
+    <div className="mb-2 flex items-center gap-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+      <span className="h-2 w-0.5 rounded-full bg-teal/50" aria-hidden="true" />
+      <span className="font-display">{children}</span>
+    </div>
   );
 }
 
@@ -148,7 +164,7 @@ function SidebarNavItem({
       aria-label={collapsed ? item.label : undefined}
       aria-current={isActive ? "page" : undefined}
       className={cx(
-        "relative flex items-center text-sm font-medium transition-colors duration-150",
+        "group relative flex items-center text-sm font-medium transition-all duration-200",
         FOCUS_RING,
         collapsed
           ? "justify-center py-3"
@@ -156,12 +172,30 @@ function SidebarNavItem({
         isActive
           ? collapsed
             ? "text-teal"
-            : "bg-teal/15 text-white"
+            : "bg-gradient-to-r from-teal/18 to-transparent text-white"
           : cx("text-white/55 hover:text-white", !collapsed && "hover:bg-white/6"),
       )}
     >
-      <Icon size={18} aria-hidden="true" className={isActive ? "text-teal" : undefined} />
-      {!collapsed && item.label}
+      {/* Active accent — a thin teal rail flush with the sidebar edge, the
+          same "current section" signal in both collapsed and expanded
+          states, rather than relying on background tint alone (which
+          disappears entirely once collapsed to icons-only). */}
+      <span
+        aria-hidden="true"
+        className={cx(
+          "absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-teal transition-transform duration-200 ease-out",
+          isActive ? "scale-y-100" : "scale-y-0 group-hover:scale-y-[0.4]",
+        )}
+      />
+      <Icon
+        size={18}
+        aria-hidden="true"
+        className={cx(
+          "shrink-0 transition-transform duration-200",
+          isActive ? "text-teal" : "group-hover:scale-110",
+        )}
+      />
+      {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
       {item.badge &&
         (collapsed ? (
           <span
@@ -169,7 +203,7 @@ function SidebarNavItem({
             aria-hidden="true"
           />
         ) : (
-          <span className="ml-auto">
+          <span className="ml-auto shrink-0">
             <Pill>{item.badge}</Pill>
           </span>
         ))}
@@ -203,7 +237,7 @@ export default function Sidebar({
   return (
     <aside
       className={cx(
-        "fixed left-0 top-0 z-30 flex h-full w-72 shrink-0 flex-col bg-navy text-white transition-all duration-300 ease-in-out lg:relative lg:z-auto",
+        "robia-sidebar-atmosphere fixed left-0 top-0 z-30 flex h-full w-72 shrink-0 flex-col text-white transition-all duration-300 ease-in-out lg:relative lg:z-auto",
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         collapsed ? "lg:w-14" : "lg:w-72",
       )}
@@ -225,10 +259,10 @@ export default function Sidebar({
 
           {!collapsed && (
             <div>
-              <div className="text-[15px] font-semibold leading-none text-white">
+              <div className="font-display text-[16px] font-semibold leading-none text-white">
                 Rob<span className="text-teal">IA</span>
               </div>
-              <div className="mt-0.5 text-[13px] font-medium tracking-wide text-white/50">Copilot</div>
+              <div className="mt-1 text-[12px] font-medium tracking-wide text-white/50">Copilot</div>
             </div>
           )}
 
@@ -236,14 +270,16 @@ export default function Sidebar({
             type="button"
             onClick={onToggleCollapsed}
             className={cx(
-              "hidden items-center justify-center text-white/60 transition-colors hover:text-white lg:flex",
+              "hidden items-center justify-center text-white/60 transition-all duration-200 hover:text-white lg:flex",
               collapsed ? "mx-auto h-9 w-9" : "ml-auto h-8 w-8 rounded-lg hover:bg-white/8",
               FOCUS_RING,
             )}
             aria-label={collapsed ? "Développer le menu" : "Réduire le menu"}
             title={collapsed ? "Développer le menu" : "Réduire le menu"}
           >
-            {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={16} />}
+            <span className="inline-flex transition-transform duration-200 active:scale-90">
+              {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={16} />}
+            </span>
           </button>
         </div>
       </div>
@@ -285,11 +321,7 @@ export default function Sidebar({
           collapsed ? "space-y-1 px-0 py-4" : "space-y-0.5 px-3 py-4",
         )}
       >
-        {!collapsed && (
-          <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
-            Visibilité PME
-          </div>
-        )}
+        {!collapsed && <SectionEyebrow>Visibilité PME</SectionEyebrow>}
 
         {NAV_VISIBILITE.map((item) => (
           <SidebarNavItem
@@ -302,11 +334,7 @@ export default function Sidebar({
         ))}
 
         <div className={collapsed ? "mt-2" : "mt-4 border-t border-white/8 pt-4"}>
-          {!collapsed && (
-            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
-              Orange Digital Center
-            </div>
-          )}
+          {!collapsed && <SectionEyebrow>Orange Digital Center</SectionEyebrow>}
           {NAV_ODC.map((item) => (
             <SidebarNavItem
               key={item.to}
@@ -319,11 +347,7 @@ export default function Sidebar({
         </div>
 
         <div className={collapsed ? "mt-2" : "mt-4 border-t border-white/8 pt-4"}>
-          {!collapsed && (
-            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
-              Ops RobIA
-            </div>
-          )}
+          {!collapsed && <SectionEyebrow>Ops RobIA</SectionEyebrow>}
           {NAV_OPS.map((item) => (
             <SidebarNavItem
               key={item.to}
@@ -336,11 +360,7 @@ export default function Sidebar({
         </div>
 
         <div className={collapsed ? "mt-2" : "mt-4 border-t border-white/8 pt-4"}>
-          {!collapsed && (
-            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
-              Configuration
-            </div>
-          )}
+          {!collapsed && <SectionEyebrow>Configuration</SectionEyebrow>}
           <ComingSoonRow icon={Settings} label="Paramètres" collapsed={collapsed} />
           <SidebarNavItem
             item={{ to: "/billing", label: "Abonnement", icon: CreditCard }}
@@ -368,10 +388,17 @@ export default function Sidebar({
               {userInitial}
             </div>
             {!collapsed && (
-              <div className="min-w-0 flex-1 text-left">
-                <div className="truncate text-sm font-medium text-white">{userName}</div>
-                <div className="truncate text-[11px] text-white/35">{userEmail}</div>
-              </div>
+              <>
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="truncate text-sm font-medium text-white">{userName}</div>
+                  <div className="truncate text-[11px] text-white/35">{userEmail}</div>
+                </div>
+                <ChevronRight
+                  size={14}
+                  aria-hidden="true"
+                  className="shrink-0 text-white/25 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-white/50"
+                />
+              </>
             )}
           </button>
         </div>

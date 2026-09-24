@@ -1,6 +1,7 @@
+import { ClipboardList, GraduationCap, Layers, Workflow } from 'lucide-react'
 import { describe, expect, it } from 'vitest'
 
-import { resolvePageTitle } from './navigation'
+import { resolvePageIcon, resolvePageTitle } from './navigation'
 
 describe('resolvePageTitle', () => {
   it('distinguishes /odc/programmes from /odc/programmes?vue=formation', () => {
@@ -25,5 +26,24 @@ describe('resolvePageTitle', () => {
 
   it('returns undefined for a route with no known title', () => {
     expect(resolvePageTitle('/unknown-route')).toBeUndefined()
+  })
+})
+
+describe('resolvePageIcon', () => {
+  it('resolves the same icon as the matching sidebar entry', () => {
+    expect(resolvePageIcon('/execution')).toBe(Layers)
+  })
+
+  it('resolves a detail route to its parent section icon, matching its title', () => {
+    expect(resolvePageIcon('/ops/automations/run-1')).toBe(Workflow)
+  })
+
+  it('distinguishes the two ODC views by icon, exactly like resolvePageTitle', () => {
+    expect(resolvePageIcon('/odc/programmes')).toBe(ClipboardList)
+    expect(resolvePageIcon('/odc/programmes', '?vue=formation')).toBe(GraduationCap)
+  })
+
+  it('returns undefined for a route with no known title, never a mismatched icon', () => {
+    expect(resolvePageIcon('/unknown-route')).toBeUndefined()
   })
 })
