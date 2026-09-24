@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Calendar, Download, FileText, MapPin, Radar, Share2, Sparkles, TrendingUp } from 'lucide-react'
+import { Calendar, CheckCircle2, Download, FileText, MapPin, Radar, Share2, Sparkles, TrendingUp, Zap } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { Button, Card, EmptyState, ProgressBar } from '../components/ui'
@@ -128,26 +128,66 @@ export default function PageRapports() {
 
   return (
     <div className="mx-auto max-w-7xl animate-slide-up p-5 md:p-6 lg:p-8">
-      <header className="mb-7 border-b border-border pb-6"><div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Rapport de visibilité ROBIA</p><h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Comprendre les progrès et décider</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Une synthèse dédiée à {activeWebsite?.name ?? activeWebsite?.url ?? 'ce site'}, construite uniquement à partir de ses audits et actions.</p></div><div className="flex flex-wrap gap-2">{generated && <Button variant="outline" size="sm" icon={<Share2 size={14} />}>Partager</Button>}<Button variant="outline" size="sm" icon={<Calendar size={14} />}>Planifier</Button><Button variant="outline" size="sm" loading={busy} icon={<Download size={14} />} onClick={handleExport}>PDF</Button><Button variant="primary" size="sm" loading={busy} icon={<Sparkles size={14} />} onClick={handleGenerate}>{generated ? 'Régénérer' : 'Générer le rapport'}</Button></div></div></header>
+      <header className="mb-7 border-b border-border pb-6"><div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Rapport de visibilité ROBIA</p><h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Comprendre les progrès et décider</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Une synthèse dédiée à {activeWebsite?.name ?? activeWebsite?.url ?? 'ce site'}, construite uniquement à partir de ses audits et actions.</p></div><div className="flex flex-wrap gap-2">{generated && <Button variant="outline" size="sm" icon={<Share2 size={14} />}>Partager</Button>}<Button variant="outline" size="sm" icon={<Calendar size={14} />}>Planifier</Button><Button variant="outline" size="sm" loading={busy} icon={<Download size={14} />} onClick={handleExport}>PDF</Button><Button variant="primary" size="sm" loading={busy} icon={<Sparkles size={14} />} onClick={handleGenerate}>{generated ? 'Régénérer' : 'Générer le rapport'}</Button></div></div></header>
 
-      <div className="mb-6 flex flex-col gap-3 border-l-2 border-teal bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><MapPin size={17} className="shrink-0 text-teal-dark" /><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Sources du rapport</p><p className="truncate text-sm font-bold text-navy">{organizationName} · {activeWebsite?.url ?? 'Aucun site sélectionné'}</p></div></div><WebsiteSelector className="w-full sm:w-auto sm:min-w-72" /></div>
-      {error && <div className="mb-6 border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(31,58,95,0.04)] sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><MapPin size={16} /></div><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Sources du rapport</p><p className="truncate text-sm font-bold text-navy">{organizationName} · {activeWebsite?.url ?? 'Aucun site sélectionné'}</p></div></div><WebsiteSelector className="w-full sm:w-auto sm:min-w-72" /></div>
+      {error && <div className="mb-6 rounded-r-xl border-l-4 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">{error}</div>}
 
-      <section className="mb-7 grid border-y border-border bg-white lg:grid-cols-[1.2fr_repeat(3,0.8fr)]">
-        <div className="border-b border-border px-1 py-5 lg:border-r lg:border-b-0 lg:pr-6"><div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-muted"><span>Préparation du rapport</span><span>{readiness}%</span></div><div className="mt-4"><ProgressBar value={readiness} color="#14B8A6" /></div><p className="mt-2 text-xs text-muted">Audit, opportunités, actions et validations</p></div>
-        <div className="border-b border-border px-1 py-5 lg:border-r lg:border-b-0 lg:px-5"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Score actuel</p><p className="mt-2 text-[28px] font-bold text-teal-dark">{score}<span className="text-sm text-muted">/100</span></p></div>
-        <div className="border-b border-border px-1 py-5 lg:border-r lg:border-b-0 lg:px-5"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Opportunités</p><p className="mt-2 text-[28px] font-bold text-orange">{opportunities.length}</p></div>
-        <div className="px-1 py-5 lg:pl-5"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Actions suivies</p><p className="mt-2 text-[28px] font-bold text-navy">{doneActions + validations.length}</p></div>
+      <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)] sm:col-span-2 lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><Sparkles size={16} /></div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{readiness}%</span>
+          </div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">Préparation du rapport</p>
+          <div className="mt-2"><ProgressBar value={readiness} color="#14B8A6" /></div>
+          <p className="mt-2 text-xs text-muted">Audit, opportunités, actions et validations</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><TrendingUp size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">Score actuel</p>
+          <p className="mt-1 text-[28px] font-bold text-teal-dark">{score}<span className="text-sm text-muted">/100</span></p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-light text-orange-dark"><Zap size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">Opportunités</p>
+          <p className="mt-1 text-[28px] font-bold text-orange">{opportunities.length}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-border-light text-muted"><CheckCircle2 size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">Actions suivies</p>
+          <p className="mt-1 text-[28px] font-bold text-navy">{doneActions + validations.length}</p>
+        </div>
       </section>
 
-      {!generated && <section className="mb-8 grid border-l-2 border-orange bg-orange-light/30 p-5 md:grid-cols-[1fr_auto] md:items-center md:gap-8"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">Prochaine étape</p><h2 className="mt-2 text-lg font-bold text-navy">Transformer les données du site en synthèse décisionnelle</h2><p className="mt-2 text-sm leading-6 text-muted">Le rapport expliquera ce qui a changé, pourquoi cela compte et quelles actions poursuivre.</p></div><Button variant="primary" className="mt-4 md:mt-0" loading={busy} onClick={handleGenerate} icon={<Sparkles size={15} />}>Générer maintenant</Button></section>}
+      {!generated && (
+        <section className="mb-8 grid gap-4 rounded-xl border border-orange/30 bg-orange-light/30 p-5 shadow-sm md:grid-cols-[auto_1fr_auto] md:items-center md:gap-8">
+          <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-orange-dark shadow-sm md:flex">
+            <Sparkles size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">Prochaine étape</p>
+            <h2 className="mt-2 text-lg font-bold text-navy">Transformer les données du site en synthèse décisionnelle</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">Le rapport expliquera ce qui a changé, pourquoi cela compte et quelles actions poursuivre.</p>
+          </div>
+          <Button variant="primary" className="mt-4 md:mt-0" loading={busy} onClick={handleGenerate} icon={<Sparkles size={15} />}>Générer maintenant</Button>
+        </section>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
-        <section className="border-t border-border pt-5"><div className="mb-4 flex items-center gap-2"><TrendingUp size={16} className="text-teal-dark" /><div><h2 className="font-bold text-navy">Évolution de la visibilité</h2><p className="text-xs text-muted">Historique exclusif au site actif</p></div></div>{trendData.length === 0 ? <EmptyState icon={<TrendingUp size={18} />} title="Aucun historique disponible" description="Lancez plusieurs audits pour suivre l’évolution du score." /> : <ResponsiveContainer width="100%" height={240}><AreaChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" /><XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} domain={[0, 100]} /><Tooltip contentStyle={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', boxShadow: 'none', fontSize: 12 }} /><Area type="monotone" dataKey="score" stroke="#14B8A6" fill="#CCFBF1" strokeWidth={2.5} dot={false} /><Area type="monotone" dataKey="visibility" stroke="#1D4ED8" fill="transparent" strokeWidth={2} dot={false} /></AreaChart></ResponsiveContainer>}</section>
-        <aside className="border-t border-border pt-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Éléments vérifiés</p><div className="mt-4 divide-y divide-border">{[['Audits', audits.length], ['Opportunités', oppsWithId], ['Actions', actions.length], ['Validations', validations.length]].map(([label,value]) => <div key={String(label)} className="flex items-center justify-between py-3 text-sm"><span className="text-muted">{label}</span><span className="font-bold text-navy">{value}</span></div>)}</div><div className="mt-5 border-l-2 border-teal bg-teal-light/25 px-4 py-3 text-xs leading-5 text-teal-dark">{latestAudit ? `${doneOpps} opportunité(s) et ${doneActions} action(s) terminée(s) sont intégrées à la synthèse.` : 'Aucun audit actif pour ce site.'}</div></aside>
+        <section className="border-t border-border pt-5"><div className="mb-4 flex items-center gap-2"><TrendingUp size={16} className="text-teal-dark" /><div><h2 className="font-display font-bold text-navy">Évolution de la visibilité</h2><p className="text-xs text-muted">Historique exclusif au site actif</p></div></div>{trendData.length === 0 ? <EmptyState icon={<TrendingUp size={18} />} title="Aucun historique disponible" description="Lancez plusieurs audits pour suivre l’évolution du score." /> : <ResponsiveContainer width="100%" height={240}><AreaChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" /><XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} domain={[0, 100]} /><Tooltip contentStyle={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', boxShadow: 'none', fontSize: 12 }} /><Area type="monotone" dataKey="score" stroke="#14B8A6" fill="#CCFBF1" strokeWidth={2.5} dot={false} /><Area type="monotone" dataKey="visibility" stroke="#1D4ED8" fill="transparent" strokeWidth={2} dot={false} /></AreaChart></ResponsiveContainer>}</section>
+        <aside className="border-t border-border pt-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Éléments vérifiés</p><div className="mt-4 divide-y divide-border">{[['Audits', audits.length], ['Opportunités', oppsWithId], ['Actions', actions.length], ['Validations', validations.length]].map(([label,value]) => <div key={String(label)} className="flex items-center justify-between py-3 text-sm"><span className="text-muted">{label}</span><span className="font-bold text-navy">{value}</span></div>)}</div><div className="mt-5 rounded-r-xl border-l-4 border-teal bg-teal-light/25 px-4 py-3 text-xs leading-5 text-teal-dark shadow-sm">{latestAudit ? `${doneOpps} opportunité(s) et ${doneActions} action(s) terminée(s) sont intégrées à la synthèse.` : 'Aucun audit actif pour ce site.'}</div></aside>
       </div>
 
-      {generated && <section className="mt-8 flex flex-col justify-between gap-4 border-t-2 border-teal bg-white pt-5 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white"><FileText size={18} /></div><div><h2 className="font-bold text-navy">Rapport prêt</h2><p className="text-xs text-muted">Construit à partir des dernières données du site actif.</p></div></div><Button variant="outline" loading={busy} icon={<Download size={14} />} onClick={handleExport}>Télécharger le PDF</Button></section>}
+      {generated && (
+        <section className="mt-8 flex flex-col justify-between gap-4 rounded-xl border border-teal/30 bg-teal-light/10 p-5 shadow-sm sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white"><FileText size={18} /></div>
+            <div><h2 className="font-display font-bold text-navy">Rapport prêt</h2><p className="text-xs text-muted">Construit à partir des dernières données du site actif.</p></div>
+          </div>
+          <Button variant="outline" loading={busy} icon={<Download size={14} />} onClick={handleExport}>Télécharger le PDF</Button>
+        </section>
+      )}
     </div>
   )
 }

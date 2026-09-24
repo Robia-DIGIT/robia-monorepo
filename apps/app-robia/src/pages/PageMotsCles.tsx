@@ -160,11 +160,8 @@ export default function PageMotsCles() {
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Target size={15} /> Opportunités mots-clés</p>
-            <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Quels mots-clés faire progresser ?</h1>
+            <h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Quels mots-clés faire progresser ?</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Données réelles Google Search Console, triées par potentiel de gain plutôt que par volume — les requêtes déjà en page 1 ou 2 sont les plus rapides à améliorer.</p>
-            {status?.connected && status.selectedSiteUrl && (
-              <p className="mt-2 text-xs text-muted">Propriété Search Console analysée : <span className="font-semibold text-dark">{status.selectedSiteUrl}</span></p>
-            )}
           </div>
           {status?.connected && status.selectedSiteUrl && (
             <Button variant="primary" size="sm" icon={<RefreshCw size={14} className={busy ? 'animate-spin' : ''} />} loading={busy} onClick={handleRefresh}>Actualiser</Button>
@@ -172,7 +169,17 @@ export default function PageMotsCles() {
         </div>
       </header>
 
-      {error && <div className="mb-6 border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {status?.connected && status.selectedSiteUrl && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><Search size={16} /></div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Propriété Search Console analysée</p>
+            <p className="truncate text-sm font-bold text-navy">{status.selectedSiteUrl}</p>
+          </div>
+        </div>
+      )}
+
+      {error && <div className="mb-6 rounded-r-xl border-l-4 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">{error}</div>}
 
       {!status?.connected || !status.selectedSiteUrl ? (
         <Card className="p-8">
