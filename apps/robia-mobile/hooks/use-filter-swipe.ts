@@ -35,6 +35,7 @@ export function useFilterSwipe({
     .activeOffsetX([-ACTIVATION_DISTANCE, ACTIVATION_DISTANCE])
     .failOffsetY([-14, 14])
     .runOnJS(true)
+    .onStart(() => motion?.begin())
     .onUpdate((gesture) => {
       if (!motion) return;
       const { filters, selected } = latest.current;
@@ -47,10 +48,10 @@ export function useFilterSwipe({
       motion.move(atEdge ? value * 0.15 : Math.max(-width, Math.min(width, value)));
     })
     .onFinalize((_gesture, success) => {
-      if (!success) motion?.settle();
+      if (!success) motion?.cancel();
     })
     .onEnd((gesture, success) => {
-      if (!success) { motion?.settle(); return; }
+      if (!success) { motion?.cancel(); return; }
       const distance = Math.abs(gesture.translationX);
       const isFlick = distance >= 24 && Math.abs(gesture.velocityX) >= 600 &&
         Math.sign(gesture.velocityX) === Math.sign(gesture.translationX);

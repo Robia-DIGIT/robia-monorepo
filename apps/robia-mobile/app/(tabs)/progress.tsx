@@ -55,7 +55,7 @@ export default function ProgressScreen() {
   const [planning, setPlanning] = useState(false);
   const [filter, setFilter] = useState("Toutes");
   const filters = ["Toutes", "À faire", "En cours", "Terminées"] as const;
-  const motion = useFilterMotion();
+  const { motion, reduceMotion } = useFilterMotion();
   const swipeGesture = useFilterSwipe({
     motion,
     filters,
@@ -82,7 +82,8 @@ export default function ProgressScreen() {
     }
   }
   return (
-    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh} swipeGesture={swipeGesture}>
+    <RobiaScreen fixedHeader scroll={false} swipeGesture={swipeGesture}
+      contentStyle={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 }}>
       <RobiaFixedHeader>
         <RobiaHeader compact
           eyebrow="PLAN D’ACTION"
@@ -92,7 +93,8 @@ export default function ProgressScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
-      <FilterTransition filterKey={filter} options={filters} motion={motion}>
+      <FilterTransition filterKey={filter} options={filters} motion={motion}
+        reduceMotion={reduceMotion} swipeGesture={swipeGesture} refreshing={isLoading} onRefresh={refresh}>
         {(filter) => {
           const visibleActions = actions.filter((item) => {
             if (filter === "À faire") return item.status === "todo";

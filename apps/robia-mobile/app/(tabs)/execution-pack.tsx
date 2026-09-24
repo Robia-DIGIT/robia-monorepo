@@ -35,7 +35,7 @@ export default function ExecutionPackScreen() {
   const [filter, setFilter] = useState("Tous");
   const ready = documents.filter((item) => ["edited", "approved", "validated"].includes(item.status)).length;
   const filters = ["Tous", "À valider", "Validés"] as const;
-  const motion = useFilterMotion();
+  const { motion, reduceMotion } = useFilterMotion();
   const swipeGesture = useFilterSwipe({
     motion,
     filters,
@@ -46,7 +46,8 @@ export default function ExecutionPackScreen() {
   });
 
   return (
-    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh} swipeGesture={swipeGesture}>
+    <RobiaScreen fixedHeader scroll={false} swipeGesture={swipeGesture}
+      contentStyle={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 }}>
       <RobiaFixedHeader>
         <RobiaHeader compact
           eyebrow="CENTRE DE PRODUCTION"
@@ -56,7 +57,8 @@ export default function ExecutionPackScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
-      <FilterTransition filterKey={filter} options={filters} motion={motion}>
+      <FilterTransition filterKey={filter} options={filters} motion={motion}
+        reduceMotion={reduceMotion} swipeGesture={swipeGesture} refreshing={isLoading} onRefresh={refresh}>
         {(filter) => {
           const visibleDocuments = documents.filter((item) => {
             if (filter === "À valider") return ["draft", "needs_review"].includes(item.status);

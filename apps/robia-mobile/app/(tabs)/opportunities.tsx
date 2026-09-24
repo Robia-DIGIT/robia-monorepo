@@ -39,7 +39,7 @@ export default function OpportunitiesScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState("Toutes");
   const filters = ["Toutes", "Prioritaires", "Faible effort"] as const;
-  const motion = useFilterMotion();
+  const { motion, reduceMotion } = useFilterMotion();
   const swipeGesture = useFilterSwipe({
     motion,
     filters,
@@ -61,7 +61,8 @@ export default function OpportunitiesScreen() {
     }
   }
   return (
-    <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh} swipeGesture={swipeGesture}>
+    <RobiaScreen fixedHeader scroll={false} swipeGesture={swipeGesture}
+      contentStyle={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 }}>
       <RobiaFixedHeader>
         <RobiaHeader compact
           eyebrow="RECOMMANDATIONS IA"
@@ -71,7 +72,8 @@ export default function OpportunitiesScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
-      <FilterTransition filterKey={filter} options={filters} motion={motion}>
+      <FilterTransition filterKey={filter} options={filters} motion={motion}
+        reduceMotion={reduceMotion} swipeGesture={swipeGesture} refreshing={isLoading} onRefresh={refresh}>
         {(filter) => {
           const visibleOpportunities = opportunities.filter((item) => {
             if (filter === "Prioritaires") return item.impactScore >= 7;

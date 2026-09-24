@@ -152,6 +152,7 @@ test('native swipe completion changes filters first and ignores cancelled or sho
     for (const method of ['enabled', 'maxPointers', 'activeOffsetX', 'failOffsetY', 'runOnJS']) {
       gesture[method] = value => { gesture.config[method] = value; return gesture; };
     }
+    gesture.onStart = callback => { gesture.start = callback; return gesture; };
     gesture.onUpdate = callback => { gesture.update = callback; return gesture; };
     gesture.onFinalize = callback => { gesture.finalize = callback; return gesture; };
     gesture.onEnd = callback => { gesture.finish = callback; return gesture; };
@@ -166,7 +167,11 @@ test('native swipe completion changes filters first and ignores cancelled or sho
   });
   const moves = [];
   let resets = 0;
-  const motion = { width: { current: 320 }, move: value => moves.push(value), settle: () => resets++ };
+  let begins = 0;
+  const motion = {
+    width: { current: 320 }, move: value => moves.push(value),
+    begin: () => begins++, cancel: () => resets++, settle: () => resets++,
+  };
   const swipe = selected => createFilterSwipe({
     motion,
     filters: ['Toutes', 'Prioritaires', 'Faible effort'],
@@ -178,6 +183,8 @@ test('native swipe completion changes filters first and ignores cancelled or sho
   const first = swipe('Toutes');
   assert.ok(first.config.activeOffsetX[0] < 0 && first.config.activeOffsetX[1] > 0);
   assert.ok(first.config.failOffsetY[0] < 0 && first.config.failOffsetY[1] > 0);
+  first.start();
+  assert.equal(begins, 1);
   first.update({ translationX: -160 });
   assert.deepEqual(moves, [-160]);
   assert.deepEqual(changes, []); // Preview the next page before selecting it.
@@ -214,7 +221,7 @@ test('the native filter gesture covers the header and content before vertical sc
     },
     'react-native': {
       Animated: { View: 'AnimatedView' },
-      ScrollView: 'ScrollView', View: 'View', Text: 'Text', Pressable: 'Pressable',
+      ScrollView: 'ScrollView', View: 'View', Text: 'Text', Pressable: 'Pressable', RefreshControl: 'RefreshControl',
       StyleSheet: { create: styles => styles, hairlineWidth: 1 },
     },
     '@expo/vector-icons/MaterialIcons': 'MaterialIcons',
@@ -230,21 +237,37 @@ test('the native filter gesture covers the header and content before vertical sc
       }) },
     },
   });
+  const swipeGesture = {};
+  let refreshes = 0;
   const transition = FilterTransition({
     options: ['All', 'Priority', 'Low effort'], filterKey: 'All',
-    motion: { offset: -160 }, children: filter => React.createElement('Page', { filter }),
+    motion: { offset: -160 }, swipeGesture, reduceMotion: false,
+    onRefresh: async () => { refreshes++; },
+    children: filter => React.createElement('Page', { filter }),
   });
   const track = transition.props.children;
   const pages = track.props.children;
   assert.deepEqual(pages.map(page => page.props.children.props.filter), ['All', 'Priority', 'Low effort']);
-  assert.equal(track.props.style.transform[0].translateX, -160);
-  assert.equal(pages[1].props.style[1].left, 320);
-  // Halfway through the drag, the current and next pages meet at x = 160.
-  assert.equal(pages[1].props.style[1].left + track.props.style.transform[0].translateX, 160);
-  assert.equal(pages[0].props.pointerEvents, 'auto');
-  assert.equal(pages[1].props.pointerEvents, 'none');
-  assert.equal(pages[1].props.accessibilityElementsHidden, true);
-  const swipeGesture = {};
+  assert.equal(track.props.style[0].flexDirection, 'row');
+  assert.equal(track.props.style[1].width, 960);
+  assert.equal(track.props.style[1].transform[0].translateX, -160);
+  assert.ok(pages.every(page => page.props.width === 320));
+  // Both pages are inside the translated track, with 160 pixels of each visible.
+  assert.equal(pages[0].props.width + track.props.style[1].transform[0].translateX, 160);
+  const renderedPages = pages.map(page => page.type(page.props));
+  assert.equal(renderedPages[0].props.pointerEvents, 'auto');
+  assert.equal(renderedPages[1].props.pointerEvents, 'none');
+  assert.equal(renderedPages[1].props.accessibilityElementsHidden, true);
+  for (const page of renderedPages) {
+    assert.equal(page.props.style[0].height, '100%');
+    assert.equal(page.props.style[0].position, undefined);
+    const detector = page.props.children;
+    assert.equal(detector.props.gesture.waitFor, swipeGesture);
+    assert.equal(detector.props.children.type, 'ScrollView');
+    assert.equal(detector.props.children.props.removeClippedSubviews, false);
+  }
+  renderedPages[0].props.children.props.children.props.refreshControl.props.onRefresh();
+  assert.equal(refreshes, 1);
   const header = React.createElement('Header', { key: 'header' });
   const content = React.createElement('Content', { key: 'content' });
   const screen = RobiaScreen({ fixedHeader: true, swipeGesture, children: [header, content] });
@@ -254,6 +277,12 @@ test('the native filter gesture covers the header and content before vertical sc
   assert.equal(fixedHeader.props.children.props.children.type, 'Header');
   assert.equal(scrollDetector.props.gesture.waitFor, swipeGesture);
   assert.equal(scrollDetector.props.children.type, 'ScrollView');
+
+  const pagedScreen = RobiaScreen({
+    fixedHeader: true, scroll: false, swipeGesture, children: [header, transition],
+    contentStyle: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 },
+  });
+  assert.equal(pagedScreen.props.children.props.children[1].type, 'View');
 
   const chips = FilterChips({
     options: ['Toutes', 'Prioritaires'], selected: 'Prioritaires',
@@ -265,4 +294,107 @@ test('the native filter gesture covers the header and content before vertical sc
   chips.props.onLayout({ nativeEvent: { layout: { width: 200 } } });
   chips.props.children[1].props.onLayout({ nativeEvent: { layout: { x: 150, width: 100 } } });
   assert.deepEqual(scrolls, [{ x: 100, animated: false }]);
+});
+
+// Drive the real motion controller with a controllable native animation clock.
+function createMotionHarness() {
+  const animations = [];
+  const cleanups = [];
+  class Value {
+    constructor(value) { this.value = value; this.pendingStops = []; this.deferStops = false; }
+    setValue(value) { this.value = value; }
+    stopAnimation(callback) {
+      if (!callback) return;
+      if (this.deferStops) this.pendingStops.push(callback);
+      else callback(this.value);
+    }
+  }
+  const { useFilterMotion: createMotion } = loadTypeScript('../hooks/use-filter-motion.ts', {
+    react: {
+      useRef: value => ({ current: value }), useMemo: callback => callback(),
+      useEffect: callback => cleanups.push(callback()),
+    },
+    'react-native': { Animated: {
+      Value,
+      spring: (value, config) => ({ start() { animations.push({ value, ...config }); } }),
+    } },
+    '@/hooks/use-reduced-motion': { useReducedMotion: () => false },
+  });
+  const { motion } = createMotion();
+  motion.configure(0, 320, false);
+  return { motion, animations, unmount: () => cleanups.forEach(cleanup => cleanup?.()) };
+}
+
+test('release and rapid filter presses continue from the displayed position without rebasing pages', () => {
+  const { motion, animations } = createMotionHarness();
+  motion.begin();
+  motion.move(-160);
+  assert.equal(motion.offset.value, -160);
+  motion.configure(1, 320, false);
+  assert.equal(motion.offset.value, -160);
+  assert.equal(animations.at(-1).toValue, -320);
+  motion.offset.value = -220; // A frame in the native slide.
+  motion.configure(2, 320, false);
+  assert.equal(motion.offset.value, -220);
+  assert.equal(animations.at(-1).toValue, -640);
+  motion.configure(0, 320, false);
+  assert.equal(motion.offset.value, -220);
+  assert.equal(animations.at(-1).toValue, -0);
+  const count = animations.length;
+  motion.configure(0, 320, false); // A content update must not restart motion.
+  motion.cancel(); // A failed vertical pan must not stop the slide either.
+  assert.equal(animations.length, count);
+});
+
+test('a drag interrupts at the actual native position and cancellation returns to the selected filter', () => {
+  const { motion, animations } = createMotionHarness();
+  motion.configure(1, 320, false);
+  motion.offset.value = -210;
+  motion.begin();
+  motion.move(30);
+  assert.equal(motion.offset.value, -180);
+  motion.cancel();
+  assert.equal(motion.offset.value, -180);
+  assert.equal(animations.at(-1).toValue, -320);
+  motion.cancel();
+  assert.equal(animations.length, 2);
+});
+
+test('late native position callbacks cannot undo release, rotation or unmount', () => {
+  for (const action of ['release', 'resize', 'unmount']) {
+    const { motion, unmount } = createMotionHarness();
+    motion.offset.deferStops = true;
+    motion.begin();
+    motion.move(-80);
+    const reply = motion.offset.pendingStops.shift();
+    if (action === 'release') motion.configure(1, 320, false);
+    if (action === 'resize') motion.configure(1, 480, false);
+    if (action === 'unmount') unmount();
+    const value = motion.offset.value;
+    reply(-20);
+    assert.equal(motion.offset.value, value);
+  }
+});
+
+test('movement received before native position capture is retained', () => {
+  const { motion } = createMotionHarness();
+  motion.offset.deferStops = true;
+  motion.begin();
+  motion.move(-80);
+  motion.offset.pendingStops.shift()(-40);
+  assert.equal(motion.offset.value, -120);
+});
+
+test('rotation and reduced motion align the selected page without leaving an intermediate frame', () => {
+  const { motion, animations } = createMotionHarness();
+  motion.configure(2, 480, false);
+  assert.equal(motion.offset.value, -960);
+  motion.configure(1, 480, true);
+  assert.equal(motion.offset.value, -480);
+  motion.begin();
+  motion.move(-100);
+  assert.equal(motion.offset.value, -480);
+  motion.configure(2, 480, true);
+  assert.equal(motion.offset.value, -960);
+  assert.equal(animations.length, 0);
 });

@@ -190,49 +190,77 @@ export function FilterTransition({
   filterKey,
   options,
   motion,
+  reduceMotion,
+  swipeGesture,
+  refreshing = false,
+  onRefresh,
   children,
 }: {
   filterKey: string;
   options: readonly string[];
   motion: FilterMotion;
+  reduceMotion: boolean;
+  swipeGesture: PanGesture;
+  refreshing?: boolean;
+  onRefresh?: () => Promise<unknown>;
   children: (filter: string) => ReactNode;
 }) {
   const index = Math.max(0, options.indexOf(filterKey));
-  const previousIndex = useRef(index);
   const [width, setWidth] = useState(0);
 
   useLayoutEffect(() => {
-    motion.width.current = width;
-    if (previousIndex.current !== index) {
-      // Keep both pages mounted and continue from the finger's release position.
-      motion.offset.stopAnimation();
-      motion.offset.setValue(motion.reduceMotion ? 0 :
-        motion.distance.current + (index - previousIndex.current) * width);
-      previousIndex.current = index;
-      motion.settle();
-    }
-  }, [index, width, motion]);
+    motion.configure(index, width, reduceMotion);
+  }, [index, width, motion, reduceMotion]);
 
   return (
     <View style={styles.filterTransitionViewport}
       onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}>
-      <Animated.View style={{ transform: [{ translateX: motion.offset }] }}>
-        {options.map((option, pageIndex) => {
-          const active = pageIndex === index;
-          return (
-            <View key={option}
-              pointerEvents={active ? 'auto' : 'none'}
-              accessibilityElementsHidden={!active}
-              importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
-              style={[
-                styles.filterTransitionPage,
-                !active && { position: 'absolute', top: 0, width, left: (pageIndex - index) * width },
-              ]}>
+      {width > 0 && (
+        <Animated.View collapsable={false} style={[
+          styles.filterTransitionTrack,
+          { width: width * options.length, transform: [{ translateX: motion.offset }] },
+        ]}>
+          {options.map((option, pageIndex) => (
+            <FilterPage key={option} width={width} active={pageIndex === index}
+              swipeGesture={swipeGesture} refreshing={refreshing} onRefresh={onRefresh}>
               {children(option)}
-            </View>
-          );
-        })}
-      </Animated.View>
+            </FilterPage>
+          ))}
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+function FilterPage({ width, active, swipeGesture, refreshing, onRefresh, children }: PropsWithChildren<{
+  width: number;
+  active: boolean;
+  swipeGesture: PanGesture;
+  refreshing: boolean;
+  onRefresh?: () => Promise<unknown>;
+}>) {
+  const nativeScrollGesture = useMemo(() =>
+    Gesture.Native().requireExternalGestureToFail(swipeGesture), [swipeGesture]);
+
+  return (
+    <View collapsable={false}
+      pointerEvents={active ? 'auto' : 'none'}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
+      style={[styles.filterTransitionPage, { width }]}>
+      <GestureDetector gesture={nativeScrollGesture} touchAction="pan-y">
+        <ScrollView style={styles.scroll}
+          removeClippedSubviews={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
+          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing}
+            onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
+          contentContainerStyle={styles.filterPageContent}>
+          {children}
+        </ScrollView>
+      </GestureDetector>
     </View>
   );
 }
@@ -477,7 +505,9 @@ const styles = StyleSheet.create({
   },
   fixedHeaderGroup: { gap: 10 },
   filterTransitionViewport: { flex: 1, overflow: "hidden" },
-  filterTransitionPage: { flexShrink: 0, gap: 22 },
+  filterTransitionTrack: { flex: 1, flexDirection: 'row' },
+  filterTransitionPage: { height: '100%', flexShrink: 0, overflow: 'hidden' },
+  filterPageContent: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 112, gap: 22 },
   screenContentBelowHeader: { paddingTop: 12 },
   screenContent: {
     flex: 1,
