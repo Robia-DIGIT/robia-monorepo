@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { FilePlus2, Radar } from 'lucide-react'
+import { FilePlus2, MapPin, Radar } from 'lucide-react'
 
-import { Button } from '../components/ui'
+import { Button, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import ContentSources from '../components/ContentSources'
@@ -130,7 +130,7 @@ function StudioWorkspace({
   return (
     <>
       {contextNotice && (
-        <div className="mb-6 border-l-2 border-orange bg-orange-light/30 px-4 py-3 text-sm text-orange-dark">{contextNotice}</div>
+        <div className="mb-6 rounded-r-xl border-l-4 border-orange bg-orange-light/30 px-4 py-3 text-sm text-orange-dark shadow-sm">{contextNotice}</div>
       )}
 
       <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
@@ -150,7 +150,7 @@ function StudioWorkspace({
 
         <div className="space-y-3">
           {librarySelection && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-border bg-slate-bg/60 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-slate-bg/60 px-4 py-3">
               <p className="min-w-0 truncate text-sm text-dark">
                 Vous modifiez : <span className="font-semibold text-navy">{librarySelection.title ?? 'Document sans titre'}</span>
               </p>
@@ -208,14 +208,17 @@ export default function PageIA() {
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Studio de contenu ROBIA</p>
-            <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Transformer une opportunité en contenu prêt à valider</h1>
+            <h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Transformer une opportunité en contenu prêt à valider</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Générez un brouillon réel, éditez-le, puis soumettez-le à validation. ROBIA ne publie rien automatiquement.</p>
           </div>
         </div>
       </header>
 
-      <div className="mb-7 flex flex-col gap-3 border-l-2 border-teal bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-7 flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(31,58,95,0.04)] sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-light text-teal-dark">
+            <MapPin size={16} />
+          </div>
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Site actif</p>
             <p className="truncate text-sm font-bold text-navy">{activeWebsite?.url ?? 'Aucun site sélectionné'}</p>
@@ -225,9 +228,11 @@ export default function PageIA() {
       </div>
 
       {!activeWebsiteId ? (
-        <p className="border-l-2 border-border bg-slate-bg/60 px-4 py-6 text-center text-sm text-muted">
-          Sélectionnez un site pour utiliser le Studio.
-        </p>
+        <EmptyState
+          icon={<MapPin size={18} />}
+          title="Sélectionnez un site"
+          description="Choisissez un site actif pour générer du contenu avec le Studio ROBIA."
+        />
       ) : (
         <StudioWorkspace
           key={workspaceKey}

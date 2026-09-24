@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertCircle, ChevronDown, ChevronRight, Download, MapPin, Play, Radar, RefreshCw, Settings2, ShieldCheck } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronRight, Clock, Download, Gauge, MapPin, Play, Radar, RefreshCw, Settings2, ShieldCheck } from 'lucide-react'
 
 import { Button, Card, Badge, ProgressBar, EmptyState } from '../components/ui'
 import WebsiteSelector from '../components/WebsiteSelector'
@@ -33,7 +33,7 @@ function ActionCard({ item, onUpdate, onWorkflowChanged }: { item: ActionItem; o
   const evidence = item.evidence ?? []
 
   return (
-    <article className={`border-l-2 px-4 py-4 transition-colors ${completed ? 'border-teal bg-teal-light/20' : progress > 0 ? 'border-electric bg-white' : 'border-border bg-white hover:border-orange hover:bg-orange-light/10'}`}>
+    <article className={`rounded-xl border-l-4 px-4 py-4 shadow-[0_1px_2px_rgba(31,58,95,0.04)] transition-all duration-150 ${completed ? 'border-teal bg-teal-light/20' : progress > 0 ? 'border-electric bg-white' : 'border-border bg-white hover:border-orange hover:bg-orange-light/10 hover:shadow-md'}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -266,25 +266,64 @@ export default function PageExecution() {
     <div className="mx-auto max-w-7xl animate-slide-up p-5 md:p-6 lg:p-8">
       <header className="mb-7 border-b border-border pb-6">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-          <div><p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Plan d’action ROBIA</p><h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Transformer les signaux en résultats</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Chaque action appartient à {activeWebsite?.name ?? activeWebsite?.url ?? 'ce site'} et reste reliée à l’opportunité qui l’a déclenchée.</p></div>
+          <div><p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Plan d’action ROBIA</p><h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Transformer les signaux en résultats</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Chaque action appartient à {activeWebsite?.name ?? activeWebsite?.url ?? 'ce site'} et reste reliée à l’opportunité qui l’a déclenchée.</p></div>
           <div className="flex flex-wrap gap-2">{errorCount > 0 && <Button variant="danger" size="sm" icon={<AlertCircle size={14} />}>{errorCount} erreur{errorCount > 1 ? 's' : ''}</Button>}<Button variant="outline" size="sm" icon={<Download size={14} />} onClick={handleExport} loading={busy}>Exporter</Button><Button variant="primary" size="sm" icon={<RefreshCw size={14} />} loading={busy} onClick={handleGenerate}>Actualiser le plan</Button></div>
         </div>
       </header>
 
-      <div className="mb-6 flex flex-col gap-3 border-l-2 border-teal bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><MapPin size={17} className="shrink-0 text-teal-dark" /><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Contexte d’exécution</p><p className="truncate text-sm font-bold text-navy">{organizationName} · {activeWebsite?.url ?? 'Aucun site sélectionné'}</p></div></div><WebsiteSelector className="w-full sm:w-auto sm:min-w-72" /></div>
+      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(31,58,95,0.04)] sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><MapPin size={16} /></div><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Contexte d’exécution</p><p className="truncate text-sm font-bold text-navy">{organizationName} · {activeWebsite?.url ?? 'Aucun site sélectionné'}</p></div></div><WebsiteSelector className="w-full sm:w-auto sm:min-w-72" /></div>
 
-      {error && <div className="mb-6 border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="mb-6 rounded-r-xl border-l-4 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">{error}</div>}
 
-      <section className="mb-7 grid border-y border-border bg-white sm:grid-cols-[1.2fr_repeat(3,0.8fr)]">
-        <div className="border-b border-border px-1 py-5 sm:border-r sm:border-b-0 sm:pr-6"><div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-muted"><span>Progression globale</span><span>{progressPct}%</span></div><div className="mt-4"><ProgressBar value={progressPct} color="#14B8A6" /></div><p className="mt-2 text-xs text-muted">{doneCount} terminée{doneCount > 1 ? 's' : ''} sur {actions.length}</p></div>
-        <div className="border-b border-border px-1 py-5 sm:border-r sm:border-b-0 sm:px-5"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">En cours</p><p className="mt-2 text-[28px] font-bold text-teal-dark">{activeCount}</p></div>
-        <div className="border-b border-border px-1 py-5 sm:border-r sm:border-b-0 sm:px-5"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">À démarrer</p><p className="mt-2 text-[28px] font-bold text-orange">{pendingCount}</p></div>
-        <div className="px-1 py-5 sm:pl-5"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Validations</p><p className="mt-2 text-[28px] font-bold text-navy">{validations.length}</p></div>
+      <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)] sm:col-span-2 lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><Gauge size={16} /></div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{progressPct}%</span>
+          </div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">Progression globale</p>
+          <div className="mt-2"><ProgressBar value={progressPct} color="#14B8A6" /></div>
+          <p className="mt-2 text-xs text-muted">{doneCount} terminée{doneCount > 1 ? 's' : ''} sur {actions.length}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-electric-light text-electric-dark"><Play size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">En cours</p>
+          <p className="mt-1 text-[28px] font-bold text-teal-dark">{activeCount}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-light text-orange-dark"><Clock size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">À démarrer</p>
+          <p className="mt-1 text-[28px] font-bold text-orange">{pendingCount}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-border-light text-muted"><ShieldCheck size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">Validations</p>
+          <p className="mt-1 text-[28px] font-bold text-navy">{validations.length}</p>
+        </div>
       </section>
 
-      {nextAction && <section className="mb-8 grid border-l-2 border-orange bg-orange-light/30 p-5 md:grid-cols-[1fr_auto] md:items-center md:gap-8"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">À faire maintenant</p><h2 className="mt-2 text-lg font-bold text-navy">{nextAction.title}</h2><p className="mt-2 text-sm leading-6 text-muted">{nextAction.description ?? 'Cette action est la prochaine étape active du plan pour ce site.'}</p></div><Button variant="primary" className="mt-4 md:mt-0" icon={<Play size={14} />} onClick={() => void handleUpdateStatus(String(nextAction.id), 'in_progress')}>Démarrer cette action</Button></section>}
+      {nextAction && (
+        <section className="mb-8 grid gap-4 rounded-xl border border-orange/30 bg-orange-light/30 p-5 shadow-sm md:grid-cols-[auto_1fr_auto] md:items-center md:gap-8">
+          <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-orange-dark shadow-sm md:flex">
+            <Play size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">À faire maintenant</p>
+            <h2 className="mt-2 text-lg font-bold text-navy">{nextAction.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">{nextAction.description ?? 'Cette action est la prochaine étape active du plan pour ce site.'}</p>
+          </div>
+          <Button variant="primary" className="mt-4 md:mt-0" icon={<Play size={14} />} onClick={() => void handleUpdateStatus(String(nextAction.id), 'in_progress')}>Démarrer cette action</Button>
+        </section>
+      )}
 
-      <div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">File d’exécution</p><h2 className="mt-1 text-xl font-bold text-navy">Recommandations par catégorie</h2><p className="mt-1 text-sm text-muted">Chaque recommandation regroupe toutes les actions et pages concernées — cliquez sur « Détails » pour les voir.</p></div>
+      <div className="mb-5 flex items-start gap-3">
+        <span className="mt-1.5 h-4 w-1 shrink-0 rounded-full bg-teal" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">File d’exécution</p>
+          <h2 className="font-display mt-1 text-xl font-bold text-navy">Recommandations par catégorie</h2>
+          <p className="mt-1 text-sm text-muted">Chaque recommandation regroupe toutes les actions et pages concernées — cliquez sur « Détails » pour les voir.</p>
+        </div>
+      </div>
       <div className="space-y-3">
         {actions.length === 0 ? (
           <EmptyState icon={<RefreshCw size={18} />} title="Aucune action disponible" description={`Générez un plan à partir des ${opportunityCount} opportunité(s) connues pour ce site.`} action={<Button variant="primary" onClick={handleGenerate}>Générer les actions</Button>} />
