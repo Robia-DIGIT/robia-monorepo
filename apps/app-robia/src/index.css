@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 
@@ -22,7 +23,18 @@
   --color-border: #E2E8F0;
   --color-border-light: #F1F5F9;
   --font-sans: 'Inter', system-ui, sans-serif;
+  /* Shared with RC43/RC44/RC45 — a distinct display face for headings/titles,
+     adopted page by page. Duplicated here rather than depending on another
+     RC's branch/PR: each RC branches fresh from main and must stand on its
+     own regardless of merge order (see CLAUDE.md). If an earlier RC merges
+     first, this becomes a no-op identical addition. */
+  --font-display: 'Sora', 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 *, *::before, *::after {

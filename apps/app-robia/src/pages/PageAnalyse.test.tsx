@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import PageAnalyse from './PageAnalyse'
 import * as api from '../lib/api'
@@ -339,5 +339,151 @@ describe('PageAnalyse — Concurrents tab', () => {
 
     expect(await screen.findByText('En attente')).toBeInTheDocument()
     expect(screen.queryByText('Recommandations basées sur la concurrence')).not.toBeInTheDocument()
+  })
+})
+
+// POST /audits/run is a single synchronous call with no job id, step or
+// percentage of its own — the "Analyse en cours… X%" bar is a time-based
+// estimate computed client-side (see the useEffect in PageAnalyse.tsx),
+// never a value read from the backend. These tests drive that estimate
+// directly with fake timers instead of waiting on real wall-clock time.
+describe('PageAnalyse — estimated progress during analysis', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function completedAudit(): Awaited<ReturnType<typeof api.runAudit>> {
+    return {
+      id: 'a1',
+      organizationId: 'o1',
+      websiteId: 'w1',
+      status: 'completed',
+      globalScore: 62,
+      resultJson: {
+        summary: '',
+        subscores: { local: 0, content: 0, technical: 0, performance: 0, ai_readiness: 0 },
+        global_score: 62,
+        missing_data: [],
+      },
+      errorMessage: null,
+      createdAt: '2026-09-24T00:00:00Z',
+      completedAt: '2026-09-24T00:00:00Z',
+    }
+  }
+
+  it('advances the estimated progress upward over time while the analysis is running', async () => {
+    mockedApi.runAudit.mockReturnValue(new Promise(() => {})) // never resolves in this test
+
+    renderPage()
+    const submit = await screen.findByRole('button', { name: /Analyser ce site/i })
+
+    vi.useFakeTimers()
+    fireEvent.click(submit)
+
+    // eased = 92 * (1 - e^(-4/18)) ≈ 18.33 -> rounds to 18 at t = 4s exactly.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000)
+    })
+
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName.toLowerCase() === 'h2' && element.textContent === 'Analyse en cours… 18%',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('caps the estimated progress at 92% and never claims completion before the real response', async () => {
+    mockedApi.runAudit.mockReturnValue(new Promise(() => {})) // still never resolves
+
+    renderPage()
+    const submit = await screen.findByRole('button', { name: /Analyser ce site/i })
+
+    vi.useFakeTimers()
+    fireEvent.click(submit)
+
+    // Five minutes in, the ease curve is at ~100% of its asymptote — the
+    // Math.min(92, …) clamp is what must be doing the actual capping here.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000)
+    })
+
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName.toLowerCase() === 'h2' && element.textContent === 'Analyse en cours… 92%',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('resets progress to 0 for a fresh run rather than continuing from the previous run’s value', async () => {
+    let resolveFirstRun: (value: Awaited<ReturnType<typeof api.runAudit>>) => void = () => {}
+    mockedApi.runAudit.mockReturnValueOnce(new Promise((resolve) => { resolveFirstRun = resolve }))
+    mockedApi.generateOpportunities.mockResolvedValue([])
+
+    renderPage()
+    const submit = await screen.findByRole('button', { name: /Analyser ce site/i })
+
+    vi.useFakeTimers()
+    fireEvent.click(submit)
+    // Push the first run's estimate all the way to its 92% ceiling.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000)
+    })
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName.toLowerCase() === 'h2' && element.textContent === 'Analyse en cours… 92%',
+      ),
+    ).toBeInTheDocument()
+
+    // Finish the first run, then immediately start a second one.
+    mockedApi.runAudit.mockReturnValueOnce(new Promise(() => {})) // second run never resolves in this test
+    await act(async () => {
+      resolveFirstRun(completedAudit())
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Analyser ce site|Actualiser l’analyse/i }))
+
+    // t = 0.4s into the SECOND run: eased ≈ 2.02 -> rounds to 2. A leftover
+    // 92% here would mean the estimate never reset for the new run.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400)
+    })
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName.toLowerCase() === 'h2' && element.textContent === 'Analyse en cours… 2%',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('clears the progress interval once the analysis finishes, leaving no leaked timer', async () => {
+    let resolveRun: (value: Awaited<ReturnType<typeof api.runAudit>>) => void = () => {}
+    mockedApi.runAudit.mockReturnValue(new Promise((resolve) => { resolveRun = resolve }))
+    mockedApi.generateOpportunities.mockResolvedValue([])
+
+    renderPage()
+    const submit = await screen.findByRole('button', { name: /Analyser ce site/i })
+
+    vi.useFakeTimers()
+    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval')
+    const setIntervalSpy = vi.spyOn(globalThis, 'setInterval')
+
+    fireEvent.click(submit)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400)
+    })
+    expect(setIntervalSpy).toHaveBeenCalledTimes(1)
+    expect(clearIntervalSpy).not.toHaveBeenCalled()
+
+    await act(async () => {
+      resolveRun(completedAudit())
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    expect(clearIntervalSpy).toHaveBeenCalledTimes(1)
+    // Nothing left running: advancing far past this point raises no further
+    // "Analyse en cours…" text and no unhandled state update outside React.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+    expect(screen.queryByText(/Analyse en cours…/)).not.toBeInTheDocument()
   })
 })
