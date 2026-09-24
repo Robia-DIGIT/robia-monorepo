@@ -302,7 +302,7 @@ export function PageHeader({ title, subtitle, actions, badge }: PageHeaderProps)
     <div className="mb-7 flex flex-col items-start justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-2xl font-bold tracking-[-0.025em] text-navy md:text-[28px]">{title}</h1>
+          <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-navy md:text-[28px]">{title}</h1>
           {badge}
         </div>
         {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
