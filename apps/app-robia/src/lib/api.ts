@@ -476,6 +476,11 @@ export type ActionStatus =
 export interface ActionItem {
   id: string;
   opportunityId: string;
+  // RC42 — the exact document this Action is bound to. WordPress draft
+  // approval requires `action.documentId === document.id` precisely; never
+  // resolve an Action's document by any other heuristic (e.g. "most
+  // recently updated document referencing this action").
+  documentId?: string | null;
   title: string;
   status: ActionStatus;
   priority: string;
@@ -2459,4 +2464,192 @@ export async function skipOdcOutreach(id: string) {
     `/odc/outreach/${encodeURIComponent(id)}/skip`,
     { method: "POST" },
   );
+}
+
+// ── WordPress draft connector (RC42) ────────────────────────────────────────
+// Creates WordPress DRAFTS only, from an exact, human-approved ROBIA document
+// revision — never a publish. The connection is per website, authenticated
+// with a WordPress Application Password (never the account's main password):
+// there is no URL field, the target site is whatever ROBIA already knows for
+// this website server-side. The Application Password itself is write-only
+// from this client's point of view — the backend never returns it, and this
+// file never persists it anywhere (no localStorage, no query string, no log).
+
+export type WordPressConnectionStatus = "ready" | "failed" | "disconnected";
+
+export interface WordPressConnection {
+  id: string;
+  websiteId: string;
+  siteUrl: string;
+  remoteUserId: string | null;
+  remoteUserName: string | null;
+  username: string;
+  canCreatePosts: boolean;
+  canCreatePages: boolean;
+  status: WordPressConnectionStatus;
+  connectionVersion: number;
+  lastVerifiedAt: string | null;
+  disconnectedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WordPressStatus {
+  connected: boolean;
+  connection: WordPressConnection | null;
+}
+
+export interface WordPressDisconnectResult {
+  disconnected: boolean;
+  // RC42 — a local disconnect never proves the Application Password was
+  // revoked on the WordPress side: it always stays exactly as strict as the
+  // backend reports, never assumed true by this client.
+  localOnly: boolean;
+  remoteApplicationPasswordRevoked: boolean;
+}
+
+export type WordPressPostType = "post" | "page";
+
+export interface WordPressDraftApproval {
+  id: string;
+  documentId: string;
+  actionItemId: string;
+  documentRevision: number;
+  postType: WordPressPostType;
+  contentDigest: string;
+  operationKey: string;
+  connectionVersion: number;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
+export interface WordPressApproveDraftResult {
+  approval: WordPressDraftApproval;
+  idempotent: boolean;
+}
+
+export type WordPressAttemptStatus =
+  | "in_flight"
+  | "unknown"
+  | "confirmed"
+  | "failed";
+
+export interface WordPressDraftAttempt {
+  id: string;
+  approvalId: string;
+  documentId: string;
+  actionItemId: string;
+  // The revision of the document this attempt's approval was bound to — not
+  // necessarily the document's current revision. A confirmed/failed/unknown
+  // attempt for an older revision must never be shown as the state of the
+  // current one.
+  documentRevision: number;
+  status: WordPressAttemptStatus;
+  remotePostId: string | null;
+  remoteUrl: string | null;
+  remoteEditorUrl: string | null;
+  errorCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+  confirmedAt: string | null;
+}
+
+// The immediate result of POST /drafts (and of a reconcile that finds the
+// draft) is NOT always the full row above: the very first successful
+// creation returns only these fields. Callers that need the full, uniform
+// shape re-read GET /attempts afterwards rather than trusting this union.
+export interface WordPressCreateDraftAttemptSummary {
+  id: string;
+  status: WordPressAttemptStatus;
+  remotePostId: string | null;
+  remoteUrl: string | null;
+  remoteEditorUrl: string | null;
+}
+
+export interface WordPressCreateDraftResult {
+  attempt: WordPressCreateDraftAttemptSummary | WordPressDraftAttempt;
+  idempotent: boolean;
+}
+
+export type WordPressReconcileResult =
+  | { attemptId: string; status: "unknown"; found: false }
+  | WordPressCreateDraftResult;
+
+export async function connectWordPress(payload: {
+  websiteId: string;
+  username: string;
+  applicationPassword: string;
+}) {
+  return request<{ connection: WordPressConnection }>(
+    "/integrations/wordpress/connect",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function getWordPressStatus(websiteId: string) {
+  return request<WordPressStatus>("/integrations/wordpress/status", {
+    query: { websiteId },
+  });
+}
+
+export async function disconnectWordPress(websiteId: string) {
+  return request<WordPressDisconnectResult>("/integrations/wordpress", {
+    method: "DELETE",
+    query: { websiteId },
+  });
+}
+
+export async function approveWordPressDraft(payload: {
+  websiteId: string;
+  documentId: string;
+  actionItemId: string;
+  expectedRevision: number;
+  postType: WordPressPostType;
+}) {
+  return request<WordPressApproveDraftResult>(
+    "/integrations/wordpress/draft-approvals",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function revokeWordPressDraftApproval(approvalId: string) {
+  return request<{ revoked: true; changed: boolean }>(
+    `/integrations/wordpress/draft-approvals/${encodeURIComponent(approvalId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function createWordPressDraft(payload: {
+  approvalId: string;
+  idempotencyKey: string;
+}) {
+  return request<WordPressCreateDraftResult>(
+    "/integrations/wordpress/drafts",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function reconcileWordPressDraft(attemptId: string) {
+  return request<WordPressReconcileResult>(
+    `/integrations/wordpress/drafts/${encodeURIComponent(attemptId)}/reconcile`,
+    { method: "POST" },
+  );
+}
+
+export async function listWordPressAttempts(websiteId: string) {
+  return request<WordPressDraftAttempt[]>("/integrations/wordpress/attempts", {
+    query: { websiteId },
+  });
 }

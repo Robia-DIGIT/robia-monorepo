@@ -6,6 +6,7 @@ import WebsiteSelector from '../components/WebsiteSelector'
 import { useWebsiteContext } from '../components/WebsiteContext'
 import DocumentWorkflow from '../components/DocumentWorkflow'
 import ActionApprovalWorkflow from '../components/ActionApprovalWorkflow'
+import WordPressDraftPanel from '../components/WordPressDraftPanel'
 import {
   exportActionPlan,
   generateActions,
@@ -13,6 +14,7 @@ import {
   getLatestAudit,
   listActions,
   listDocuments,
+  listDocumentsByWebsite,
   listOpportunities,
   listValidations,
   updateActionStatus,
@@ -21,11 +23,24 @@ import {
   opportunitySourceData,
   categoryLabel,
   type ActionItem,
+  type DocumentItem,
   type Opportunity,
   type ValidationLog,
 } from '../lib/api'
 
-function ActionCard({ item, onUpdate, onWorkflowChanged }: { item: ActionItem; onUpdate: (id: string, status: string) => Promise<void>; onWorkflowChanged: () => void | Promise<void> }) {
+function ActionCard({
+  item,
+  websiteId,
+  document,
+  onUpdate,
+  onWorkflowChanged,
+}: {
+  item: ActionItem
+  websiteId: string
+  document: DocumentItem | null
+  onUpdate: (id: string, status: string) => Promise<void>
+  onWorkflowChanged: () => void | Promise<void>
+}) {
   const { label: statusLabel, badge } = actionStatusLabel(item.status)
   const progress = actionProgressPct(item.status)
   const completed = progress >= 100
@@ -55,6 +70,14 @@ function ActionCard({ item, onUpdate, onWorkflowChanged }: { item: ActionItem; o
 
           <div className="mt-4 max-w-md"><div className="mb-1.5 flex justify-between text-[10px] text-muted"><span>Échéance : {item.dueDate ?? 'Non définie'}</span><span>{progress}%</span></div><ProgressBar value={progress} color={completed ? '#14B8A6' : progress > 0 ? '#1D4ED8' : '#CBD5E1'} height="h-1.5" /></div>
           <ActionApprovalWorkflow action={item} onChanged={onWorkflowChanged} />
+          {document && (
+            <WordPressDraftPanel
+              key={`${document.id}:${document.revision ?? 1}`}
+              websiteId={websiteId}
+              document={document}
+              actionItem={item}
+            />
+          )}
         </div>
         <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-56 sm:justify-end">
           <Button variant="outline" size="sm" icon={<Settings2 size={12} />} onClick={() => void onUpdate(String(item.id), 'in_progress')}>Démarrer</Button>
@@ -78,12 +101,16 @@ function ActionGroup({
   opportunity,
   items,
   defaultOpen,
+  websiteId,
+  documentsByAction,
   onUpdate,
   onWorkflowChanged,
 }: {
   opportunity: Opportunity | null
   items: ActionItem[]
   defaultOpen: boolean
+  websiteId: string
+  documentsByAction: Record<string, DocumentItem>
   onUpdate: (id: string, status: string) => Promise<void>
   onWorkflowChanged: () => void | Promise<void>
 }) {
@@ -120,7 +147,14 @@ function ActionGroup({
       {open && (
         <div className="space-y-3 border-t border-border bg-slate-bg/40 p-3">
           {items.map((item) => (
-            <ActionCard key={String(item.id)} item={item} onUpdate={onUpdate} onWorkflowChanged={onWorkflowChanged} />
+            <ActionCard
+              key={String(item.id)}
+              item={item}
+              websiteId={websiteId}
+              document={documentsByAction[String(item.id)] ?? null}
+              onUpdate={onUpdate}
+              onWorkflowChanged={onWorkflowChanged}
+            />
           ))}
         </div>
       )}
@@ -135,6 +169,7 @@ export default function PageExecution() {
   const [validations, setValidations] = useState<ValidationLog[]>([])
   const [opportunityCount, setOpportunityCount] = useState(0)
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
+  const [documentsByAction, setDocumentsByAction] = useState<Record<string, DocumentItem>>({})
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -183,18 +218,36 @@ export default function PageExecution() {
       const audit = activeWebsiteId ? await getLatestAudit(activeWebsiteId) : null
       const opportunities = audit?.id ? await listOpportunities(String(audit.id)) : []
       const opportunityIds = new Set(opportunities.map((item) => String(item.id)))
-      const [allActions, allValidations, documentGroups] = await Promise.all([
+      const [allActions, allValidations, documentGroups, websiteDocuments] = await Promise.all([
         listActions(activeWebsiteId),
         listValidations(),
         Promise.all(opportunities.map((item) => listDocuments(String(item.id)).catch(() => []))),
+        activeWebsiteId ? listDocumentsByWebsite(activeWebsiteId).catch(() => []) : Promise.resolve([]),
       ])
       const documentIds = new Set(documentGroups.flat().map((item) => String(item.id)))
+
+      // One document per Action, for the WordPress draft panel — resolved
+      // strictly by `action.documentId`, never by a heuristic like "most
+      // recently updated document referencing this action". The backend's
+      // WordPress draft approval requires action.documentId === document.id
+      // exactly (see WordPressService.approveDraft()); a document merely
+      // pointing back at this action via its own actionItemId is not proof
+      // of that binding — an action can be regenerated onto a new document
+      // while an older, stale one still carries the same actionItemId.
+      const documentsById = new Map(websiteDocuments.map((doc) => [String(doc.id), doc]))
+      const documentByAction: Record<string, DocumentItem> = {}
+      for (const action of allActions) {
+        if (!action.documentId) continue
+        const doc = documentsById.get(String(action.documentId))
+        if (doc) documentByAction[String(action.id)] = doc
+      }
 
       setOrganizationName(organization.name ?? 'Organisation')
       setOpportunities(opportunities)
       setActions(allActions.filter((item) => opportunityIds.has(String(item.opportunityId))))
       setValidations(allValidations.filter((item) => documentIds.has(String(item.documentId))))
       setOpportunityCount(opportunities.length)
+      setDocumentsByAction(documentByAction)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les actions.')
     } finally {
@@ -295,6 +348,8 @@ export default function PageExecution() {
               opportunity={group.opportunity}
               items={group.items}
               defaultOpen={group.items.some((item) => item.status.toLowerCase().includes('progress'))}
+              websiteId={activeWebsiteId}
+              documentsByAction={documentsByAction}
               onUpdate={handleUpdateStatus}
               onWorkflowChanged={loadData}
             />

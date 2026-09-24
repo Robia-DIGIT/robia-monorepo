@@ -8,6 +8,7 @@ import { useWebsiteContext } from '../components/WebsiteContext'
 import ContentSources from '../components/ContentSources'
 import ContentComposer from '../components/ContentComposer'
 import ContentLibrary from '../components/ContentLibrary'
+import WordPressConnectionCard from '../components/WordPressConnectionCard'
 import {
   getOpportunity,
   listActions,
@@ -135,6 +136,7 @@ function StudioWorkspace({
 
       <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
         <div className="space-y-4">
+          <WordPressConnectionCard key={websiteId} websiteId={websiteId} />
           <ContentSources
             website={website}
             opportunity={opportunity}

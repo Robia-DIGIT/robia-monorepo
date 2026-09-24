@@ -48,6 +48,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint dashboard
         run: pnpm --filter app-robia lint
+      - name: Test dashboard
+        run: pnpm --filter app-robia test
       - name: Build dashboard
         run: pnpm --filter app-robia build
       - name: Lint vitrine
