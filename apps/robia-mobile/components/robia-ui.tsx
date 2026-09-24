@@ -5,6 +5,7 @@ import {
     Children,
     useCallback,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -193,15 +194,26 @@ export function FilterTransition({
 }>) {
   const reduceMotion = useReducedMotion();
   const progress = useRef(new Animated.Value(1)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const [width, setWidth] = useState(0);
   const latestPage = useRef({ filterKey, index, children });
   const [transition, setTransition] = useState<{
     from: ReactNode;
-    to: ReactNode;
+
     direction: number;
   } | null>(null);
 
-  useEffect(() => {
+  useEffect(() => () => animationRef.current?.stop(), []);
+
+  // Prepare pages before paint; content updates must not interrupt the slide.
+  useLayoutEffect(() => {
+    if (reduceMotion) {
+      animationRef.current?.stop();
+      progress.setValue(1);
+      setTransition(null);
+      latestPage.current = { filterKey, index, children };
+      return;
+    }
     if (latestPage.current.filterKey === filterKey) {
       latestPage.current = { filterKey, index, children };
       return;
@@ -211,27 +223,30 @@ export function FilterTransition({
     latestPage.current = { filterKey, index, children };
     const direction = index >= previousPage.index ? -1 : 1;
 
-    if (reduceMotion) {
+    animationRef.current?.stop();
+    if (!width) {
       progress.setValue(1);
       setTransition(null);
       return;
     }
 
-    setTransition({ from: previousPage.children, to: children, direction });
+    setTransition({ from: previousPage.children, direction });
     progress.setValue(0);
     const animation = Animated.spring(progress, {
       toValue: 1,
-      damping: 22,
-      mass: 0.8,
-      stiffness: 180,
+      // Same spring as react-native-tab-view navigation, without bounce.
+      damping: 500,
+      mass: 3,
+      stiffness: 1000,
+      overshootClamping: true,
       useNativeDriver: true,
     });
+    animationRef.current = animation;
     animation.start(({ finished }) => {
       if (finished) setTransition(null);
     });
 
-    return () => animation.stop();
-  }, [children, filterKey, index, progress, reduceMotion]);
+  }, [children, filterKey, index, progress, reduceMotion, width]);
 
   return (
     <View
@@ -260,16 +275,16 @@ export function FilterTransition({
         {transition ? (
           transition.direction === -1 ? (
             <>
-              <View style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
-              <View style={[styles.filterTransitionPage, { width }]}>{transition.to}</View>
+              <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
+              <View style={[styles.filterTransitionPage, { width }]}>{children}</View>
             </>
           ) : (
             <>
-              <View style={[styles.filterTransitionPage, { width }]}>{transition.to}</View>
-              <View style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
+              <View style={[styles.filterTransitionPage, { width }]}>{children}</View>
+              <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
             </>
           )
-        ) : <View style={[styles.filterTransitionPage, { width }]}>{children}</View>}
+        ) : <View style={styles.filterTransitionPage}>{children}</View>}
       </Animated.View>
     </View>
   );
