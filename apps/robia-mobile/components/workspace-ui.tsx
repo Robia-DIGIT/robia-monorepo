@@ -5,7 +5,7 @@ import { RobiaCard } from '@/components/robia-ui';
 import { apiStyles as s } from '@/components/api-ui';
 import { Brand } from '@/constants/theme';
 export function NavCard({ title, description, href, icon = 'arrow-forward' }: { title: string; description: string; href: Href; icon?: React.ComponentProps<typeof MaterialIcons>['name'] }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={title + '. ' + description} onPress={() => router.push(href)} style={({ pressed }) => ({ opacity: pressed ? .65 : 1 })><RobiaCard style={styles.row}><View style={styles.icon}><MaterialIcons name={icon} size={25} color={Brand.tealDark} /></View><View style={{ flex: 1, gap: 5 }}><Text style={s.title}>{title}</Text><Text style={s.body}>{description}</Text></View><MaterialIcons name="chevron-right" size={24} color={Brand.tealDark} /></RobiaCard></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityLabel={title + '. ' + description} onPress={() => router.push(href)} style={({ pressed }) => ({ opacity: pressed ? .65 : 1 })}><RobiaCard style={styles.row}><View style={styles.icon}><MaterialIcons name={icon} size={25} color={Brand.tealDark} /></View><View style={{ flex: 1, gap: 5 }}><Text style={s.title}>{title}</Text><Text style={s.body}>{description}</Text></View><MaterialIcons name="chevron-right" size={24} color={Brand.tealDark} /></RobiaCard></Pressable>;
 }
 export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange(value: boolean): void }) {
   return <View style={styles.row}><Text style={[s.body, { flex: 1 }]}>{label}</Text><Switch accessibilityLabel={label} value={value} onValueChange={onChange} /></View>;

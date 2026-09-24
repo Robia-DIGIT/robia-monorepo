@@ -364,7 +364,7 @@ test('rotation and reduced motion align the selected page without leaving an int
 });
 
 
-test('the filter background shares page programs during drag, interruption, rotation and reduced motion', () => {
+test('the filter background shares page progress during drag, interruption, rotation and reduced motion', () => {
   const { motion } = createMotionHarness();
   motion.begin();
   motion.move(-160);

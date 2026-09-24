@@ -173,7 +173,7 @@ export default function IntegrationsScreen() {
   const { organization } = useSession();
   return (
     <RobiaScreen fixedHeader>
-      <RobiaHeader compact back title="Mes connexions" />
+      <RobiaHeader compact back title="Mes connexions" /><AsyncButton label="Google Business Profile : fiches et avis" action={async () => router.push("/business-profile")} />
       {organization ? (
         <>
           <ConnectionCard

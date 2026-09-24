@@ -1,4 +1,4 @@
-import { LoadState, apiStyles as s } from "@/components/api-ui";
+import { AsyncButton, LoadState, apiStyles as s } from "@/components/api-ui";
 import { RobiaCard, RobiaFixedHeader, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
 import { SiteSelector } from "@/components/site-selector";
 import { useRobiaData } from "@/src/api/data";
@@ -24,6 +24,7 @@ export default function HistoryScreen() {
         <RobiaHeader compact back title="Historique des audits" />
         <SiteSelector />
       </RobiaFixedHeader>
+      <AsyncButton label="Lancer un diagnostic" action={async () => router.push("/audit")} />
       <LoadState
         {...resource}
         retry={resource.reload}
