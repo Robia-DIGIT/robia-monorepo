@@ -36,7 +36,7 @@ beforeEach(() => {
   window.history.replaceState({}, '', '/business-profile')
   mockedApi.getCurrentOrganization.mockResolvedValue(organization)
   mockedApi.listBusinessLocations.mockResolvedValue([robiaLocation])
-  mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0 })
+  mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0, stale: false, expired: false })
   mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([])
   mockedApi.listGoogleBusinessProfileReviews.mockResolvedValue({
     reviews: [], averageRating: null, totalReviewCount: null, lastSyncedAt: null, expiresAt: null,
@@ -45,7 +45,7 @@ beforeEach(() => {
 
 describe('BusinessProfilePage', () => {
   it('renders the real connected state and maps an imported Google location', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1, stale: false, expired: false })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
       id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1',
       languageCode: 'fr', title: 'ROBIA Google', storeCode: 'STORE-42',
@@ -91,7 +91,7 @@ describe('BusinessProfilePage', () => {
   })
 
   it('expands the full fiche and shows every field Google provided', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1, stale: false, expired: false })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
       id: 'gbp-1', googleAccountName: 'accounts/1', accountDisplayName: 'ROBIA', googleLocationName: 'locations/1',
       languageCode: 'fr', title: 'ROBIA Google', storeCode: 'STORE-42',
@@ -136,7 +136,7 @@ describe('BusinessProfilePage', () => {
   })
 
   it('never renders a website/Maps link when Google did not provide one, and the fiche shows no data cleanly', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1, stale: false, expired: false })
     mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([{
       id: 'gbp-2', googleAccountName: 'accounts/1', accountDisplayName: null, googleLocationName: 'locations/2',
       languageCode: null, title: 'ROBIA sans site', storeCode: null,
@@ -182,7 +182,7 @@ describe('BusinessProfilePage', () => {
   })
 
   it('shows an honest warning when Google returns a partial synchronization', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T10:00:00Z', lastSyncStatus: 'partial', locationCount: 1 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T10:00:00Z', lastSyncStatus: 'partial', locationCount: 1, stale: false, expired: false })
     mockedApi.syncGoogleBusinessProfileLocations.mockResolvedValue({ synced: false, status: 'partial', locationCount: 1, syncedAt: '2026-09-21T09:00:00Z' })
 
     render(<BusinessProfilePage />)
@@ -194,12 +194,99 @@ describe('BusinessProfilePage', () => {
   })
 
   it('keeps Google writes out of the UI and explains read-only mode', async () => {
-    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0 })
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0, stale: false, expired: false })
     render(<BusinessProfilePage />)
     await screen.findByText('ROBIA Analakely')
     fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
     expect(await screen.findByText(/importe vos établissements sans modifier vos fiches Google/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /publier|modifier la fiche|répondre/i })).not.toBeInTheDocument()
+  })
+
+  // RC-40.1 — the backend now resyncs the fiche automatically on a schedule;
+  // `stale` only surfaces true if that automatic refresh has itself been
+  // failing, and must be shown honestly rather than silently ignored.
+  it('warns when the automatic fiche refresh appears to be failing', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-18T09:00:00Z', lastSyncAttemptAt: '2026-09-18T09:00:00Z', lastSyncStatus: 'success', locationCount: 1, stale: true, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    expect(await screen.findByText(/resynchronisation automatique semble en échec/i)).toBeInTheDocument()
+  })
+
+  it('shows no staleness warning when the fiche is fresh', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1, stale: false, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    await screen.findByText('owner@example.com')
+    expect(screen.queryByText(/resynchronisation automatique semble en échec/i)).not.toBeInTheDocument()
+  })
+
+  // RC-40.1 fix — a freshly-connected organization must not see a false
+  // "automatic refresh seems to be failing" warning: the backend now
+  // measures freshness from connectedAt when lastSyncedAt is still null, so
+  // `stale` stays false right after connecting. These three fixtures mock
+  // exactly what the corrected backend contract returns for each stage.
+  it('shows no warning for a connection created 5 minutes ago that has not synced yet', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:55:00Z', lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0, stale: false, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    await screen.findByText('owner@example.com')
+    expect(screen.queryByText(/resynchronisation automatique semble en échec/i)).not.toBeInTheDocument()
+  })
+
+  it('warns once a connection has never synced for more than 24h', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-20T08:00:00Z', lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0, stale: true, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    expect(await screen.findByText(/resynchronisation automatique semble en échec/i)).toBeInTheDocument()
+  })
+
+  it('shows the expired message with priority over the plain staleness warning', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-08-01T08:00:00Z', lastSyncedAt: '2026-08-01T09:00:00Z', lastSyncAttemptAt: '2026-08-01T09:00:00Z', lastSyncStatus: 'success', locationCount: 0, stale: true, expired: true })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    expect(await screen.findByText(/ont expiré.*30 jours/i)).toBeInTheDocument()
+    expect(screen.queryByText(/resynchronisation automatique semble en échec/i)).not.toBeInTheDocument()
+  })
+
+  // RC-40.1 fix — the staleness signal must surface even when the last
+  // attempt itself failed or was partial, not only when lastSyncStatus is
+  // 'success'. It must also combine with the failure message into one
+  // paragraph rather than showing two separate/contradictory banners.
+  it('shows the staleness note alongside a failed attempt, combined into a single message', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-18T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'failed', locationCount: 1, stale: true, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    const message = await screen.findByText(/dernière tentative de synchronisation a échoué/i)
+    expect(message.textContent).toMatch(/resynchronisation automatique semble en échec/i)
+    // Exactly one combined banner, never two separate ones.
+    expect(screen.getAllByText(/dernières données réussies sont conservées|obsolètes/i)).toHaveLength(1)
+  })
+
+  it('shows the staleness note alongside a partial attempt too', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-18T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'partial', locationCount: 1, stale: true, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    const message = await screen.findByText(/dernière tentative de synchronisation est incomplète/i)
+    expect(message.textContent).toMatch(/resynchronisation automatique semble en échec/i)
+  })
+
+  // RC-40.1 — the absolute 30-day compliance ceiling: once expired, the
+  // fiche has actually been purged server-side. This must be its own
+  // distinct, explicit state — never confused with a merely stale one.
+  it('shows an explicit expired state instead of the staleness or failure message', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-08-01T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'failed', locationCount: 0, stale: true, expired: true })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    expect(await screen.findByText(/ont expiré.*30 jours/i)).toBeInTheDocument()
+    expect(screen.queryByText(/dernière tentative de synchronisation/i)).not.toBeInTheDocument()
   })
 
   // RC-40 fix — reviews and performance, both read-only, backend-owned
@@ -223,7 +310,7 @@ describe('BusinessProfilePage', () => {
     })
 
     beforeEach(() => {
-      mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1 })
+      mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:00:00Z', lastSyncedAt: '2026-09-21T09:00:00Z', lastSyncAttemptAt: '2026-09-21T09:00:00Z', lastSyncStatus: 'success', locationCount: 1, stale: false, expired: false })
       mockedApi.listGoogleBusinessProfileLocations.mockResolvedValue([googleLocation])
     })
 

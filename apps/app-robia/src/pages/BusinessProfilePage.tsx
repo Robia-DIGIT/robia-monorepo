@@ -12,7 +12,31 @@ import { clearLegacyBusinessProfile, readBusinessLocations } from "../lib/busine
 
 const EMPTY_LOCATION = { name: "", address: "", city: "", country: "Madagascar", phone: "" };
 type LocationForm = typeof EMPTY_LOCATION;
-const DISCONNECTED: GoogleBusinessProfileStatus = { connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: "never", locationCount: 0 };
+const DISCONNECTED: GoogleBusinessProfileStatus = { connected: false, googleAccountEmail: null, connectedAt: null, lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: "never", locationCount: 0, stale: false, expired: false };
+
+// RC-40.1 fix — a single prioritized message instead of two independently
+// conditional banners, so an expired/failed/stale combination never shows
+// duplicated or contradictory text. Priority: expired (data actually hidden
+// server-side) > failed/partial (+ a stale note when it also applies) >
+// running > stale-only > nothing. The staleness signal must surface even
+// when the last attempt failed or was partial — not only on success.
+function connectorStatusMessage(connection: GoogleBusinessProfileStatus): { tone: "expired" | "warning"; text: string } | null {
+  if (connection.expired) {
+    return { tone: "expired", text: "Les données Google de cet établissement ont expiré (plus de 30 jours sans synchronisation réussie) et ne sont plus affichées, conformément à la politique de rétention de Google. Reconnectez le compte ou relancez une synchronisation pour les récupérer." };
+  }
+  if (connection.lastSyncStatus === "failed" || connection.lastSyncStatus === "partial") {
+    const attempt = connection.lastSyncStatus === "failed" ? "a échoué" : "est incomplète";
+    const staleNote = connection.stale ? " La resynchronisation automatique semble en échec depuis plus de 24h — ces données peuvent être obsolètes." : "";
+    return { tone: "warning", text: `La dernière tentative de synchronisation ${attempt}. Les dernières données réussies sont conservées.${staleNote}` };
+  }
+  if (connection.lastSyncStatus === "running") {
+    return { tone: "warning", text: "Une synchronisation est en cours. Les dernières données réussies sont conservées." };
+  }
+  if (connection.stale) {
+    return { tone: "warning", text: "La resynchronisation automatique semble en échec depuis plus de 24h — les données affichées peuvent être obsolètes." };
+  }
+  return null;
+}
 
 function Step({ number, title, active, done }: { number: number; title: string; active: boolean; done: boolean }) {
   return <div className="flex items-center gap-2"><span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${done ? "bg-teal text-white" : active ? "bg-navy text-white" : "bg-border-light text-muted"}`}>{done ? <Check size={14} /> : number}</span><span className={`text-xs font-semibold ${active ? "text-navy" : "text-muted"}`}>{title}</span></div>;
@@ -554,6 +578,8 @@ export default function BusinessProfilePage() {
 
   if (loading) return <div className="p-8 text-sm text-muted">Chargement du profil entreprise…</div>;
 
+  const statusMessage = connectorStatusMessage(connection);
+
   return <div className="mx-auto max-w-7xl animate-slide-up p-5 md:p-6 lg:p-8">
     <header className="mb-7 border-b border-border pb-6"><div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Présence locale ROBIA</p><h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Relier l’entreprise à ses lieux réels</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Configurez les établissements de {organization?.name ?? "votre entreprise"}, puis associez-les à Google Business Profile.</p></div><div className="min-w-64 border-l-2 border-teal pl-4"><div className="flex justify-between text-[10px] font-bold uppercase tracking-wide text-muted"><span>Configuration</span><span>{profileProgress}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-border-light"><div className="h-full bg-teal transition-all" style={{ width: `${profileProgress}%` }} /></div></div></div></header>
     <div className="mb-6 flex flex-wrap items-center gap-3 border-y border-border py-4"><Step number={1} title="Entreprise" active={false} done={Boolean(organization)} /><ChevronRight size={14} className="text-border" /><Step number={2} title="Établissements" active={tab === "locations"} done={completeLocations} /><ChevronRight size={14} className="text-border" /><Step number={3} title="Google Business Profile" active={tab === "google"} done={connection.connected} /></div>
@@ -567,7 +593,7 @@ export default function BusinessProfilePage() {
       <div><div className="flex items-start justify-between gap-4"><div><div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-lg font-bold text-white">G</div><h2 className="mt-5 text-xl font-bold text-navy">Google Business Profile</h2><p className="mt-2 max-w-xl text-sm leading-6 text-muted">Lecture seule : ROBIA importe vos établissements sans modifier vos fiches Google.</p></div>{connection.connected && <button disabled={busy} onClick={() => void syncGoogle()} className="inline-flex items-center gap-2 rounded-lg bg-teal px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><RefreshCw size={16} />Synchroniser</button>}</div>
         {!connection.connected ? <><div className="mt-6 space-y-3">{["Autoriser le compte Google", "Importer les établissements administrés", "Associer chaque lieu à ROBIA"].map((item) => <div key={item} className="flex items-center gap-3 text-sm text-dark"><Check size={15} className="text-teal-dark" />{item}</div>)}</div><button onClick={() => void connectGoogle()} disabled={busy || !completeLocations} className="mt-7 inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"><Link2 size={16} />Connecter Google Business Profile</button>{!completeLocations && <p className="mt-2 text-xs text-orange-dark">Ajoutez au moins un établissement ROBIA avant de connecter Google.</p>}</> : <div className="mt-7 divide-y divide-border border-y border-border">{googleLocations.length === 0 ? <div className="py-8 text-center text-sm text-muted">Aucun établissement Google importé. Lancez une synchronisation.</div> : googleLocations.map((item) => <GoogleLocationCard key={item.id} item={item} robiaLocations={locations} busy={busy} onMap={(googleLocationId, robiaLocationId) => void mapLocation(googleLocationId, robiaLocationId)} />)}</div>}
       </div>
-      <aside className="border-t border-border bg-slate-bg p-6 lg:border-l lg:border-t-0"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">État du connecteur</p><div className="mt-4 flex items-center gap-3 border-l-2 border-teal bg-white px-4 py-3"><span className={`h-3 w-3 rounded-full ${connection.connected ? "bg-teal" : "bg-slate-300"}`} /><div><p className="font-bold text-navy">{connection.connected ? "Connecté" : "Non connecté"}</p><p className="text-xs text-muted">{connection.googleAccountEmail ?? "Aucun compte Google autorisé"}</p></div></div>{connection.connected && <><div className="mt-4 space-y-2 text-xs text-muted"><p><strong className="text-navy">Établissements :</strong> {connection.locationCount}</p><p><strong className="text-navy">Dernière synchro réussie :</strong> {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString("fr-FR") : "Jamais"}</p>{connection.lastSyncStatus !== "success" && connection.lastSyncStatus !== "never" && <p className="rounded-md bg-orange-light px-3 py-2 text-orange-dark">La dernière tentative est {connection.lastSyncStatus === "running" ? "en cours" : "incomplète"}. Les dernières données réussies sont conservées.</p>}<p>Mode strictement lecture seule.</p></div><button disabled={busy} onClick={() => void disconnectGoogle()} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-red-600"><Unplug size={15} />Déconnecter Google</button></>}</aside>
+      <aside className="border-t border-border bg-slate-bg p-6 lg:border-l lg:border-t-0"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">État du connecteur</p><div className="mt-4 flex items-center gap-3 border-l-2 border-teal bg-white px-4 py-3"><span className={`h-3 w-3 rounded-full ${connection.connected ? "bg-teal" : "bg-slate-300"}`} /><div><p className="font-bold text-navy">{connection.connected ? "Connecté" : "Non connecté"}</p><p className="text-xs text-muted">{connection.googleAccountEmail ?? "Aucun compte Google autorisé"}</p></div></div>{connection.connected && <><div className="mt-4 space-y-2 text-xs text-muted"><p><strong className="text-navy">Établissements :</strong> {connection.locationCount}</p><p><strong className="text-navy">Dernière synchro réussie :</strong> {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString("fr-FR") : "Jamais"}</p>{statusMessage && <p className={statusMessage.tone === "expired" ? "rounded-md bg-red-50 px-3 py-2 text-red-600" : "rounded-md bg-orange-light px-3 py-2 text-orange-dark"}>{statusMessage.text}</p>}<p>Mode strictement lecture seule.</p></div><button disabled={busy} onClick={() => void disconnectGoogle()} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-red-600"><Unplug size={15} />Déconnecter Google</button></>}</aside>
     </section>}
   </div>;
 }
