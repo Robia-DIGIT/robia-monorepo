@@ -38,7 +38,7 @@ function MetaOppCard({ opp, onCreateAction, onTransition }: { opp: Opportunity; 
   const buttonLabel = done ? 'Réouvrir' : inProgress ? 'Marquer comme résolue' : 'Créer une action ROBIA (brouillon)'
   const isHeuristic = source.confidence === 'heuristic'
   return (
-    <article className={`group border-l-2 px-4 py-4 transition-colors ${done ? 'border-teal bg-teal-light/25' : 'border-orange/60 hover:bg-orange-light/10'}`}>
+    <article className={`group rounded-xl border-l-4 px-4 py-4 shadow-[0_1px_2px_rgba(31,58,95,0.04)] transition-all duration-150 ${done ? 'border-teal bg-teal-light/25' : 'border-orange/60 hover:bg-orange-light/10 hover:shadow-md'}`}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Badge variant="orange"><Share2 size={11} className="mr-1 inline" />Meta</Badge>
         <Badge variant="gray"><Lock size={10} className="mr-1 inline" />Lecture seule</Badge>
@@ -79,7 +79,7 @@ function OppCard({ opp, onTransition, onCreateMetaAction }: { opp: Opportunity; 
   const inProgress = opp.status.toLowerCase().includes('progress')
   const buttonLabel = done ? 'Réouvrir' : inProgress ? 'Marquer comme résolue' : 'Prendre en charge'
   return (
-    <article className={`group border-l-2 px-4 py-4 transition-colors ${done ? 'border-teal bg-teal-light/25' : priority.variant === 'orange' ? 'border-orange hover:bg-orange-light/15' : 'border-border hover:border-teal hover:bg-slate-bg'}`}>
+    <article className={`group rounded-xl border-l-4 px-4 py-4 shadow-[0_1px_2px_rgba(31,58,95,0.04)] transition-all duration-150 ${done ? 'border-teal bg-teal-light/25' : priority.variant === 'orange' ? 'border-orange hover:bg-orange-light/15 hover:shadow-md' : 'border-border hover:border-teal hover:bg-slate-bg hover:shadow-md'}`}>
       <div className="mb-2 flex items-start justify-between gap-3"><div className="flex flex-wrap items-center gap-2"><Badge variant={priority.variant}>{priority.label}</Badge><Badge variant="gray">{categoryLabel(opp.category)}</Badge><span className="text-[10px] font-bold text-muted">Priorité {priorityScore}/100</span></div>{done && <CheckCircle2 size={18} className="shrink-0 text-teal" />}</div>
       <h3 className="mb-1 text-sm font-semibold text-dark">{opp.title ?? 'Opportunité sans titre'}</h3>
       <p className="mb-3 text-xs leading-relaxed text-muted">{opp.description ?? 'Détail fourni par le backend.'}</p>
@@ -235,24 +235,58 @@ export default function PageOpportunites() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-slide-up">
       <header className="mb-7 border-b border-border pb-6">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-          <div><p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-dark"><Radar size={15} /> Signal d’opportunités ROBIA</p><h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Où gagner en visibilité maintenant ?</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Les recommandations sont classées selon leur impact potentiel pour {organizationName}, sans mélanger les données d’un autre site.</p></div>
+          <div><p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-dark"><Radar size={15} /> Signal d’opportunités ROBIA</p><h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Où gagner en visibilité maintenant ?</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Les recommandations sont classées selon leur impact potentiel pour {organizationName}, sans mélanger les données d’un autre site.</p></div>
           <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" icon={<Filter size={14} />}>Filtrer</Button><Button variant="primary" size="sm" loading={busy} icon={<Zap size={14} />} onClick={handleGenerate}>Actualiser les opportunités</Button></div>
         </div>
       </header>
 
-      <div className="mb-6 flex flex-col gap-3 border-l-2 border-teal bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><MapPin size={17} className="shrink-0 text-teal-dark" /><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Site analysé</p><p className="truncate text-sm font-bold text-navy">{activeWebsite?.name ?? activeWebsite?.url ?? 'Aucun site sélectionné'}</p></div></div><WebsiteSelector className="w-full sm:w-auto sm:min-w-72" /></div>
+      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(31,58,95,0.04)] sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><MapPin size={16} /></div><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Site analysé</p><p className="truncate text-sm font-bold text-navy">{activeWebsite?.name ?? activeWebsite?.url ?? 'Aucun site sélectionné'}</p></div></div><WebsiteSelector className="w-full sm:w-auto sm:min-w-72" /></div>
 
       {error && <div className="mb-6"><Card className="p-4 text-sm text-red-700 bg-red-50 border-red-200">{error}</Card></div>}
 
-      <section className="mb-7 grid border-y border-border bg-white sm:grid-cols-3">
-        <div className="border-b border-border px-1 py-5 sm:border-r sm:border-b-0 sm:pr-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Impact potentiel</p><p className="mt-2 text-[30px] font-bold tracking-[-0.04em] text-teal-dark">{averagePriority}<span className="text-sm text-muted">/100</span></p><p className="mt-1 text-xs text-muted">Score moyen de priorité calculée</p></div>
-        <div className="border-b border-border px-1 py-5 sm:border-r sm:border-b-0 sm:px-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Priorité immédiate</p><p className="mt-2 text-[30px] font-bold tracking-[-0.04em] text-orange">{highPriorityCount}</p><p className="mt-1 text-xs text-muted">Sévérité haute ou critique</p></div>
-        <div className="px-1 py-5 sm:pl-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Progression</p><p className="mt-2 text-[30px] font-bold tracking-[-0.04em] text-navy">{doneOpps.length}</p><p className="mt-1 text-xs text-muted">Opportunités réalisées</p></div>
+      <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><Zap size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Impact potentiel</p>
+          <p className="mt-1 text-[30px] font-bold tracking-[-0.04em] text-teal-dark">{averagePriority}<span className="text-sm text-muted">/100</span></p>
+          <p className="mt-1 text-xs text-muted">Score moyen de priorité calculée</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-light text-orange-dark"><Clock size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Priorité immédiate</p>
+          <p className="mt-1 text-[30px] font-bold tracking-[-0.04em] text-orange">{highPriorityCount}</p>
+          <p className="mt-1 text-xs text-muted">Sévérité haute ou critique</p>
+        </div>
+        <div className="rounded-xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-border-light text-muted"><CheckCircle2 size={16} /></div>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Progression</p>
+          <p className="mt-1 text-[30px] font-bold tracking-[-0.04em] text-navy">{doneOpps.length}</p>
+          <p className="mt-1 text-xs text-muted">Opportunités réalisées</p>
+        </div>
       </section>
 
-      {topOpportunity && <section className="mb-8 grid border-l-2 border-orange bg-orange-light/30 p-5 md:grid-cols-[1fr_auto] md:items-center md:gap-8"><div><div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">Meilleure prochaine action</span><Badge variant="gray">{topOpportunity.category || 'Divers'}</Badge></div><h2 className="mt-2 text-lg font-bold text-navy">{topOpportunity.title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{topOpportunity.description}</p><div className="mt-3 flex max-w-sm items-center gap-3"><span className="text-[10px] font-bold uppercase tracking-wide text-muted">Impact</span><ImpactMeter value={oppImpact(topOpportunity)} /><span className="text-xs text-muted">Effort {effortLabel(oppEffort(topOpportunity))}</span></div></div><Button variant="primary" className="mt-5 md:mt-0" iconRight={<ArrowRight size={14} />} onClick={() => transitionOpportunity(String(topOpportunity.id))}>Prendre en charge</Button></section>}
+      {topOpportunity && (
+        <section className="mb-8 grid gap-4 rounded-xl border border-orange/30 bg-orange-light/30 p-5 shadow-sm md:grid-cols-[auto_1fr_auto] md:items-center md:gap-8">
+          <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-orange-dark shadow-sm md:flex">
+            <Zap size={18} />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">Meilleure prochaine action</span><Badge variant="gray">{topOpportunity.category || 'Divers'}</Badge></div>
+            <h2 className="mt-2 text-lg font-bold text-navy">{topOpportunity.title}</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{topOpportunity.description}</p>
+            <div className="mt-3 flex max-w-sm items-center gap-3"><span className="text-[10px] font-bold uppercase tracking-wide text-muted">Impact</span><ImpactMeter value={oppImpact(topOpportunity)} /><span className="text-xs text-muted">Effort {effortLabel(oppEffort(topOpportunity))}</span></div>
+          </div>
+          <Button variant="primary" className="mt-5 md:mt-0" iconRight={<ArrowRight size={14} />} onClick={() => transitionOpportunity(String(topOpportunity.id))}>Prendre en charge</Button>
+        </section>
+      )}
 
-      <div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Toutes les opportunités</p><h2 className="mt-1 text-xl font-bold text-navy">File d’actions par signal</h2></div>
+      <div className="mb-5 flex items-start gap-3">
+        <span className="mt-1.5 h-4 w-1 shrink-0 rounded-full bg-teal" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Toutes les opportunités</p>
+          <h2 className="font-display mt-1 text-xl font-bold text-navy">File d’actions par signal</h2>
+        </div>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {columns.map((column) => (
           <OppColumn

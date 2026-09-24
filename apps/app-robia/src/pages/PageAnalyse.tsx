@@ -333,11 +333,13 @@ export default function PageAnalyse() {
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark"><Radar size={15} /> Tableau de visibilité locale</p>
-            <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Bonjour, que voulez-vous améliorer aujourd’hui ?</h1>
+            <h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">Bonjour, que voulez-vous améliorer aujourd’hui ?</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">ROBIA observe les signaux de {organization?.name ?? 'votre entreprise'}, mesure leur impact et transforme le prochain progrès en action claire.</p>
           </div>
-          <div className="flex items-center gap-3 border-l-2 border-teal pl-4">
-            <MapPin size={18} className="text-teal-dark" />
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(31,58,95,0.04)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-light text-teal-dark">
+              <MapPin size={16} />
+            </div>
             <div><p className="text-[10px] font-bold uppercase tracking-wide text-muted">Zone locale</p><p className="text-sm font-semibold text-navy">{organization?.city ?? 'Localisation à définir'}</p></div>
           </div>
         </div>
@@ -351,7 +353,7 @@ export default function PageAnalyse() {
               {websites.map((website) => <option key={website.id ?? website.url} value={website.id ?? ''} className="text-dark">{website.name ?? website.url ?? 'Site'}</option>)}
             </select> : <span className="text-sm font-semibold text-white">Aucun site configuré</span>}
           </div>
-          <h2 className="max-w-xl text-xl font-bold tracking-tight text-white md:text-2xl">{hasAnalyzed ? 'Actualiser le signal de visibilité' : 'Lancer votre premier diagnostic local'}</h2>
+          <h2 className="font-display max-w-xl text-xl font-bold tracking-tight text-white md:text-2xl">{hasAnalyzed ? 'Actualiser le signal de visibilité' : 'Lancer votre premier diagnostic local'}</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-white/55">{activeWebsite?.url ?? 'Ajoutez une URL pour mesurer sa présence, sa performance et ses opportunités locales.'}</p>
           <form onSubmit={handleAnalyse} className="mt-5 flex flex-col gap-3 sm:flex-row">
             <SearchBar value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeWebsite ? "Laissez vide pour actualiser le site sélectionné" : "https://votre-site.fr"} aria-label="URL du site à analyser" className="flex-1" />
@@ -405,21 +407,30 @@ export default function PageAnalyse() {
 
       {hasAnalyzed && !busy && (
         <>
-          <section className="mb-7 grid gap-0 overflow-hidden border-y border-border bg-white lg:grid-cols-[1.05fr_0.95fr]">
+          <section className="mb-7 grid gap-0 overflow-hidden rounded-xl border border-border bg-white shadow-[0_1px_2px_rgba(31,58,95,0.04)] lg:grid-cols-[1.05fr_0.95fr]">
             <div className="flex items-center gap-6 border-b border-border px-1 py-6 lg:border-r lg:border-b-0 lg:pr-8">
               <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[10px] border-teal-light">
                 <span className="text-[38px] font-bold tracking-[-0.06em] text-navy">{summaryScore}</span>
                 <span className="absolute -bottom-2 rounded-sm bg-teal px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white">sur 100</span>
               </div>
-              <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-teal-dark">ROBIA Visibility Score</p><h2 className="mt-2 text-xl font-bold text-navy">Visibilité {scoreLabel.toLowerCase()}</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted">Ce score synthétise les signaux locaux, le contenu, la technique et la capacité du site à être compris.</p></div>
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-teal-dark">ROBIA Visibility Score</p><h2 className="font-display mt-2 text-xl font-bold text-navy">Visibilité {scoreLabel.toLowerCase()}</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted">Ce score synthétise les signaux locaux, le contenu, la technique et la capacité du site à être compris.</p></div>
             </div>
             <div className="grid sm:grid-cols-2">
-              <div className="border-b border-border p-5 sm:border-r sm:border-b-0"><Eye size={18} className="text-teal-dark" /><p className="mt-5 text-[28px] font-bold tracking-tight text-navy">{summaryScore}<span className="text-sm text-muted">%</span></p><p className="mt-1 text-xs font-semibold text-muted">Visibilité mesurée</p></div>
-              <div className="p-5"><Users size={18} className="text-orange" /><p className="mt-5 text-[28px] font-bold tracking-tight text-navy">{opportunities.length}</p><p className="mt-1 text-xs font-semibold text-muted">Opportunités détectées</p></div>
+              <div className="border-b border-border p-5 sm:border-r sm:border-b-0">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-light text-teal-dark"><Eye size={16} /></div>
+                <p className="mt-4 text-[28px] font-bold tracking-tight text-navy">{summaryScore}<span className="text-sm text-muted">%</span></p><p className="mt-1 text-xs font-semibold text-muted">Visibilité mesurée</p>
+              </div>
+              <div className="p-5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-light text-orange-dark"><Users size={16} /></div>
+                <p className="mt-4 text-[28px] font-bold tracking-tight text-navy">{opportunities.length}</p><p className="mt-1 text-xs font-semibold text-muted">Opportunités détectées</p>
+              </div>
             </div>
           </section>
 
-          <section className="mb-7 grid border-l-2 border-orange bg-orange-light/35 p-5 md:grid-cols-[1fr_auto] md:items-center md:gap-6">
+          <section className="mb-7 grid gap-4 rounded-xl border border-orange/30 bg-orange-light/35 p-5 shadow-sm md:grid-cols-[auto_1fr_auto] md:items-center md:gap-6">
+            <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-orange-dark shadow-sm md:flex">
+              <TrendingUp size={18} />
+            </div>
             <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-dark">Prochaine action recommandée</p><h2 className="mt-2 text-base font-bold text-navy">{filteredRecommendations[0]?.title ?? 'Consulter les signaux prioritaires du site'}</h2><p className="mt-1 text-sm leading-6 text-muted">{filteredRecommendations[0]?.description ?? 'ROBIA affichera ici l’action ayant le meilleur rapport impact / effort après l’analyse.'}</p></div>
             <Button variant="primary" className="mt-4 md:mt-0" iconRight={<ArrowRight size={14} />} onClick={() => setActiveTab('Recommandations')}>Voir les opportunités</Button>
           </section>
@@ -427,7 +438,7 @@ export default function PageAnalyse() {
           <Card className="p-5 md:p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-dark">Évolution de la performance</h2>
+                <h2 className="font-display text-lg font-semibold text-dark">Évolution de la performance</h2>
                 <p className="text-sm text-muted mt-0.5">Données issues des audits et des opportunités générées</p>
               </div>
               <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
