@@ -124,6 +124,31 @@ export default function PageAnalyse() {
   const [competitorBusy, setCompetitorBusy] = useState(false)
   const [runningCompetitorId, setRunningCompetitorId] = useState<string | null>(null)
   const [competitorError, setCompetitorError] = useState('')
+  const [analyseProgress, setAnalyseProgress] = useState(0)
+
+  // The backend runs an audit as a single synchronous call (runAudit()) with
+  // no job id, step, or percentage of its own — POST /audits/run only ever
+  // resolves once the whole pipeline (crawl, PageSpeed, AI readiness, score)
+  // has finished, however long that takes for this particular site. There is
+  // nothing to poll, so this is a time-based estimate, not a measured value:
+  // it eases toward 92% and holds there — never claiming 100% before the
+  // real response comes back — rather than a smooth bar implying a precision
+  // the backend can't back up.
+  useEffect(() => {
+    if (!busy) {
+      setAnalyseProgress(0)
+      return
+    }
+
+    const startedAt = Date.now()
+    const interval = setInterval(() => {
+      const elapsedSeconds = (Date.now() - startedAt) / 1000
+      const eased = 92 * (1 - Math.exp(-elapsedSeconds / 18))
+      setAnalyseProgress(Math.min(92, Math.round(eased)))
+    }, 400)
+
+    return () => clearInterval(interval)
+  }, [busy])
 
   const trendData = useMemo(() => {
     const source = audits.slice(0, 7).reverse()
@@ -392,14 +417,12 @@ export default function PageAnalyse() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal text-white shadow-lg shadow-teal/20">
               <Search size={22} strokeWidth={2.5} />
             </div>
-            <h2 className="mt-4 text-xl font-semibold text-dark">Analyse en cours…</h2>
+            <h2 className="mt-4 text-xl font-semibold text-dark">Analyse en cours… {analyseProgress}%</h2>
             <p className="mt-2 max-w-xl text-sm text-muted">
-              ROBIA collecte les données, traite le site et prépare les recommandations en quelques secondes.
+              ROBIA collecte les données, traite le site et prépare les recommandations. Cette progression est une estimation — la durée réelle dépend de la taille du site.
             </p>
-            <div className="mt-5 flex items-center gap-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-teal animate-pulse" />
-              <div className="h-2.5 w-2.5 rounded-full bg-teal/70 animate-pulse [animation-delay:120ms]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-teal/40 animate-pulse [animation-delay:240ms]" />
+            <div className="mt-5 w-full max-w-xs">
+              <ProgressBar value={analyseProgress} color="#14B8A6" />
             </div>
           </div>
         </div>
