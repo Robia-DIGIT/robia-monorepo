@@ -222,6 +222,37 @@ describe('BusinessProfilePage', () => {
     expect(screen.queryByText(/resynchronisation automatique semble en échec/i)).not.toBeInTheDocument()
   })
 
+  // RC-40.1 fix — a freshly-connected organization must not see a false
+  // "automatic refresh seems to be failing" warning: the backend now
+  // measures freshness from connectedAt when lastSyncedAt is still null, so
+  // `stale` stays false right after connecting. These three fixtures mock
+  // exactly what the corrected backend contract returns for each stage.
+  it('shows no warning for a connection created 5 minutes ago that has not synced yet', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-21T08:55:00Z', lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0, stale: false, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    await screen.findByText('owner@example.com')
+    expect(screen.queryByText(/resynchronisation automatique semble en échec/i)).not.toBeInTheDocument()
+  })
+
+  it('warns once a connection has never synced for more than 24h', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-09-20T08:00:00Z', lastSyncedAt: null, lastSyncAttemptAt: null, lastSyncStatus: 'never', locationCount: 0, stale: true, expired: false })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    expect(await screen.findByText(/resynchronisation automatique semble en échec/i)).toBeInTheDocument()
+  })
+
+  it('shows the expired message with priority over the plain staleness warning', async () => {
+    mockedApi.getGoogleBusinessProfileStatus.mockResolvedValue({ connected: true, googleAccountEmail: 'owner@example.com', connectedAt: '2026-08-01T08:00:00Z', lastSyncedAt: '2026-08-01T09:00:00Z', lastSyncAttemptAt: '2026-08-01T09:00:00Z', lastSyncStatus: 'success', locationCount: 0, stale: true, expired: true })
+    render(<BusinessProfilePage />)
+    await screen.findByText('ROBIA Analakely')
+    fireEvent.click(screen.getByRole('button', { name: 'Connecteur Google' }))
+    expect(await screen.findByText(/ont expiré.*30 jours/i)).toBeInTheDocument()
+    expect(screen.queryByText(/resynchronisation automatique semble en échec/i)).not.toBeInTheDocument()
+  })
+
   // RC-40.1 fix — the staleness signal must surface even when the last
   // attempt itself failed or was partial, not only when lastSyncStatus is
   // 'success'. It must also combine with the failure message into one
