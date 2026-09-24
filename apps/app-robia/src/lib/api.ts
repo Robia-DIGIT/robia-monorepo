@@ -2539,6 +2539,11 @@ export interface WordPressDraftAttempt {
   approvalId: string;
   documentId: string;
   actionItemId: string;
+  // The revision of the document this attempt's approval was bound to — not
+  // necessarily the document's current revision. A confirmed/failed/unknown
+  // attempt for an older revision must never be shown as the state of the
+  // current one.
+  documentRevision: number;
   status: WordPressAttemptStatus;
   remotePostId: string | null;
   remoteUrl: string | null;

@@ -124,7 +124,10 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
           if (cancelled) return
           const existing =
             attempts.find(
-              (item) => item.documentId === document.id && item.actionItemId === actionItem.id,
+              (item) =>
+                item.documentId === document.id &&
+                item.actionItemId === actionItem.id &&
+                item.documentRevision === (document.revision ?? 1),
             ) ?? null
           setAttempt(existing)
           if (existing) {
@@ -165,10 +168,15 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload strictly on site/action-readiness change, not on every postType toggle
   }, [websiteId, actionItem?.id, approved, ready])
 
-  async function reloadAttemptFor(forApprovalId: string) {
+  async function findAttemptByApproval(forApprovalId: string): Promise<WordPressDraftAttempt | null> {
     const attempts = await listWordPressAttempts(websiteId)
+    if (!mountedRef.current) return null
+    return attempts.find((item) => item.approvalId === forApprovalId) ?? null
+  }
+
+  async function reloadAttemptFor(forApprovalId: string) {
+    const found = await findAttemptByApproval(forApprovalId)
     if (!mountedRef.current) return
-    const found = attempts.find((item) => item.approvalId === forApprovalId) ?? null
     setAttempt(found)
 
     if (!found) {
@@ -231,12 +239,37 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
         return
       }
       if (createError instanceof ApiError && (createError.status === 409 || createError.status === 422)) {
-        // A definite, synchronous rejection — WordPress (or ROBIA's own
-        // pre-dispatch guard) never left this ambiguous, so there is no
-        // attempt row to reload and nothing that should turn this into an
-        // 'unknown'/needs-reconciliation state.
-        setError(errorMessage(createError))
-        setPhase('failed')
+        // The backend returns 409/422 for two different situations that look
+        // identical from here: a genuine synchronous refusal where nothing
+        // was ever created (a pre-dispatch policy rejection), or a 409
+        // because a durable attempt already exists for this exact approval
+        // and must be shown/reconciled instead of being reported as a fresh
+        // refusal. Only the attempt row itself can tell them apart — never
+        // assume "refused" without checking it, and never invent an
+        // 'unknown' state when checking finds nothing (that would turn a
+        // clean, definite refusal into a false "needs reconciliation").
+        try {
+          const canonical = await findAttemptByApproval(approvalId)
+          if (!mountedRef.current) return
+          setAttempt(canonical)
+          if (!canonical) {
+            setError(errorMessage(createError))
+            setPhase('failed')
+          } else if (canonical.status === 'confirmed') {
+            setPhase('confirmed')
+          } else if (canonical.status === 'failed') {
+            setError(errorMessage(createError))
+            setPhase('failed')
+          } else {
+            // 'in_flight' or 'unknown' — a real attempt exists and needs reconciliation.
+            setPhase('unknown')
+          }
+        } catch {
+          // The reload itself failed — fall back to the server's own
+          // definite refusal signal rather than stalling on an unresolved state.
+          setError(errorMessage(createError))
+          setPhase('failed')
+        }
         return
       }
       // 503 (WordPress gave an ambiguous or unreadable answer), a network

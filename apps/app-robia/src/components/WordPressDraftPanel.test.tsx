@@ -79,6 +79,7 @@ const CONFIRMED_ATTEMPT: api.WordPressDraftAttempt = {
   approvalId: 'approval-1',
   documentId: 'doc-1',
   actionItemId: 'action-1',
+  documentRevision: 3,
   status: 'confirmed',
   remotePostId: '42',
   remoteUrl: 'https://client-site.example.com/?p=42',
@@ -97,6 +98,15 @@ const UNKNOWN_ATTEMPT: api.WordPressDraftAttempt = {
   remoteEditorUrl: null,
   errorCode: 'wordpress_http_503',
   confirmedAt: null,
+}
+
+// Confirmed for an OLDER revision of the same document/Action — must never
+// be shown as the state of the document's current revision (3).
+const STALE_REVISION_ATTEMPT: api.WordPressDraftAttempt = {
+  ...CONFIRMED_ATTEMPT,
+  id: 'attempt-stale',
+  approvalId: 'approval-stale',
+  documentRevision: 2,
 }
 
 beforeEach(() => {
@@ -141,6 +151,24 @@ describe('WordPressDraftPanel', () => {
     expect(screen.getByText('Nouvelle page locale')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('Un brouillon sera créé. Rien ne sera publié automatiquement.')).toBeInTheDocument()
+  })
+
+  it('restores an existing confirmed attempt for the document’s current revision on mount, with no click needed', async () => {
+    mockedApi.listWordPressAttempts.mockResolvedValueOnce([CONFIRMED_ATTEMPT]) // documentRevision: 3, matches DOCUMENT.revision
+
+    render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
+
+    expect(await screen.findByText('Brouillon créé sur WordPress.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Autoriser et créer le brouillon/ })).not.toBeInTheDocument()
+  })
+
+  it('ignores an attempt found on mount for an older document revision and still offers the confirm form', async () => {
+    mockedApi.listWordPressAttempts.mockResolvedValueOnce([STALE_REVISION_ATTEMPT]) // documentRevision: 2, DOCUMENT.revision is 3
+
+    render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
+
+    expect(await screen.findByRole('button', { name: /Autoriser et créer le brouillon/ })).toBeInTheDocument()
+    expect(screen.queryByText('Brouillon créé sur WordPress.')).not.toBeInTheDocument()
   })
 
   it('disables selecting a post type the connected account cannot create', async () => {
@@ -253,6 +281,25 @@ describe('WordPressDraftPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Autoriser et créer le brouillon/ }))
 
     expect(await screen.findByText('Le document ou la connexion a changé avant l’envoi.')).toBeInTheDocument()
+    expect(mockedApi.createWordPressDraft).toHaveBeenCalledTimes(1)
+  })
+
+  it('on a 409 from createDraft caused by an existing unresolved attempt, offers reconciliation instead of a false refusal', async () => {
+    mockedApi.approveWordPressDraft.mockResolvedValue({ approval: APPROVAL, idempotent: false })
+    mockedApi.createWordPressDraft.mockRejectedValue(
+      new api.ApiError('Une tentative existe déjà et doit être réconciliée avant toute suite.', 409),
+    )
+    mockedApi.listWordPressAttempts
+      .mockResolvedValueOnce([]) // no existing attempt yet when the panel mounts
+      .mockResolvedValueOnce([UNKNOWN_ATTEMPT]) // the canonical attempt this exact approval already has
+
+    render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
+    fireEvent.click(await screen.findByRole('button', { name: /Autoriser et créer le brouillon/ }))
+
+    expect(await screen.findByText('Résultat à vérifier')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Vérifier dans WordPress/ })).toBeInTheDocument()
+    // The 409's own message is never shown as a refusal — the canonical attempt's real state is.
+    expect(screen.queryByText('Une tentative existe déjà et doit être réconciliée avant toute suite.')).not.toBeInTheDocument()
     expect(mockedApi.createWordPressDraft).toHaveBeenCalledTimes(1)
   })
 
