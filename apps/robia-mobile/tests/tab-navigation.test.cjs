@@ -130,7 +130,9 @@ test('a swipe visits each filter before crossing to the adjacent tab', () => {
 });
 
 test('the pager delegates swipes to filtered pages and keeps other pages swipeable', () => {
-  const screens = renderBar(0).layout().props.children;
+  const layout = renderBar(0).layout();
+  assert.equal(layout.props.screenOptions.lazyPreloadDistance, 1);
+  const screens = layout.props.children;
   const swipeByPage = Object.fromEntries(screens.map(screen => [
     screen.props.name, screen.props.options.swipeEnabled,
   ]));
@@ -168,9 +170,11 @@ test('native swipe completion changes filters first and ignores cancelled or sho
   const moves = [];
   let resets = 0;
   let begins = 0;
+  let handoffs = 0;
   const motion = {
     width: { current: 320 }, move: value => moves.push(value),
     begin: () => begins++, cancel: () => resets++, settle: () => resets++,
+    resetToSelected: () => handoffs++,
   };
   const swipe = selected => createFilterSwipe({
     motion,
@@ -191,7 +195,7 @@ test('native swipe completion changes filters first and ignores cancelled or sho
   first.update({ translationX: -500 });
   assert.equal(moves.at(-1), -320);
   first.update({ translationX: 100 });
-  assert.equal(moves.at(-1), 15); // Resistance at the first filter.
+  assert.equal(moves.at(-1), 0); // No blank overscroll before the navbar transition.
   first.finalize({}, false);
   assert.equal(resets, 1);
   first.finish({ translationX: -120, velocityX: -500 }, false);
@@ -208,19 +212,23 @@ test('native swipe completion changes filters first and ignores cancelled or sho
   swipe('Faible effort').finish({ translationX: 90, velocityX: 250 }, true);
   assert.equal(changes.at(-1), 'Prioritaires');
   assert.deepEqual(visits, []);
+  const previousResets = resets;
   swipe('Faible effort').finish({ translationX: -90, velocityX: -250 }, true);
   swipe('Toutes').finish({ translationX: 90, velocityX: 250 }, true);
   assert.deepEqual(visits, ['/(tabs)/execution-pack', '/(tabs)/dashboard']);
+  assert.equal(handoffs, 2);
+  assert.equal(resets, previousResets); // No competing filter rebound during navigation.
 });
 
 test('the native filter gesture covers the header and content before vertical scrolling can activate', () => {
+  let chipLayouts = {};
   const { RobiaScreen, FilterChips, FilterTransition } = loadTypeScript('../components/robia-ui.tsx', {
     react: {
       ...React, useMemo: callback => callback(), useCallback: callback => callback,
-      useEffect() {}, useLayoutEffect() {}, useState: () => [320, () => {}], useRef: value => ({ current: value }),
+      useEffect() {}, useLayoutEffect() {}, useState: initial => [typeof initial === 'number' ? 320 : chipLayouts, () => {}], useRef: value => ({ current: value }),
     },
     'react-native': {
-      Animated: { View: 'AnimatedView' },
+      Animated: { View: 'AnimatedView', Text: 'AnimatedText' },
       ScrollView: 'ScrollView', View: 'View', Text: 'Text', Pressable: 'Pressable', RefreshControl: 'RefreshControl',
       StyleSheet: { create: styles => styles, hairlineWidth: 1 },
     },
@@ -292,8 +300,39 @@ test('the native filter gesture covers the header and content before vertical sc
   const scrolls = [];
   chips.props.ref.current = { scrollTo: value => scrolls.push(value) };
   chips.props.onLayout({ nativeEvent: { layout: { width: 200 } } });
-  chips.props.children[1].props.onLayout({ nativeEvent: { layout: { x: 150, width: 100 } } });
+  chips.props.children.props.children[2][1].props.onLayout({ nativeEvent: { layout: { x: 150, width: 100 } } });
   assert.deepEqual(scrolls, [{ x: 100, animated: false }]);
+
+  chipLayouts = {
+    All: { x: 0, y: 0, width: 80, height: 36 },
+    Priority: { x: 88, y: 0, width: 120, height: 36 },
+    Easy: { x: 216, y: 0, width: 90, height: 36 },
+  };
+  const animatedChips = FilterChips({
+    options: ['All', 'Priority', 'Easy'], selected: 'Priority', onChange() {},
+    motion: { position: { interpolate: config => config } },
+  });
+  const [surfaces, indicator, buttons] = animatedChips.props.children.props.children;
+  assert.equal(surfaces.length, 3);
+  assert.equal(indicator.props.pointerEvents, 'none');
+  const transforms = indicator.props.style[1].transform;
+  assert.deepEqual(transforms[0].translateX.outputRange, [0, 108, 221]);
+  assert.deepEqual(transforms[1].scaleX.outputRange, [1, 1.5, 1.125]);
+  assert.equal(transforms[0].translateX.extrapolate, 'clamp');
+  // At halfway, both the indicator centre and its width are halfway too.
+  const halfCentre = (0 + 108) / 2 + 40;
+  assert.equal(halfCentre, 94);
+  assert.equal(80 * (1 + 1.5) / 2, 100);
+  assert.equal(buttons[1].props.style[2].backgroundColor, 'transparent');
+  assert.deepEqual(buttons[1].props.children.props.style[2].color.inputRange, [0, 1, 2]);
+
+  const singleChip = FilterChips({
+    options: ['All'], selected: 'All', onChange() {},
+    motion: { position: { interpolate: config => config } },
+  });
+  const singleTransform = singleChip.props.children.props.children[1].props.style[1].transform;
+  assert.deepEqual(singleTransform[0].translateX.inputRange, [0, 1]);
+  assert.deepEqual(singleTransform[1].scaleX.outputRange, [1, 1]);
 });
 
 // Drive the real motion controller with a controllable native animation clock.
@@ -316,6 +355,8 @@ function createMotionHarness() {
     },
     'react-native': { Animated: {
       Value,
+      multiply: (value, factor) => ({ get value() { return value.value * factor; } }),
+      divide: (value, divisor) => ({ get value() { return value.value / divisor.value; } }),
       spring: (value, config) => ({ start() { animations.push({ value, ...config }); } }),
     } },
     '@/hooks/use-reduced-motion': { useReducedMotion: () => false },
@@ -397,4 +438,37 @@ test('rotation and reduced motion align the selected page without leaving an int
   motion.configure(2, 480, true);
   assert.equal(motion.offset.value, -960);
   assert.equal(animations.length, 0);
+});
+
+
+test('the filter background shares page progress during drag, interruption, rotation and reduced motion', () => {
+  const { motion } = createMotionHarness();
+  motion.begin();
+  motion.move(-160);
+  assert.equal(motion.position.value, 0.5);
+  motion.configure(1, 320, false);
+  assert.equal(motion.position.value, 0.5);
+  motion.offset.value = -240;
+  assert.equal(motion.position.value, 0.75);
+  motion.configure(1, 480, false);
+  assert.equal(motion.position.value, 1);
+  motion.configure(2, 480, true);
+  assert.equal(motion.position.value, 2);
+});
+
+test('handoff to navbar aligns the filter without a spring and rejects stale native drag callbacks', () => {
+  const { motion, animations } = createMotionHarness();
+  motion.configure(2, 320, false);
+  motion.offset.value = -600;
+  motion.offset.deferStops = true;
+  motion.begin();
+  const reply = motion.offset.pendingStops.shift();
+  const beforeHandoff = animations.length;
+  motion.resetToSelected();
+  assert.equal(motion.offset.value, -640);
+  assert.equal(motion.position.value, 2);
+  assert.equal(animations.length, beforeHandoff);
+  reply(-600);
+  motion.move(-30);
+  assert.equal(motion.offset.value, -640);
 });
