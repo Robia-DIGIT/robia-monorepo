@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Menu, Search } from 'lucide-react'
 import { getCurrentOrganization, getCurrentUser, logout, type Organization, type UserSummary } from './lib/api'
 import Sidebar from './components/Sidebar'
-import { resolvePageTitle } from './lib/navigation'
+import { resolvePageIcon, resolvePageTitle } from './lib/navigation'
 import { clearAuthResponse, isAuthenticated } from './lib/auth'
 import { WebsiteProvider } from './components/WebsiteContext'
 
@@ -42,6 +42,7 @@ export default function App() {
 
   const activePath = location.pathname
   const pageTitle = resolvePageTitle(activePath, location.search)
+  const PageIcon = resolvePageIcon(activePath, location.search)
   const metaOAuthStatus = useMemo(() => {
     if (location.pathname !== '/meta-data') return null
     const value = new URLSearchParams(location.search).get('meta')
@@ -158,7 +159,7 @@ export default function App() {
             <div className="w-7 h-7 rounded-lg bg-teal flex items-center justify-center">
               <Search size={13} color="white" strokeWidth={2.5} />
             </div>
-            <span className="font-semibold text-dark text-sm">ROBIA Copilot</span>
+            <span className="font-display font-semibold text-dark text-sm">ROBIA Copilot</span>
           </div>
         </div>
 
@@ -167,11 +168,16 @@ export default function App() {
             et les routes de détail (ex. une automatisation précise) n'ont
             pas d'entrée de nav pour se resituer. */}
         {pageTitle && (
-          <div className="hidden lg:flex items-center h-14 shrink-0 px-6 bg-white border-b border-border">
-            <nav aria-label="Fil d'ariane" className="flex items-center gap-1.5 text-sm">
-              <span className="text-muted">ROBIA</span>
+          <div className="hidden lg:flex items-center h-16 shrink-0 px-6 bg-white/90 backdrop-blur-sm border-b border-border shadow-[0_1px_0_rgba(15,23,42,0.02)]">
+            <nav aria-label="Fil d'ariane" className="flex items-center gap-2.5 text-sm">
+              <span className="text-[13px] font-medium text-muted">ROBIA</span>
               <span className="text-border" aria-hidden="true">/</span>
-              <span className="font-semibold text-navy">{pageTitle}</span>
+              {PageIcon && (
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-light text-teal-dark">
+                  <PageIcon size={13} strokeWidth={2.25} aria-hidden="true" />
+                </span>
+              )}
+              <span className="font-display text-[15px] font-semibold text-navy">{pageTitle}</span>
             </nav>
           </div>
         )}
