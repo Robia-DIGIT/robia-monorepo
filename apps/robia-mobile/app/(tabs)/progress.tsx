@@ -91,7 +91,7 @@ export default function ProgressScreen() {
           subtitle="Pilotez les actions générées par RobIA et leurs échéances."
         />
         <SiteSelector />
-        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect motion={motion} />
       </RobiaFixedHeader>
       <FilterTransition filterKey={filter} options={filters} motion={motion}
         reduceMotion={reduceMotion} swipeGesture={swipeGesture} refreshing={isLoading} onRefresh={refresh}>

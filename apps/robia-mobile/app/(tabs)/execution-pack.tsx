@@ -55,7 +55,7 @@ export default function ExecutionPackScreen() {
           subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."
         />
         <SiteSelector />
-        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect motion={motion} />
       </RobiaFixedHeader>
       <FilterTransition filterKey={filter} options={filters} motion={motion}
         reduceMotion={reduceMotion} swipeGesture={swipeGesture} refreshing={isLoading} onRefresh={refresh}>

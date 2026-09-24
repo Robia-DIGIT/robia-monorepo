@@ -323,14 +323,17 @@ export function FilterChips({
   selected,
   onChange,
   swipeToSelect = false,
+  motion,
 }: {
   options: readonly string[];
   selected: string;
   onChange: (value: string) => void;
   swipeToSelect?: boolean;
+  motion?: FilterMotion;
 }) {
   const scroll = useRef<ScrollView>(null);
   const viewportWidth = useRef(0);
+  const [layouts, setLayouts] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
   const positions = useRef<Record<string, { x: number; width: number }>>({});
   const reduceMotion = useReducedMotion();
   const revealSelected = useCallback(() => {
@@ -343,6 +346,17 @@ export function FilterChips({
   }, [selected, reduceMotion]);
 
   useEffect(revealSelected, [revealSelected]);
+
+  const measured = options.map(option => layouts[option]);
+  const indicatorReady = !!motion && measured.length > 0 && measured.every(layout => layout?.width > 0);
+  const baseWidth = indicatorReady ? measured[0].width : 1;
+  // Use transforms so the background shares the page animation on the UI thread.
+  const inputRange = options.length > 1 ? options.map((_, index) => index) : [0, 1];
+  const interpolate = (values: number[]) => motion!.position.interpolate({
+    inputRange,
+    outputRange: values.length > 1 ? values : [values[0], values[0]],
+    extrapolate: 'clamp',
+  });
 
   return (
     <ScrollView
@@ -359,24 +373,60 @@ export function FilterChips({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.filterChips}
       accessibilityRole="tablist">
-      {options.map((option) => {
-        const active = option === selected;
-        return (
-          <Pressable
-            key={option}
-            onLayout={(event) => {
-              const { x, width } = event.nativeEvent.layout;
-              positions.current[option] = { x, width };
-              if (active) revealSelected();
-            }}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            onPress={() => onChange(option)}
-            style={[styles.filterChip, active && styles.filterChipActive]}>
-            <Text style={[styles.filterChipLabel, active && styles.filterChipLabelActive]}>{option}</Text>
-          </Pressable>
-        );
-      })}
+      <View style={styles.filterChipTrack}>
+        {indicatorReady && measured.map((layout, index) => (
+          <View key={options[index]} pointerEvents="none" style={[
+            styles.filterChipSurface,
+            { left: layout.x, top: layout.y, width: layout.width, height: layout.height },
+          ]} />
+        ))}
+        {indicatorReady && (
+          <Animated.View pointerEvents="none" accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[
+              styles.filterChipIndicator,
+              { width: baseWidth, transform: [
+                { translateX: interpolate(measured.map(layout => layout.x + (layout.width - baseWidth) / 2)) },
+                { scaleX: interpolate(measured.map(layout => layout.width / baseWidth)) },
+              ] },
+            ]} />
+        )}
+        {options.map((option, index) => {
+          const active = option === selected;
+          return (
+            <Pressable
+              key={option}
+              onLayout={(event) => {
+                const { x, y, width, height } = event.nativeEvent.layout;
+                positions.current[option] = { x, width };
+                if (motion) setLayouts(current => {
+                  const previous = current[option];
+                  if (previous?.x === x && previous.y === y && previous.width === width && previous.height === height) return current;
+                  return { ...current, [option]: { x, y, width, height } };
+                });
+                if (active) revealSelected();
+              }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => onChange(option)}
+              style={[
+                styles.filterChip,
+                active && styles.filterChipActive,
+                indicatorReady && styles.filterChipTransparent,
+              ]}>
+              <Animated.Text style={[
+                styles.filterChipLabel,
+                active && styles.filterChipLabelActive,
+                indicatorReady && { color: motion!.position.interpolate({
+                  inputRange: [index - 1, index, index + 1],
+                  outputRange: [Brand.slate500, Brand.white, Brand.slate500],
+                  extrapolate: 'clamp',
+                }) },
+              ]}>{option}</Animated.Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </ScrollView>
   );
 }
@@ -618,7 +668,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "800",
   },
-  filterChips: { gap: 8, paddingVertical: 2 },
+  filterChips: { paddingVertical: 2 },
+  filterChipTrack: { flexDirection: 'row', gap: 8 },
+  filterChipSurface: { position: 'absolute', borderRadius: 8, backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
+  filterChipIndicator: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 8, backgroundColor: Brand.navyDark },
+  filterChipTransparent: { backgroundColor: 'transparent', borderColor: 'transparent' },
   filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 8, justifyContent: "center", backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
   filterChipActive: { backgroundColor: Brand.navyDark, borderColor: Brand.navyDark },
   filterChipLabel: { color: Brand.slate500, fontFamily: Fonts?.sans, fontSize: 12, fontWeight: "700" },

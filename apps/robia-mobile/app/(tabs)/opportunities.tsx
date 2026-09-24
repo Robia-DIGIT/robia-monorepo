@@ -70,7 +70,7 @@ export default function OpportunitiesScreen() {
           subtitle="Les actions les plus utiles détectées à partir de votre dernier audit."
         />
         <SiteSelector />
-        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
+        <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect motion={motion} />
       </RobiaFixedHeader>
       <FilterTransition filterKey={filter} options={filters} motion={motion}
         reduceMotion={reduceMotion} swipeGesture={swipeGesture} refreshing={isLoading} onRefresh={refresh}>

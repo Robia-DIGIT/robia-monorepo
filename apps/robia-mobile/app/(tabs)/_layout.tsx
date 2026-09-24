@@ -146,6 +146,7 @@ export default function TabLayout() {
         animationEnabled: !reduceMotion,
         swipeEnabled: true,
         lazy: true,
+        lazyPreloadDistance: 1,
         sceneStyle: { backgroundColor: "#FBFCFC" },
       }}
     >

@@ -5,6 +5,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 export function useFilterMotion() {
   const offset = useRef(new Animated.Value(0)).current;
   const width = useRef(0);
+  const pageWidth = useRef(new Animated.Value(1)).current;
   const reduceMotion = useReducedMotion();
   const motion = useMemo(() => {
     let index = 0;
@@ -14,6 +15,15 @@ export function useFilterMotion() {
     let dragStart = 0;
     let translation = 0;
     let revision = 0;
+
+    const position = Animated.divide(Animated.multiply(offset, -1), pageWidth);
+    const resetToSelected = () => {
+      revision++;
+      dragging = false;
+      waitingForPosition = false;
+      offset.stopAnimation();
+      offset.setValue(-index * width.current);
+    };
 
     const settle = () => {
       revision++;
@@ -28,7 +38,7 @@ export function useFilterMotion() {
     };
 
     return {
-      offset, width,
+      offset, width, position, resetToSelected,
       configure(nextIndex: number, nextWidth: number, nextReduced: boolean) {
         const resized = width.current !== nextWidth;
         const changed = index !== nextIndex || reduced !== nextReduced;
@@ -36,11 +46,8 @@ export function useFilterMotion() {
         reduced = nextReduced;
         width.current = nextWidth;
         if (resized) {
-          revision++;
-          dragging = false;
-          waitingForPosition = false;
-          offset.stopAnimation();
-          offset.setValue(-index * nextWidth);
+          pageWidth.setValue(Math.max(1, nextWidth));
+          resetToSelected();
         } else if (changed) {
           // Continue from the actual position, even when a slide is interrupted.
           // Page layout coordinates remain fixed when selection changes.
@@ -76,7 +83,7 @@ export function useFilterMotion() {
         offset.stopAnimation();
       },
     };
-  }, [offset]);
+  }, [offset, pageWidth]);
 
   useEffect(() => () => motion.dispose(), [motion]);
   return { motion, reduceMotion };

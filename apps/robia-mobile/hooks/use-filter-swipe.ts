@@ -41,11 +41,11 @@ export function useFilterSwipe({
       const { filters, selected } = latest.current;
       const index = filters.indexOf(selected);
       const value = gesture.translationX;
-      // Retain adjacent-tab navigation at the boundaries, with resistance.
+      // Keep the filter aligned at an edge; the parent pager owns tab transitions.
       const atEdge = (index === 0 && value > 0) ||
         (index === filters.length - 1 && value < 0);
       const width = motion.width.current;
-      motion.move(atEdge ? value * 0.15 : Math.max(-width, Math.min(width, value)));
+      motion.move(atEdge ? 0 : Math.max(-width, Math.min(width, value)));
     })
     .onFinalize((_gesture, success) => {
       if (!success) motion?.cancel();
@@ -65,8 +65,14 @@ export function useFilterSwipe({
         previousTab,
         nextTab,
       );
-      if (target?.kind === 'filter') onChange(target.value);
-      if (target?.kind !== 'filter') motion?.settle();
-      if (target?.kind === 'tab') router.navigate(target.route);
+      if (target?.kind === 'filter') {
+        onChange(target.value);
+      } else if (target?.kind === 'tab') {
+        // Avoid a competing rebound while the navbar pager slides both screens.
+        motion?.resetToSelected();
+        router.navigate(target.route);
+      } else {
+        motion?.settle();
+      }
     }), [isFocused, motion]);
 }
