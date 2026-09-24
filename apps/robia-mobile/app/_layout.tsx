@@ -5,8 +5,8 @@ import { Image } from 'expo-image';
 import { router, Stack, useRootNavigationState, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { CopilotProvider } from 'react-native-copilot';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -14,6 +14,7 @@ import 'react-native-reanimated';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
+import { LOGO_SETTLED_PROGRESS, useLaunchAnimation } from '@/hooks/use-launch-animation';
 import { RobiaDataProvider } from '@/src/api/data';
 import { SessionProvider, useSession } from '@/src/auth/session';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,8 +46,7 @@ function AppLayout() {
   const { token, user, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
   const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
-  const [showLaunchAnimation, setShowLaunchAnimation] = useState(true);
-  const launchProgress = useRef(new Animated.Value(0)).current;
+  const { visible: showLaunchAnimation, progress: launchProgress, opacity: overlayOpacity, reveal: revealAnimation } = useLaunchAnimation(reduceMotion);
 
   useEffect(() => {
     if (isLoading || !rootNavigationState?.key) return;
@@ -81,43 +81,6 @@ function AppLayout() {
     headerShown: false,
     contentStyle: { backgroundColor: Brand.slate50 },
   };
-
-  const finishLaunchAnimation = useCallback(() => {
-    setShowLaunchAnimation(false);
-  }, []);
-
-  useEffect(() => {
-    if (reduceMotion) {
-      launchProgress.setValue(1);
-      finishLaunchAnimation();
-      SplashScreen.hideAsync().catch(() => {});
-      return;
-    }
-
-    const animation = Animated.timing(launchProgress, {
-      toValue: 1,
-      duration: 3800,
-      easing: Easing.bezier(0.22, 0.72, 0.2, 1),
-      useNativeDriver: true,
-    });
-
-    animation.start(({ finished }) => {
-      if (finished) finishLaunchAnimation();
-    });
-
-    const fallbackTimer = setTimeout(finishLaunchAnimation, 5000);
-
-    return () => {
-      animation.stop();
-      clearTimeout(fallbackTimer);
-    };
-  }, [finishLaunchAnimation, launchProgress, reduceMotion]);
-
-  const revealAnimation = useCallback(() => {
-    SplashScreen.hideAsync().catch(() => {
-      // Nothing to do if the native splash is already hidden.
-    });
-  }, []);
 
   function createLayerStyle({
     start,
@@ -227,16 +190,12 @@ function AppLayout() {
     start: 0.26,
     reveal: 0.32,
     land: 0.54,
-    settle: 0.72,
+    settle: LOGO_SETTLED_PROGRESS,
     fromX: 145,
     curveX: 46,
     fromY: 170,
     curveY: -70,
     rotation: '300deg',
-  });
-  const overlayOpacity = launchProgress.interpolate({
-    inputRange: [0, 0.88, 1],
-    outputRange: [1, 1, 0],
   });
   // Keep the assistant outside the pager so it stays mounted and stationary
   // while the user changes tabs by pressing the navbar or swiping.
