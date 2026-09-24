@@ -12,7 +12,7 @@ export function Toggle({ label, value, onChange }: { label: string; value: boole
 }
 const LABELS: Record<string, string> = { sending: 'Envoi en cours', dead_letter: 'Envoi interrompu', success: 'Synchronis?', draft: 'Brouillon', open: 'Ouvert', closed: 'Ferm?', archived: 'Archiv?', pending: 'En attente', pending_upload: 'Fichier attendu', received: 'Re?u', submitted: 'Soumis', screening: 'V?rification', incomplete: '? compl?ter', in_review: '? examiner', accepted: 'Accept?', rejected: 'Refus?', waitlisted: 'Liste d?attente', withdrawn: 'Retir?', queued: 'En attente', running: 'En cours', completed: 'Termin?', failed: '?chec', sent: 'Envoy?', skipped: 'Ignor?', partial: 'Partiel', never: 'Jamais synchronis?', succeeded: 'R?ussi' };
 export const statusLabel = (status: string) => LABELS[status] ?? status;
-export const dateLabel = (date?: string | null) => date ? new Date(date).toLocaleString('fr-FR') : '?';
+export const dateLabel = (date?: string | null) => date ? new Date(date).function toLocaleString() { [native code] }('fr-FR') : '?';
 export function Status({ value }: { value: string }) { return <Text style={styles.status}>{statusLabel(value)}</Text>; }
 export function Metric({ label, value }: { label: string; value?: number | string | null }) { return <View style={styles.row}><Text style={[s.body, { flex: 1 }]}>{label}</Text><Text style={s.title}>{value ?? '?'}</Text></View>; }
 const styles = StyleSheet.create({ row: { flexDirection: 'row', alignItems: 'center', gap: 14 }, icon: { padding: 12, borderRadius: 14, backgroundColor: Brand.tealLight }, status: { color: Brand.tealDark, fontWeight: '700', fontSize: 14 } });

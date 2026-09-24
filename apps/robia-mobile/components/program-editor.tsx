@@ -13,10 +13,10 @@ export function ProgramEditor({ program, definitionLocked = false, onSaved }: { 
   const [fields, setFields] = useState<ProgramField[]>(program?.fields ?? []); const [criteria, setCriteria] = useState<Criterion[]>(program?.criteria ?? []); const [docTypes, setDocTypes] = useState<DocumentType[]>(program?.docTypes ?? []);
   const [section, setSection] = useState('details'); const [newLabel, setNewLabel] = useState('');
   function add() {
-    const label = newLabel.trim(); if (!label) throw new Error('Renseignez un intitul?.');
+    const label = newLabel.trim(); if (!label) throw new Error('Renseignez un intitulé.');
     const list = section === 'fields' ? fields : section === 'criteria' ? criteria : docTypes;
-    if (list.length >= 50) throw new Error('Limite de 50 ?l?ments atteinte.');
-    const key = (slugify(label) || 'element') + '-' + Date.now().toString(36);
+    if (list.length >= 50) throw new Error('Limite de 50 éléments atteinte.');
+    const key = (slugify(label) || 'element') + '-' + Date.now().function toString() { [native code] }(36);
     if (section === 'fields') setFields([...fields, { key, label, required: false, fieldType: 'text' }]);
     else if (section === 'criteria') setCriteria([...criteria, { key, label, required: true, weight: 1, maxPoints: 5 }]);
     else setDocTypes([...docTypes, { key, label, required: true, mimeAllow: ['application/pdf'] }]);
@@ -27,16 +27,16 @@ export function ProgramEditor({ program, definitionLocked = false, onSaved }: { 
     <Choices value={section} onChange={v => { setSection(v); setNewLabel(''); }} options={[{ value: 'details', label: 'Pr?sentation' }, { value: 'fields', label: 'Formulaire' }, { value: 'criteria', label: '?valuation' }, { value: 'documents', label: 'Pi?ces' }]} />
     {section === 'details' ? <>
       <Field label="Nom du programme" value={name} onChangeText={v => { setName(v); if (!program && (!slug || slug === slugify(name))) setSlug(slugify(v)); }} />
-      {!program ? <Field label="R?f?rence unique" value={slug} onChangeText={setSlug} autoCapitalize="none" placeholder="appel-a-projets-2026" /> : null}
-      <Field label="Pr?sentation" value={description} onChangeText={setDescription} multiline />
+      {!program ? <Field label="Référence unique" value={slug} onChangeText={setSlug} autoCapitalize="none" placeholder="appel-a-projets-2026" /> : null}
+      <Field label="Présentation" value={description} onChangeText={setDescription} multiline />
       <Field label="Ouverture indicative (AAAA-MM-JJ)" value={opens} onChangeText={setOpens} placeholder="2026-10-01" />
-      <Field label="Cl?ture indicative (AAAA-MM-JJ)" value={closes} onChangeText={setCloses} placeholder="2026-11-30" />
+      <Field label="Clôture indicative (AAAA-MM-JJ)" value={closes} onChangeText={setCloses} placeholder="2026-11-30" />
       <Text style={s.body}>L?ouverture et la fermeture se font avec les boutons du programme. Les dates sont des informations de calendrier.</Text>
-      <Field label="Seuil indicatif de d?cision (facultatif)" value={threshold} onChangeText={setThreshold} keyboardType="number-pad" />
+      <Field label="Seuil indicatif de décision (facultatif)" value={threshold} onChangeText={setThreshold} keyboardType="number-pad" />
       <Toggle label="Demander une double revue" value={dual} onChange={setDual} />
-      <Text style={s.body}>Le seuil et la double revue sont des consignes pour votre ?quipe. La d?cision reste saisie par une personne.</Text>
+      <Text style={s.body}>Le seuil et la double revue sont des consignes pour votre ?quipe. La décision reste saisie par une personne.</Text>
     </> : null}
-    {frozen ? <Text style={s.body}>Des candidatures existent d?j? : les crit?res et types de pi?ces sont fig?s pour pr?server les dossiers.</Text> : null}
+    {frozen ? <Text style={s.body}>Des candidatures existent déjà : les crit?res et types de pièces sont fig?s pour pr?server les dossiers.</Text> : null}
     {section === 'fields' ? fields.map((f,i) => <View key={f.key} style={s.stack}>
       <Field label={'Question ' + (i+1)} value={f.label} onChangeText={label => setFields(fields.map((v,j) => i === j ? { ...v, label } : v))} />
       <Choices value={f.fieldType} onChange={fieldType => setFields(fields.map((v,j) => i === j ? { ...v, fieldType, options: fieldType === 'select' ? [] : undefined } : v))} options={[{ value: 'text', label: 'Texte court' }, { value: 'longtext', label: 'Texte long' }, { value: 'number', label: 'Nombre' }, { value: 'date', label: 'Date' }, { value: 'select', label: 'Choix' }]} />
@@ -54,12 +54,12 @@ export function ProgramEditor({ program, definitionLocked = false, onSaved }: { 
     {section === 'documents' ? docTypes.map((d,i) => <View key={d.key} style={s.stack}>
       <Field label={'Pi?ce ' + (i+1)} value={d.label} editable={!frozen} onChangeText={label => setDocTypes(docTypes.map((v,j) => i === j ? { ...v, label } : v))} />
       {FORMATS.map(format => <View key={format.value}>{frozen ? <Text style={s.body}>{d.mimeAllow.includes(format.value) ? format.label : ''}</Text> : <Toggle label={format.label} value={d.mimeAllow.includes(format.value)} onChange={selected => setDocTypes(docTypes.map((v,j) => i === j ? { ...v, mimeAllow: selected ? [...v.mimeAllow, format.value] : v.mimeAllow.filter(m => m !== format.value) } : v))} />}</View>)}
-      {!frozen ? <><Toggle label="Pi?ce obligatoire" value={d.required} onChange={required => setDocTypes(docTypes.map((v,j) => i === j ? { ...v, required } : v))} /><AsyncButton label="Retirer cette pi?ce" action={async () => setDocTypes(docTypes.filter((_,j) => j !== i))} /></> : null}
+      {!frozen ? <><Toggle label="Pi?ce obligatoire" value={d.required} onChange={required => setDocTypes(docTypes.map((v,j) => i === j ? { ...v, required } : v))} /><AsyncButton label="Retirer cette pièce" action={async () => setDocTypes(docTypes.filter((_,j) => j !== i))} /></> : null}
     </View>) : null}
-    {section !== 'details' && !frozen ? <><Field label="Intitul? du nouvel ?l?ment" value={newLabel} onChangeText={setNewLabel} /><AsyncButton label="Ajouter ? la liste" disabled={!newLabel.trim()} action={async () => add()} /></> : null}
+    {section !== 'details' && !frozen ? <><Field label="Intitulé du nouvel élément" value={newLabel} onChangeText={setNewLabel} /><AsyncButton label="Ajouter ? la liste" disabled={!newLabel.trim()} action={async () => add()} /></> : null}
     <AsyncButton label={program ? 'Enregistrer les modifications' : 'Cr?er le programme'} disabled={!name.trim()} action={async () => {
-      const ref = slug.trim(); if (!program && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(ref)) throw new Error('La r?f?rence doit contenir des lettres minuscules, des chiffres ou des tirets.');
-      const opensAt = dateInput(opens, 'Ouverture'); const closesAt = dateInput(closes, 'Cl?ture'); if (opensAt && closesAt && opensAt > closesAt) throw new Error('La cl?ture doit suivre l?ouverture.');
+      const ref = slug.trim(); if (!program && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(ref)) throw new Error('La référence doit contenir des lettres minuscules, des chiffres ou des tirets.');
+      const opensAt = dateInput(opens, 'Ouverture'); const closesAt = dateInput(closes, 'Cl?ture'); if (opensAt && closesAt && opensAt > closesAt) throw new Error('La clôture doit suivre l’ouverture.');
       const definitions = definitionPayload({ fields: fields.map(f => ({ ...f, options: Array.isArray(f.options) ? [...new Set(f.options.map(String).map(x => x.trim()).filter(Boolean))] : f.options })), criteria, docTypes });
       const body = { name: name.trim(), description, opensAt, closesAt, requireDualReview: dual, decisionThreshold: threshold.trim() ? integer(threshold, 'Seuil') : undefined, fields: definitions.fields,
         ...(!definitionLocked ? { criteria: definitions.criteria, docTypes: definitions.docTypes } : {}), ...(!program ? { slug: ref } : {}) };

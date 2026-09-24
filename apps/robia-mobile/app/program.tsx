@@ -15,11 +15,11 @@ function NewApplication({ program, applications, reload }: { program: Program; a
   const [source, setSource] = useState(''); const [reuse, setReuse] = useState('');
   const candidates = useResource<Application[]>(source ? '/odc/programs/' + encodeURIComponent(source) + '/applications' : null);
   return <RobiaCard style={s.stack}><Text style={s.title}>Nouveau dossier</Text>
-    <Choices value={source ? 'existing' : 'new'} onChange={v => { setSource(v === 'new' ? '' : otherPrograms.data?.find(p => p.id !== program.id)?.id ?? ''); setReuse(''); }} options={[{ value: 'new', label: 'Nouveau candidat' }, { value: 'existing', label: 'Candidat d?un autre programme' }]} />
+    <Choices value={source ? 'existing' : 'new'} onChange={v => { setSource(v === 'new' ? '' : otherPrograms.data?.find(p => p.id !== program.id)?.id ?? ''); setReuse(''); }} options={[{ value: 'new', label: 'Nouveau candidat' }, { value: 'existing', label: 'Candidat d’un autre programme' }]} />
     {source ? <><LoadState {...otherPrograms} retry={otherPrograms.reload} /><Choices value={source} onChange={v => { setSource(v); setReuse(''); }} options={otherPrograms.data?.filter(p => p.id !== program.id).map(p => ({ value: p.id, label: p.name })) ?? []} /><LoadState {...candidates} retry={candidates.reload} /><Choices value={reuse} onChange={setReuse} options={candidates.data?.filter(a => !applications.some(existing => existing.applicantId === a.applicantId)).map(a => ({ value: a.applicantId, label: a.applicant.displayName })) ?? []} /></> : <>
-      <Field label="Nom du candidat" value={name} onChangeText={setName} editable={!applicant} /><Field label="E-mail (pour les invitations)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={!applicant} /><Field label="T?l?phone (facultatif)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" editable={!applicant} />
+      <Field label="Nom du candidat" value={name} onChangeText={setName} editable={!applicant} /><Field label="E-mail (pour les invitations)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={!applicant} /><Field label="Téléphone (facultatif)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" editable={!applicant} />
     </>}
-    <AsyncButton label="Cr?er le dossier" disabled={source ? !reuse : !name.trim()} action={async () => {
+    <AsyncButton label="Créer le dossier" disabled={source ? !reuse : !name.trim()} action={async () => {
       let applicantId = reuse;
       if (!source) {
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error('Saisissez une adresse e-mail valide.');
@@ -28,21 +28,21 @@ function NewApplication({ program, applications, reload }: { program: Program; a
       const result = await request<Application>('/odc/programs/' + encodeURIComponent(program.id) + '/applications', { method: 'POST', body: { applicantId } });
       await reload(); router.push({ pathname: '/application', params: { id: result.id } });
     }} />
-    {applicant ? <Text style={s.body}>Le candidat est enregistr?. En cas d?erreur, vous pouvez r?essayer la cr?ation du dossier sans le recr?er.</Text> : null}
+    {applicant ? <Text style={s.body}>Le candidat est enregistré. En cas d?erreur, vous pouvez réessayer la cr?ation du dossier sans le recr?er.</Text> : null}
   </RobiaCard>;
 }
 function OutreachQueue({ program, applications }: { program: Program; applications: Application[] }) {
   const { request } = useSession(); const path = '/odc/programs/' + encodeURIComponent(program.id) + '/outreach'; const r = useResource<Outreach[]>(path);
   const [selection, setSelection] = useState<string[]>([]);
   const eligible = applications.filter(a => canDecide(a.status) && a.applicant.email && !r.data?.some(o => o.applicationId === a.id));
-  return <View style={s.stack}><RobiaCard style={s.stack}><Text style={s.title}>Pr?parer les invitations</Text><Text style={s.body}>S?lectionnez les candidats dans l?ordre souhait?. Chaque e-mail sera ensuite envoy? avec votre confirmation.</Text>
+  return <View style={s.stack}><RobiaCard style={s.stack}><Text style={s.title}>Préparer les invitations</Text><Text style={s.body}>Sélectionnez les candidats dans l?ordre souhait?. Chaque e-mail sera ensuite envoyé avec votre confirmation.</Text>
     {eligible.map(a => <Toggle key={a.id} label={a.applicant.displayName + (selection.includes(a.id) ? ' ? position ' + (selection.indexOf(a.id) + 1) : '')} value={selection.includes(a.id)} onChange={checked => setSelection(current => checked ? [...current, a.id] : current.filter(id => id !== a.id))} />)}
-    {!eligible.length ? <Text style={s.body}>Les dossiers ? examiner ou en liste d?attente, avec une adresse e-mail, peuvent ?tre invit?s.</Text> : null}
+    {!eligible.length ? <Text style={s.body}>Les dossiers ? examiner ou en liste d’attente, avec une adresse e-mail, peuvent être invit?s.</Text> : null}
     <AsyncButton label={'Pr?parer ' + selection.length + ' invitation(s)'} disabled={!selection.length || selection.length > 50 || r.loading || !!r.error} action={async () => { await request(path, { method: 'POST', body: { applicationIds: selection } }); setSelection([]); await r.reload(); }} />
   </RobiaCard><LoadState {...r} retry={r.reload} empty={!r.data?.length} />
     {r.data?.map(o => <RobiaCard key={o.id} style={s.stack}><Text style={s.title}>{o.sortOrder}. {o.applicantName}</Text><Status value={o.status} /><Text style={s.body}>{o.recipientMasked}</Text>{o.lastError ? <Text style={s.body}>{o.lastError}</Text> : null}{o.sentAt ? <Text style={s.body}>{dateLabel(o.sentAt)}</Text> : null}
-      {o.isNext ? <><Text style={s.body}>Objet : Candidature ? {program.name} ? ? prochaine ?tape. L?e-mail invite cette personne ? poursuivre sa candidature.</Text><AsyncButton label="Envoyer cette invitation" confirm={'Envoyer l?invitation ? ' + o.applicantName + ' (' + o.recipientMasked + ') ?'} action={async () => { try { await request('/odc/outreach/' + encodeURIComponent(o.id) + '/send', { method: 'POST' }); } finally { await r.reload(); } }} /></> : null}
-      {['queued','failed'].includes(o.status) ? <AsyncButton label="Passer cette invitation" confirm="Retirer cette invitation de la s?quence d?envoi ?" action={async () => { await request('/odc/outreach/' + encodeURIComponent(o.id) + '/skip', { method: 'POST' }); await r.reload(); }} /> : null}
+      {o.isNext ? <><Text style={s.body}>Objet : Candidature ? {program.name} ? ? prochaine étape. L?e-mail invite cette personne ? poursuivre sa candidature.</Text><AsyncButton label="Envoyer cette invitation" confirm={'Envoyer l’invitation ? ' + o.applicantName + ' (' + o.recipientMasked + ') ?'} action={async () => { try { await request('/odc/outreach/' + encodeURIComponent(o.id) + '/send', { method: 'POST' }); } finally { await r.reload(); } }} /></> : null}
+      {['queued','failed'].includes(o.status) ? <AsyncButton label="Passer cette invitation" confirm="Retirer cette invitation de la s?quence d’envoi ?" action={async () => { await request('/odc/outreach/' + encodeURIComponent(o.id) + '/skip', { method: 'POST' }); await r.reload(); }} /> : null}
     </RobiaCard>)}
   </View>;
 }

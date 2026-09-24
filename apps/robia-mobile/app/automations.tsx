@@ -8,20 +8,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 type Run = { id: string; status: string; createdAt: string; errorMessage?: string; steps?: { id: string; actionType: string; status: string; errorMessage?: string; attemptCount?: number; nextAttemptAt?: string; evidence?: Record<string, unknown> }[] };
-const ACTIONS = [
-  { value: 'robia.report.prepare_organization_summary', label: 'Préparer un bilan' },
-  { value: 'robia.audit.run_diagnostic', label: 'Analyser un site' },
-  { value: 'robia.opportunities.regenerate', label: 'Générer les priorités' },
-  { value: 'robia.action_items.create_internal_task', label: 'Créer une tâche interne' },
-];
-const statusLabels: Record<string, string> = { waiting_approval: 'À approuver', queued: 'En attente', running: 'En cours', succeeded: 'Réussie', failed: 'Échouée', cancelled: 'Annulée', skipped: 'Non exécutée' };
+const statusLabels: Record<string, string> = { waiting_approval: 'À approuver', queued: 'En attente', running: 'En cours', succeeded: 'Réussie', failed: 'Échouée', cancelled: 'Annulée', retry_scheduled: 'Nouvelle tentative prévue', skipped: 'Non exécutée' };
 function RunDetail({ id, reloadParent }: { id: string; reloadParent(): Promise<unknown> }) {
   const { request } = useSession(); const r = useResource<Run>('/ops/automations/runs/' + encodeURIComponent(id), { pollIntervalMs: 5000, shouldPoll: run => !!run && ['queued', 'running'].includes(run.status) }); const [reason, setReason] = useState('');
   return <RobiaCard style={s.stack}><Text style={s.title}>Détail de l’exécution</Text><LoadState {...r} retry={r.reload} />
     {r.data ? <><Text style={s.body}>{statusLabels[r.data.status] ?? r.data.status}</Text>
       {r.data.errorMessage ? <Text style={s.body}>{r.data.errorMessage}</Text> : null}
       {r.data.steps?.map(step => <View key={step.id} style={s.stack}><Text style={s.body}>{ACTIONS.find(a => a.value === step.actionType)?.label ?? 'Étape'} : {statusLabels[step.status] ?? step.status}</Text>
-        {step.attemptCount != null ? <Text style={s.body}>Tentatives : {step.attemptCount}{step.nextAttemptAt ? ' ? Prochaine : ' + new Date(step.nextAttemptAt).toLocaleString('fr-FR') : ''}</Text> : null}
+        {step.attemptCount != null ? <Text style={s.body}>Tentatives : {step.attemptCount}{step.nextAttemptAt ? ' ? Prochaine : ' + new Date(step.nextAttemptAt).function toLocaleString() { [native code] }('fr-FR') : ''}</Text> : null}
         {step.errorMessage ? <Text style={s.body}>{step.errorMessage}</Text> : null}
         {step.evidence ? Object.entries(step.evidence).filter(([k, v]) => ['websiteCount', 'openOpportunityCount', 'pendingActionCount', 'opportunityCount', 'globalScore'].includes(k) && typeof v === 'number').map(([k,v]) => <Text key={k} style={s.body}>{{ websiteCount: 'Sites', openOpportunityCount: 'Opportunités ouvertes', pendingActionCount: 'Actions à faire', opportunityCount: 'Opportunités', globalScore: 'Score' }[k]} : {String(v)}</Text>) : null}
       </View>)}
@@ -39,7 +33,7 @@ function AutomationDetail({ id, reloadParent }: { id: string; reloadParent(): Pr
   return <><RobiaCard style={s.stack}><LoadState {...r} retry={r.reload} />
     {r.data ? <><Text style={s.title}>{r.data.name}</Text><Text style={s.body}>{r.data.description}</Text>
       <Text style={s.body}>{r.data.enabled ? 'Active' : 'Désactivée'} · {r.data.requiresApproval ? 'Validation humaine requise' : 'Sans approbation préalable'}</Text>
-      <Text style={s.body}>Déclenchement : {r.data.trigger.type === "manual" ? "À la demande" : r.data.trigger.type === "scheduled" ? "Horaire enregistré ; lancement automatique indisponible" : "Événement enregistré ; déclenchement automatique indisponible"}</Text>
+      <Text style={s.body}>Déclenchement : {r.data.trigger.type === "manual" ? "À la demande" : r.data.trigger.type === "scheduled" ? "Planifié · " + r.data.trigger.cronExpression + " · " + (r.data.trigger.timezone ?? "UTC") : "Événement · " + r.data.trigger.eventType}</Text>
       <AsyncButton label={editing ? "Fermer la configuration" : "Modifier la configuration"} action={async () => setEditing(!editing)} />
       {editing ? <AutomationEditor automation={r.data} onSaved={async () => { setEditing(false); await reload(); }} /> : null}
       <AsyncButton label={r.data.enabled ? 'Désactiver' : 'Activer'} confirm={r.data.enabled ? undefined : 'Activer cette automatisation selon son déclencheur configuré ?'} action={async () => { await request(path + '/enabled', { method: 'PATCH', body: { enabled: !r.data!.enabled } }); await reload(); }} />
@@ -48,7 +42,7 @@ function AutomationDetail({ id, reloadParent }: { id: string; reloadParent(): Pr
       }} />
     </> : null}
     <Text style={s.title}>Exécutions</Text><LoadState {...runs} retry={runs.reload} empty={!runs.data?.length} />
-    {runs.data?.map(run => <AsyncButton key={run.id} label={new Date(run.createdAt).toLocaleString('fr-FR') + ' · ' + (statusLabels[run.status] ?? run.status)} action={async () => setRunId(run.id)} />)}
+    {runs.data?.map(run => <AsyncButton key={run.id} label={new Date(run.createdAt).function toLocaleString() { [native code] }('fr-FR') + ' · ' + (statusLabels[run.status] ?? run.status)} action={async () => setRunId(run.id)} />)}
   </RobiaCard>{runId ? <RunDetail key={runId} id={runId} reloadParent={reload} /> : null}</>;
 }
 export default function AutomationsScreen() {
@@ -56,7 +50,7 @@ export default function AutomationsScreen() {
   const list = useResource<Automation[]>(organization ? '/ops/automations' : null);
   const [selected, setSelected] = useState<string | null>(null); const [creating,setCreating] = useState(false);
   return <RobiaScreen fixedHeader><RobiaHeader compact back title="Automatisations" />
-    {!organization ? <AsyncButton label="Compl?ter mon entreprise" action={async () => router.push('/settings')} /> : null}
+    {!organization ? <AsyncButton label="Compléter mon entreprise" action={async () => router.push('/settings')} /> : null}
     <AsyncButton label={creating ? 'Fermer le formulaire' : 'Cr?er une automatisation'} disabled={!organization} action={async () => setCreating(!creating)} />
     {creating ? <AutomationEditor onSaved={async a => { setCreating(false); setSelected(a.id); await list.reload(); }} /> : null}
     <LoadState {...list} retry={list.reload} empty={!list.data?.length} />

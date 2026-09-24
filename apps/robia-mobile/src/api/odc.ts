@@ -31,7 +31,7 @@ export function answersPayload(fields: ProgramField[], values: Record<string, st
     if (f.fieldType === 'number' && value.trim()) {
       const n = Number(value.replace(',', '.')); if (!Number.isFinite(n)) throw new Error(f.label + ' : nombre invalide.'); answers[f.key] = n;
     } else if (f.fieldType === 'date' && value) answers[f.key] = dateInput(value, f.label);
-    else if (f.fieldType === 'select' && value && (!Array.isArray(f.options) || !f.options.includes(value))) throw new Error(f.label + ' : choisissez une option propos?e.');
+    else if (f.fieldType === 'select' && value && (!Array.isArray(f.options) || !f.options.includes(value))) throw new Error(f.label + ' : choisissez une option proposée.');
     else answers[f.key] = value.trim();
   }
   return { answers };
@@ -45,8 +45,8 @@ export function missingLabels(application: Application) {
 // Only DTO fields are sent: backend rejects IDs and other relation properties.
 export function definitionPayload(program: Pick<Program, 'fields' | 'criteria' | 'docTypes'>) {
   for (const list of [program.fields, program.criteria, program.docTypes]) {
-    if (list.length > 50) throw new Error('Limite de 50 ?l?ments par rubrique.');
-    if (new Set(list.map(item => item.key)).size !== list.length || list.some(item => !item.key || !item.label.trim())) throw new Error('Chaque ?l?ment doit avoir un intitul? et une r?f?rence uniques.');
+    if (list.length > 50) throw new Error('Limite de 50 éléments par rubrique.');
+    if (new Set(list.map(item => item.key)).size !== list.length || list.some(item => !item.key || !item.label.trim())) throw new Error('Chaque élément doit avoir un intitulé et une référence uniques.');
   }
   return {
     fields: program.fields.map(({ key, label, required, fieldType, options }, sortOrder) => {

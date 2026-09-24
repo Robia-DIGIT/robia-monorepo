@@ -10,11 +10,11 @@ export async function uploadApplicationDocument(request: Request, applicationId:
   if (result.canceled) return false;
   const asset = result.assets[0]; const mime = asset.mimeType || (asset.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
   try {
-    if (!type.mimeAllow.includes(mime)) throw new Error('Ce format de fichier n?est pas accept? pour cette pi?ce.');
-    if (asset.size == null || asset.size > MAX_UPLOAD_BYTES) throw new Error('Le fichier doit avoir une taille connue et ne pas d?passer 10 Mo.');
+    if (!type.mimeAllow.includes(mime)) throw new Error('Ce format de fichier n’est pas accept? pour cette pièce.');
+    if (asset.size == null || asset.size > MAX_UPLOAD_BYTES) throw new Error('Le fichier doit avoir une taille connue et ne pas dépasser 10 Mo.');
     const body = new FormData(); body.append('documentTypeId', type.id!);
     if (Platform.OS === 'web') {
-      if (!asset.file) throw new Error('Le fichier s?lectionn? est inaccessible.');
+      if (!asset.file) throw new Error('Le fichier sélectionné est inaccessible.');
       body.append('file', asset.file, asset.name);
     } else body.append('file', { uri: asset.uri, name: asset.name, type: mime } as unknown as Blob);
     await request('/odc/applications/' + encodeURIComponent(applicationId) + '/documents/upload', { method: 'POST', body, timeoutMs: 120000 });

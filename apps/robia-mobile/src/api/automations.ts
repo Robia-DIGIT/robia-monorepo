@@ -5,17 +5,17 @@ export const ACTIONS = [
   { value: 'robia.report.prepare_organization_summary', label: 'Pr?parer un bilan' },
   { value: 'robia.audit.run_diagnostic', label: 'Analyser un site' },
   { value: 'robia.opportunities.regenerate', label: 'G?n?rer les priorit?s' },
-  { value: 'robia.action_items.create_internal_task', label: 'Cr?er une t?che interne' },
+  { value: 'robia.action_items.create_internal_task', label: 'Cr?er une tâche interne' },
   { value: 'robia.notification.send_email', label: 'M?envoyer un e-mail' },
   { value: 'robia.odc.prepare_application_summary', label: 'R?sumer un dossier' },
   { value: 'robia.odc.flag_missing_documents', label: 'V?rifier un dossier incomplet' },
-  { value: 'robia.odc.create_review_task', label: 'Cr?er une t?che de revue' },
+  { value: 'robia.odc.create_review_task', label: 'Cr?er une tâche de revue' },
 ];
 export const EVENTS = [
   { value: 'audit.completed', label: 'Audit termin?' },
   { value: 'odc.application.submitted', label: 'Candidature soumise' },
   { value: 'odc.application.incomplete', label: 'Dossier incomplet' },
-  { value: 'odc.application.ready_for_review', label: 'Dossier pr?t ? examiner' },
+  { value: 'odc.application.ready_for_review', label: 'Dossier prêt ? examiner' },
   { value: 'odc.document.received', label: 'Pi?ce re?ue' },
   { value: 'odc.application.decided', label: 'D?cision enregistr?e' },
 ];
@@ -30,7 +30,7 @@ export const CONDITION_FIELDS = [
   { value: 'website.count', label: 'Nombre de sites', numeric: true },
 ];
 export function normalizeCondition(node: Condition, depth = 0): Condition {
-  if (depth > 6) throw new Error('Les conditions ne peuvent pas d?passer six niveaux.');
+  if (depth > 6) throw new Error('Les conditions ne peuvent pas dépasser six niveaux.');
   if ('field' in node) {
     const field = CONDITION_FIELDS.find(f => f.value === node.field); if (!field) throw new Error('Champ de condition inconnu.');
     const allowed = field.numeric ? ['eq','ne','gt','gte','lt','lte','in','notIn','exists','notExists'] : ['eq','ne','in','notIn','exists','notExists'];
@@ -41,14 +41,14 @@ export function normalizeCondition(node: Condition, depth = 0): Condition {
     return { field: node.field, operator: node.operator, value: ['in','notIn'].includes(node.operator) ? parsed : parsed[0] };
   }
   if ('not' in node) return { not: normalizeCondition(node.not, depth + 1) };
-  const children = 'all' in node ? node.all : node.any; if (!children.length) throw new Error('Ajoutez une r?gle ? chaque groupe.');
+  const children = 'all' in node ? node.all : node.any; if (!children.length) throw new Error('Ajoutez une règle ? chaque groupe.');
   return 'all' in node ? { all: children.map(n => normalizeCondition(n, depth + 1)) } : { any: children.map(n => normalizeCondition(n, depth + 1)) };
 }
 export function hasEventInput(steps: Step[]) { return JSON.stringify(steps).includes('{{event.'); }
 export function validateEventInputs(steps: Step[], trigger: string, event: string) {
   const serialized = JSON.stringify(steps);
   if (!serialized.includes('{{event.')) return;
-  if (trigger !== 'event') throw new Error('Une ?tape utilise l??v?nement : choisissez un d?clenchement sur ?v?nement.');
-  if (serialized.includes('{{event.auditId}}') && event !== 'audit.completed') throw new Error('Ces ?tapes n?cessitent l??v?nement ? Audit termin? ?.');
-  if (serialized.includes('{{event.applicationId}}') && !event.startsWith('odc.')) throw new Error('Ces ?tapes n?cessitent un ?v?nement de candidature.');
+  if (trigger !== 'event') throw new Error('Une étape utilise l’événement : choisissez un d?clenchement sur événement.');
+  if (serialized.includes('{{event.auditId}}') && event !== 'audit.completed') throw new Error('Ces étapes n?cessitent l’événement ? Audit terminé ?.');
+  if (serialized.includes('{{event.applicationId}}') && !event.startsWith('odc.')) throw new Error('Ces étapes n?cessitent un événement de candidature.');
 }

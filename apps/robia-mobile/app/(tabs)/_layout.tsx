@@ -34,7 +34,7 @@ const SwipeTabs = withLayoutContext<
 
 const TABS = [
   { name: "dashboard", title: "Accueil", icon: "house.fill" },
-  { name: "opportunities", title: "Opportunité", icon: "lightbulb.fill" },
+  { name: "visibility", title: "Visibilité", icon: "chart.bar.fill" },
   { name: "work", title: "Travail", icon: "doc.text.fill" },
   { name: "programs", title: "Candidatures", icon: "person.crop.circle.fill" },
   { name: "profile", title: "Entreprise", icon: "person.crop.circle.fill" },
