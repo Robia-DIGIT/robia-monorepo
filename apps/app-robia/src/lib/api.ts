@@ -69,12 +69,18 @@ export interface GoogleBusinessProfileStatus {
   lastSyncAttemptAt: string | null;
   lastSyncStatus: "never" | "running" | "success" | "partial" | "failed";
   locationCount: number;
-  // RC-41 — true when the fiche mirror hasn't been resynced in over 24h.
-  // The backend resyncs automatically on a schedule, so this should stay
-  // false in practice; it only surfaces true if that automatic refresh has
-  // itself been failing (e.g. a revoked token) — an honest signal instead
-  // of silently trusting a mirror that may be going stale.
+  // RC-40.1 — two distinct, honest signals, never conflated:
+  //   - `stale` is a freshness TARGET (24h): the backend resyncs
+  //     automatically on a schedule, so this should stay false in
+  //     practice; it only surfaces true if that automatic refresh has
+  //     itself been failing (e.g. a revoked token) — data is still shown,
+  //     just possibly outdated.
+  //   - `expired` is the absolute compliance CEILING (Google's 30-day
+  //     storage cap): once true, the fiche has actually been purged
+  //     server-side and locationCount already reflects that. A simple
+  //     refresh succeeding is not what guarantees this — the purge is.
   stale: boolean;
+  expired: boolean;
 }
 
 export interface GoogleBusinessProfileLocation {
