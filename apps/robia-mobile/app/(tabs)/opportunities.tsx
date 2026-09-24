@@ -11,6 +11,7 @@ import {
 } from "@/components/robia-ui";
 import { SiteSelector } from '@/components/site-selector';
 import { Brand } from "@/constants/theme";
+import { useFilterMotion } from '@/hooks/use-filter-motion';
 import { useFilterSwipe } from '@/hooks/use-filter-swipe';
 import { useRobiaData } from "@/src/api/data";
 import type { Opportunity } from "@/src/api/types";
@@ -38,18 +39,16 @@ export default function OpportunitiesScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState("Toutes");
   const filters = ["Toutes", "Prioritaires", "Faible effort"] as const;
+  const motion = useFilterMotion();
   const swipeGesture = useFilterSwipe({
+    motion,
     filters,
     selected: filter,
     onChange: setFilter,
     previousTab: '/(tabs)/dashboard',
     nextTab: '/(tabs)/execution-pack',
   });
-  const visibleOpportunities = opportunities.filter((item) => {
-    if (filter === "Prioritaires") return item.impactScore >= 7;
-    if (filter === "Faible effort") return item.effortScore <= 4;
-    return true;
-  });
+
   async function act(id: string, kind: "document" | "actions") {
     if (busyId) return;
     setActionError(null);
@@ -72,48 +71,57 @@ export default function OpportunitiesScreen() {
         <SiteSelector />
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect />
       </RobiaFixedHeader>
-      <FilterTransition filterKey={filter} index={filters.indexOf(filter as typeof filters[number])}>
-        {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
-      {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
-      <View style={styles.summary}>
-        <Text style={styles.summaryCount}>{visibleOpportunities.length}</Text>
-        <Text style={robiaStyles.body}>opportunités classées par impact.</Text>
-      </View>
-      {isLoading && !opportunities.length ? (
-        <ActivityIndicator color={Brand.teal} />
-      ) : null}
-      {error ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Réessayer le chargement des opportunités" onPress={() => void refresh()}>
-          <RobiaCard>
-            <Text style={styles.error}>{error}</Text>
-            <Text style={styles.retry}>Toucher pour réessayer</Text>
-          </RobiaCard>
-        </Pressable>
-      ) : null}
-      {!isLoading && !latestAudit ? (
-        <RobiaCard>
-          <Text style={robiaStyles.cardTitle}>Aucun audit disponible</Text>
-          <Text style={robiaStyles.body}>
-            Lancez votre premier audit depuis l’accueil pour recevoir des
-            recommandations.
-          </Text>
-        </RobiaCard>
-      ) : null}
-      {visibleOpportunities.map((item, index) => (
-        <OpportunityCard
-          key={item.id}
-          item={item}
-          index={index}
-          busy={busyId === item.id}
-          onAction={act}
-        />
-      ))}
-      {!isLoading && latestAudit && !visibleOpportunities.length ? (
-        <RobiaCard>
-          <Text style={robiaStyles.cardTitle}>Aucune opportunité dans ce filtre</Text>
-          <Text style={robiaStyles.body}>Essayez un autre filtre pour voir les recommandations disponibles.</Text>
-        </RobiaCard>
-      ) : null}
+      <FilterTransition filterKey={filter} options={filters} motion={motion}>
+        {(filter) => {
+          const visibleOpportunities = opportunities.filter((item) => {
+            if (filter === "Prioritaires") return item.impactScore >= 7;
+            if (filter === "Faible effort") return item.effortScore <= 4;
+            return true;
+          });
+          return (<>
+              {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
+            {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
+            <View style={styles.summary}>
+              <Text style={styles.summaryCount}>{visibleOpportunities.length}</Text>
+              <Text style={robiaStyles.body}>opportunités classées par impact.</Text>
+            </View>
+            {isLoading && !opportunities.length ? (
+              <ActivityIndicator color={Brand.teal} />
+            ) : null}
+            {error ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Réessayer le chargement des opportunités" onPress={() => void refresh()}>
+                <RobiaCard>
+                  <Text style={styles.error}>{error}</Text>
+                  <Text style={styles.retry}>Toucher pour réessayer</Text>
+                </RobiaCard>
+              </Pressable>
+            ) : null}
+            {!isLoading && !latestAudit ? (
+              <RobiaCard>
+                <Text style={robiaStyles.cardTitle}>Aucun audit disponible</Text>
+                <Text style={robiaStyles.body}>
+                  Lancez votre premier audit depuis l’accueil pour recevoir des
+                  recommandations.
+                </Text>
+              </RobiaCard>
+            ) : null}
+            {visibleOpportunities.map((item, index) => (
+              <OpportunityCard
+                key={item.id}
+                item={item}
+                index={index}
+                busy={busyId === item.id}
+                onAction={act}
+              />
+            ))}
+            {!isLoading && latestAudit && !visibleOpportunities.length ? (
+              <RobiaCard>
+                <Text style={robiaStyles.cardTitle}>Aucune opportunité dans ce filtre</Text>
+                <Text style={robiaStyles.body}>Essayez un autre filtre pour voir les recommandations disponibles.</Text>
+              </RobiaCard>
+            ) : null}
+          </>);
+        }}
       </FilterTransition>
     </RobiaScreen>
   );

@@ -152,17 +152,23 @@ test('native swipe completion changes filters first and ignores cancelled or sho
     for (const method of ['enabled', 'maxPointers', 'activeOffsetX', 'failOffsetY', 'runOnJS']) {
       gesture[method] = value => { gesture.config[method] = value; return gesture; };
     }
+    gesture.onUpdate = callback => { gesture.update = callback; return gesture; };
+    gesture.onFinalize = callback => { gesture.finalize = callback; return gesture; };
     gesture.onEnd = callback => { gesture.finish = callback; return gesture; };
     return gesture;
   }
-  const { useFilterSwipe } = loadTypeScript('../hooks/use-filter-swipe.ts', {
+  const { useFilterSwipe: createFilterSwipe } = loadTypeScript('../hooks/use-filter-swipe.ts', {
     react: { useMemo: callback => callback(), useRef: value => ({ current: value }) },
     '@react-navigation/native': { useIsFocused: () => true },
     'react-native-gesture-handler': { Gesture: { Pan: createPan } },
     'expo-router': { router: { navigate: route => visits.push(route) } },
     '@/src/navigation/filter-swipe': filterLogic,
   });
-  const swipe = selected => useFilterSwipe({
+  const moves = [];
+  let resets = 0;
+  const motion = { width: { current: 320 }, move: value => moves.push(value), settle: () => resets++ };
+  const swipe = selected => createFilterSwipe({
+    motion,
     filters: ['Toutes', 'Prioritaires', 'Faible effort'],
     selected,
     onChange: value => changes.push(value),
@@ -172,6 +178,15 @@ test('native swipe completion changes filters first and ignores cancelled or sho
   const first = swipe('Toutes');
   assert.ok(first.config.activeOffsetX[0] < 0 && first.config.activeOffsetX[1] > 0);
   assert.ok(first.config.failOffsetY[0] < 0 && first.config.failOffsetY[1] > 0);
+  first.update({ translationX: -160 });
+  assert.deepEqual(moves, [-160]);
+  assert.deepEqual(changes, []); // Preview the next page before selecting it.
+  first.update({ translationX: -500 });
+  assert.equal(moves.at(-1), -320);
+  first.update({ translationX: 100 });
+  assert.equal(moves.at(-1), 15); // Resistance at the first filter.
+  first.finalize({}, false);
+  assert.equal(resets, 1);
   first.finish({ translationX: -120, velocityX: -500 }, false);
   first.finish({ translationX: -12, velocityX: -20 }, true);
   assert.deepEqual(changes, []);
@@ -192,12 +207,13 @@ test('native swipe completion changes filters first and ignores cancelled or sho
 });
 
 test('the native filter gesture covers the header and content before vertical scrolling can activate', () => {
-  const { RobiaScreen, FilterChips } = loadTypeScript('../components/robia-ui.tsx', {
+  const { RobiaScreen, FilterChips, FilterTransition } = loadTypeScript('../components/robia-ui.tsx', {
     react: {
       ...React, useMemo: callback => callback(), useCallback: callback => callback,
-      useEffect() {}, useRef: value => ({ current: value }),
+      useEffect() {}, useLayoutEffect() {}, useState: () => [320, () => {}], useRef: value => ({ current: value }),
     },
     'react-native': {
+      Animated: { View: 'AnimatedView' },
       ScrollView: 'ScrollView', View: 'View', Text: 'Text', Pressable: 'Pressable',
       StyleSheet: { create: styles => styles, hairlineWidth: 1 },
     },
@@ -214,6 +230,20 @@ test('the native filter gesture covers the header and content before vertical sc
       }) },
     },
   });
+  const transition = FilterTransition({
+    options: ['All', 'Priority', 'Low effort'], filterKey: 'All',
+    motion: { offset: -160 }, children: filter => React.createElement('Page', { filter }),
+  });
+  const track = transition.props.children;
+  const pages = track.props.children;
+  assert.deepEqual(pages.map(page => page.props.children.props.filter), ['All', 'Priority', 'Low effort']);
+  assert.equal(track.props.style.transform[0].translateX, -160);
+  assert.equal(pages[1].props.style[1].left, 320);
+  // Halfway through the drag, the current and next pages meet at x = 160.
+  assert.equal(pages[1].props.style[1].left + track.props.style.transform[0].translateX, 160);
+  assert.equal(pages[0].props.pointerEvents, 'auto');
+  assert.equal(pages[1].props.pointerEvents, 'none');
+  assert.equal(pages[1].props.accessibilityElementsHidden, true);
   const swipeGesture = {};
   const header = React.createElement('Header', { key: 'header' });
   const content = React.createElement('Content', { key: 'content' });

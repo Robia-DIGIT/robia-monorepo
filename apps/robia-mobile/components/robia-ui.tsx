@@ -26,6 +26,8 @@ import {
 import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-handler';
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import type { FilterMotion } from '@/hooks/use-filter-motion';
+
 import { Brand, Fonts } from "@/constants/theme";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
@@ -186,105 +188,50 @@ export function RobiaFixedHeader({ children }: PropsWithChildren) {
 
 export function FilterTransition({
   filterKey,
-  index,
+  options,
+  motion,
   children,
-}: PropsWithChildren<{
+}: {
   filterKey: string;
-  index: number;
-}>) {
-  const reduceMotion = useReducedMotion();
-  const progress = useRef(new Animated.Value(1)).current;
-  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  options: readonly string[];
+  motion: FilterMotion;
+  children: (filter: string) => ReactNode;
+}) {
+  const index = Math.max(0, options.indexOf(filterKey));
+  const previousIndex = useRef(index);
   const [width, setWidth] = useState(0);
-  const latestPage = useRef({ filterKey, index, children });
-  const [transition, setTransition] = useState<{
-    from: ReactNode;
 
-    direction: number;
-  } | null>(null);
-
-  useEffect(() => () => animationRef.current?.stop(), []);
-
-  // Prepare pages before paint; content updates must not interrupt the slide.
   useLayoutEffect(() => {
-    if (reduceMotion) {
-      animationRef.current?.stop();
-      progress.setValue(1);
-      setTransition(null);
-      latestPage.current = { filterKey, index, children };
-      return;
+    motion.width.current = width;
+    if (previousIndex.current !== index) {
+      // Keep both pages mounted and continue from the finger's release position.
+      motion.offset.stopAnimation();
+      motion.offset.setValue(motion.reduceMotion ? 0 :
+        motion.distance.current + (index - previousIndex.current) * width);
+      previousIndex.current = index;
+      motion.settle();
     }
-    if (latestPage.current.filterKey === filterKey) {
-      latestPage.current = { filterKey, index, children };
-      return;
-    }
-
-    const previousPage = latestPage.current;
-    latestPage.current = { filterKey, index, children };
-    const direction = index >= previousPage.index ? -1 : 1;
-
-    animationRef.current?.stop();
-    if (!width) {
-      progress.setValue(1);
-      setTransition(null);
-      return;
-    }
-
-    setTransition({ from: previousPage.children, direction });
-    progress.setValue(0);
-    const animation = Animated.spring(progress, {
-      toValue: 1,
-      // Same spring as react-native-tab-view navigation, without bounce.
-      damping: 500,
-      mass: 3,
-      stiffness: 1000,
-      overshootClamping: true,
-      useNativeDriver: true,
-    });
-    animationRef.current = animation;
-    animation.start(({ finished }) => {
-      if (finished) setTransition(null);
-    });
-
-  }, [children, filterKey, index, progress, reduceMotion, width]);
+  }, [index, width, motion]);
 
   return (
-    <View
-      style={styles.filterTransitionViewport}
-      onLayout={({ nativeEvent }) => {
-        setWidth(nativeEvent.layout.width);
-      }}
-    >
-      <Animated.View
-        style={[
-          styles.filterTransition,
-          transition && {
-            width: width * 2,
-            flexDirection: "row",
-            transform: [{
-              translateX: progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: transition.direction === -1
-                  ? [0, -width]
-                  : [-width, 0],
-              }),
-            }],
-          },
-        ]}
-      >
-        {transition ? (
-          transition.direction === -1 ? (
-            <>
-              <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
-              <View style={[styles.filterTransitionPage, { width }]}>{children}</View>
-            </>
-          ) : (
-            <>
-              <View style={[styles.filterTransitionPage, { width }]}>{children}</View>
-              <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.filterTransitionPage, { width }]}>{transition.from}</View>
-            </>
-          )
-        ) : <View style={styles.filterTransitionPage}>{children}</View>}
+    <View style={styles.filterTransitionViewport}
+      onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}>
+      <Animated.View style={{ transform: [{ translateX: motion.offset }] }}>
+        {options.map((option, pageIndex) => {
+          const active = pageIndex === index;
+          return (
+            <View key={option}
+              pointerEvents={active ? 'auto' : 'none'}
+              accessibilityElementsHidden={!active}
+              importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
+              style={[
+                styles.filterTransitionPage,
+                !active && { position: 'absolute', top: 0, width, left: (pageIndex - index) * width },
+              ]}>
+              {children(option)}
+            </View>
+          );
+        })}
       </Animated.View>
     </View>
   );
@@ -530,7 +477,6 @@ const styles = StyleSheet.create({
   },
   fixedHeaderGroup: { gap: 10 },
   filterTransitionViewport: { flex: 1, overflow: "hidden" },
-  filterTransition: { flexGrow: 1 },
   filterTransitionPage: { flexShrink: 0, gap: 22 },
   screenContentBelowHeader: { paddingTop: 12 },
   screenContent: {
