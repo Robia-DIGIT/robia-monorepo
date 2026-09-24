@@ -27,6 +27,8 @@ import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { FilterMotion } from '@/hooks/use-filter-motion';
+import { useFilterSwipe } from '@/hooks/use-filter-swipe';
+import { useTabSwipe } from '@/src/navigation/tab-swipe-context';
 
 import { Brand, Fonts } from "@/constants/theme";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -40,7 +42,7 @@ export function RobiaScreen({
   fixedHeader = false,
   refreshing = false,
   onRefresh,
-  swipeGesture,
+  swipeGesture: providedSwipeGesture,
 }: PropsWithChildren<{
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
@@ -49,6 +51,12 @@ export function RobiaScreen({
   onRefresh?: () => Promise<unknown>;
   swipeGesture?: PanGesture;
 }>) {
+  const tabPager = useTabSwipe();
+  const tabGesture = useFilterSwipe({
+    filters: ['page'], selected: 'page', onChange: () => {},
+    previousTab: null, nextTab: null, enabled: !!tabPager && !providedSwipeGesture,
+  });
+  const swipeGesture = providedSwipeGesture ?? (tabPager ? tabGesture : undefined);
   // The vertical scroll waits only until the horizontal gesture fails. This
   // lets native direction detection decide before a ScrollView takes the touch.
   const nativeScrollGesture = useMemo(() => {

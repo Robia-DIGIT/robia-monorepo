@@ -3,7 +3,6 @@ import { Brand, Fonts } from "@/constants/theme";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { PlatformPressable } from "@react-navigation/elements";
 import {
-    createMaterialTopTabNavigator,
     type MaterialTopTabBarProps,
     type MaterialTopTabNavigationEventMap,
     type MaterialTopTabNavigationOptions,
@@ -25,13 +24,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { Navigator } = createMaterialTopTabNavigator();
+import { SwipeTabNavigator } from '@/components/swipe-tab-navigator';
 const SwipeTabs = withLayoutContext<
   MaterialTopTabNavigationOptions,
-  typeof Navigator,
+  typeof SwipeTabNavigator,
   TabNavigationState<ParamListBase>,
   MaterialTopTabNavigationEventMap
->(Navigator);
+>(SwipeTabNavigator);
 
 const TABS = [
   { name: "dashboard", title: "Accueil", icon: "house.fill" },
@@ -40,8 +39,6 @@ const TABS = [
   { name: "progress", title: "Suivi", icon: "chart.bar.fill" },
   { name: "profile", title: "Profil", icon: "person.crop.circle.fill" },
 ] as const;
-
-const FILTERED_TABS = new Set(['opportunities', 'execution-pack', 'progress']);
 
 // Use the navigator's selected route as the only source of selection. The
 // default tab bar cross-fades two icon trees, which conflicts with icon-level
@@ -154,7 +151,7 @@ export default function TabLayout() {
         <SwipeTabs.Screen
           key={tab.name}
           name={tab.name}
-          options={{ title: tab.title, swipeEnabled: !FILTERED_TABS.has(tab.name) }}
+          options={{ title: tab.title }}
         />
       ))}
     </SwipeTabs>
