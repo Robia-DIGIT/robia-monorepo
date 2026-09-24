@@ -7,6 +7,6 @@ export default function WorkScreen() {
     <NavCard title="Plan d’action" description="Échéances, approbations et preuves de réalisation." href="/progress" icon="checklist" />
     <NavCard title="Validations" description="Retrouver les décisions et laisser un retour." href="/validations" icon="fact-check" />
     <NavCard title="Automatisations" description="Organiser les tâches récurrentes et leurs validations." href="/automations" icon="auto-awesome" />
-    <NavCard title="Suivi des envois" description="V?rifier les e-mails et relancer les échecs." href="/notifications" icon="outgoing-mail" />
+    <NavCard title="Suivi des envois" description="Vérifier les e-mails et relancer les échecs." href="/notifications" icon="outgoing-mail" />
   </RobiaScreen>;
 }

@@ -12,9 +12,9 @@ import type { Program, Application } from '@/src/api/odc';
 import type { Audit } from '@/src/api/types';
 const TEMPLATE_FIELDS: Record<string, { key: string; label: string }[]> = {
   audit_completed: [],
-  weekly_opportunities_summary: [{ key: 'organizationName', label: 'Nom de l?entreprise' }, { key: 'openOpportunityCount', label: 'Nombre d’opportunités annonc?' }],
-  automation_failed: [{ key: 'automationName', label: 'Nom de l’automatisation concern?e' }, { key: 'errorMessage', label: 'Message ? inclure' }],
-  odc_candidate_invite: [{ key: 'applicantName', label: 'Nom du candidat mentionn?' }, { key: 'programName', label: 'Programme mentionn?' }],
+  weekly_opportunities_summary: [{ key: 'organizationName', label: 'Nom de l’entreprise' }, { key: 'openOpportunityCount', label: 'Nombre d’opportunités annoncé' }],
+  automation_failed: [{ key: 'automationName', label: 'Nom de l’automatisation concernée' }, { key: 'errorMessage', label: 'Message ? inclure' }],
+  odc_candidate_invite: [{ key: 'applicantName', label: 'Nom du candidat mentionné' }, { key: 'programName', label: 'Programme mentionné' }],
 };
 export function AutomationEditor({ automation, onSaved }: { automation?: Automation; onSaved(a: Automation): Promise<unknown> }) {
   const { request, organization } = useSession(); const { websites, selectedWebsiteId } = useRobiaData();
@@ -32,30 +32,30 @@ export function AutomationEditor({ automation, onSaved }: { automation?: Automat
   const programs = useResource<Program[]>(needsApplication && !eventInput ? '/odc/programs' : null);
   const applications = useResource<Application[]>(needsApplication && !eventInput && programId ? '/odc/programs/' + encodeURIComponent(programId) + '/applications' : null);
   const audits = useResource<Audit[]>(needsAudit && !eventInput && siteId ? '/audits?website_id=' + encodeURIComponent(siteId) : null);
-  return <RobiaCard style={s.stack}><Text style={s.title}>{automation ? 'Modifier l?automatisation' : 'Cr?er une automatisation'}</Text>
+  return <RobiaCard style={s.stack}><Text style={s.title}>{automation ? 'Modifier l’automatisation' : 'Créer une automatisation'}</Text>
     <Field label="Nom" value={name} onChangeText={setName} /><Field label="Description" value={description} onChangeText={setDescription} multiline />
     <Choices value={scope} onChange={setScope} options={[{ value: 'ORGANIZATION', label: 'Entreprise' }, { value: 'PROGRAM', label: 'Programme' }, { value: 'COHORT', label: 'Promotion' }, { value: 'ROBIA_INTERNAL', label: 'Interne' }]} />
-    <Text style={s.body}>Cette cat?gorie sert au classement. Les conditions portent sur l?ensemble de votre entreprise.</Text>
-    <Choices value={trigger} onChange={setTrigger} options={[{ value: 'manual', label: '? la demande' }, { value: 'scheduled', label: 'Planifi?e' }, { value: 'event', label: 'Sur ?v?nement' }]} />
-    {trigger === 'scheduled' ? <><Choices value={cron} onChange={setCron} options={[{ value: '0 9 * * *', label: 'Chaque jour ? 9 h' }, { value: '0 9 * * 1', label: 'Chaque lundi ? 9 h' }, { value: '0 9 1 * *', label: 'Le 1er du mois ? 9 h' }]} /><Field label="Horaire personnalis? (expression cron)" value={cron} onChangeText={setCron} autoCapitalize="none" /><Field label="Fuseau horaire" value={timezone} onChangeText={setTimezone} autoCapitalize="none" placeholder="Europe/Paris" /><Text style={s.body}>Les horaires s?appliquent dans le fuseau indiqu?, lorsque l’automatisation est active.</Text></> : null}
+    <Text style={s.body}>Cette catégorie sert au classement. Les conditions portent sur l’ensemble de votre entreprise.</Text>
+    <Choices value={trigger} onChange={setTrigger} options={[{ value: 'manual', label: '? la demande' }, { value: 'scheduled', label: 'Planifiée' }, { value: 'event', label: 'Sur événement' }]} />
+    {trigger === 'scheduled' ? <><Choices value={cron} onChange={setCron} options={[{ value: '0 9 * * *', label: 'Chaque jour ? 9 h' }, { value: '0 9 * * 1', label: 'Chaque lundi ? 9 h' }, { value: '0 9 1 * *', label: 'Le 1er du mois ? 9 h' }]} /><Field label="Horaire personnalisé (expression cron)" value={cron} onChangeText={setCron} autoCapitalize="none" /><Field label="Fuseau horaire" value={timezone} onChangeText={setTimezone} autoCapitalize="none" placeholder="Europe/Paris" /><Text style={s.body}>Les horaires s’appliquent dans le fuseau indiqué, lorsque l’automatisation est active.</Text></> : null}
     {trigger === 'event' ? <Choices value={event} onChange={setEvent} options={EVENTS} /> : null}
     <Toggle label="Ajouter des conditions" value={!!conditions} onChange={enabled => setConditions(enabled ? { field: 'opportunity.count', operator: 'gt', value: 0 } : null)} />
     {conditions ? <ConditionEditor value={conditions} onChange={setConditions} /> : null}
     <Text style={s.title}>étapes ? {steps.length}/20</Text>
     {steps.map((step,i) => <View key={i} style={s.stack}><Text style={s.body}>{i+1}. {ACTIONS.find(a => a.value === step.actionType)?.label ?? step.actionType}</Text>
-      <Text style={s.body}>{step.input?.title ? String(step.input.title) : step.input?.applicationId ? 'Dossier s?lectionn?' : step.input?.auditId ? 'Audit s?lectionn?' : step.input?.websiteId ? websites.find(w => w.id === step.input?.websiteId)?.url : ''}</Text>
+      <Text style={s.body}>{step.input?.title ? String(step.input.title) : step.input?.applicationId ? 'Dossier sélectionné' : step.input?.auditId ? 'Audit sélectionné' : step.input?.websiteId ? websites.find(w => w.id === step.input?.websiteId)?.url : ''}</Text>
       <AsyncButton label="Monter cette étape" disabled={i === 0} action={async () => setSteps(current => { const next = [...current]; [next[i-1], next[i]] = [next[i], next[i-1]]; return next; })} /><AsyncButton label="Retirer cette étape" action={async () => setSteps(current => current.filter((_,j) => i !== j))} />
     </View>)}
     <Choices value={action} onChange={setAction} options={ACTIONS} />
     {action === 'robia.action_items.create_internal_task' ? <Field label="Titre de la tâche" value={title} onChangeText={setTitle} /> : null}
-    {trigger === 'event' && (needsAudit || needsApplication) ? <Toggle label="Utiliser le dossier ou l?audit de l’événement" value={useEvent} onChange={setUseEvent} /> : null}
+    {trigger === 'event' && (needsAudit || needsApplication) ? <Toggle label="Utiliser le dossier ou l’audit de l’événement" value={useEvent} onChange={setUseEvent} /> : null}
     {action === 'robia.audit.run_diagnostic' || (needsAudit && !eventInput) ? <><Text style={s.body}>Site concerné</Text><Choices value={siteId} onChange={v => { setSiteId(v); setAuditId(''); }} options={websites.map(w => ({ value: w.id, label: w.domain ?? w.url }))} /></> : null}
-    {needsAudit && !eventInput ? <><LoadState {...audits} retry={audits.reload} /><Choices value={auditId} onChange={setAuditId} options={audits.data?.filter(a => a.status === 'completed').map(a => ({ value: a.id, label: new Date(a.createdAt).function toLocaleString() { [native code] }('fr-FR') })) ?? []} /></> : null}
+    {needsAudit && !eventInput ? <><LoadState {...audits} retry={audits.reload} /><Choices value={auditId} onChange={setAuditId} options={audits.data?.filter(a => a.status === 'completed').map(a => ({ value: a.id, label: new Date(a.createdAt).toLocaleString('fr-FR') })) ?? []} /></> : null}
     {needsApplication && !eventInput ? <><LoadState {...programs} retry={programs.reload} /><Choices value={programId} onChange={v => { setProgramId(v); setApplicationId(''); }} options={programs.data?.map(p => ({ value: p.id, label: p.name })) ?? []} /><LoadState {...applications} retry={applications.reload} /><Choices value={applicationId} onChange={setApplicationId} options={applications.data?.map(a => ({ value: a.id, label: a.applicant.displayName })) ?? []} /></> : null}
-    {action === 'robia.notification.send_email' ? <><Text style={s.body}>Cet e-mail est adress? au créateur de l’automatisation. Les invitations aux candidats se g?rent dans le programme.</Text>
-      <Choices value={template} onChange={v => { setTemplate(v); setTemplateData({}); }} options={[{ value: 'audit_completed', label: 'Audit termin?' }, { value: 'weekly_opportunities_summary', label: 'Bilan d?opportunit?s' }, { value: 'automation_failed', label: 'Signalement d??chec' }, { value: 'odc_candidate_invite', label: 'Copie d?invitation' }]} />
+    {action === 'robia.notification.send_email' ? <><Text style={s.body}>Cet e-mail est adressé au créateur de l’automatisation. Les invitations aux candidats se gèrent dans le programme.</Text>
+      <Choices value={template} onChange={v => { setTemplate(v); setTemplateData({}); }} options={[{ value: 'audit_completed', label: 'Audit terminé' }, { value: 'weekly_opportunities_summary', label: 'Bilan d’opportunités' }, { value: 'automation_failed', label: 'Signalement d’échec' }, { value: 'odc_candidate_invite', label: 'Copie d’invitation' }]} />
       {TEMPLATE_FIELDS[template].map(f => <Field key={f.key} label={f.label} value={templateData[f.key] ?? ''} onChangeText={value => setTemplateData({ ...templateData, [f.key]: value })} maxLength={200} />)}
-      {template !== 'audit_completed' ? <Text style={s.body}>Les valeurs ci-dessus sont enregistrées telles quelles dans le mod?le d?e-mail.</Text> : null}
+      {template !== 'audit_completed' ? <Text style={s.body}>Les valeurs ci-dessus sont enregistrées telles quelles dans le modèle d’e-mail.</Text> : null}
     </> : null}
     <AsyncButton label="Ajouter cette étape" disabled={steps.length >= 20} action={async () => {
       const input: Record<string,unknown> = {};
@@ -71,8 +71,8 @@ export function AutomationEditor({ automation, onSaved }: { automation?: Automat
       setSteps(current => [...current, { actionType: action, input }]);
     }} />
     <Toggle label="Approbation avant chaque exécution" value={approval} onChange={setApproval} />
-    <Text style={s.body}>{automation ? 'L?enregistrement conserve l’état actif ou inactif de cette automatisation.' : 'L?automatisation sera créée désactivée. Vous pourrez v?rifier ses étapes avant de l’activer.'}</Text>
-    <AsyncButton label={automation ? 'Enregistrer les modifications' : 'Cr?er l?automatisation'} disabled={!organization || !name.trim() || !steps.length} confirm={automation?.enabled ? 'Appliquer cette configuration ? une automatisation active ?' : undefined} action={async () => {
+    <Text style={s.body}>{automation ? 'L’enregistrement conserve l’état actif ou inactif de cette automatisation.' : 'L’automatisation sera créée désactivée. Vous pourrez vérifier ses étapes avant de l’activer.'}</Text>
+    <AsyncButton label={automation ? 'Enregistrer les modifications' : 'Créer l’automatisation'} disabled={!organization || !name.trim() || !steps.length} confirm={automation?.enabled ? 'Appliquer cette configuration ? une automatisation active ?' : undefined} action={async () => {
       validateEventInputs(steps, trigger, event);
       if (trigger === 'scheduled') { try { new Intl.DateTimeFormat('fr-FR', { timeZone: timezone }).format(); } catch { throw new Error('Fuseau horaire invalide.'); } if (!cron.trim()) throw new Error('Renseignez un horaire.'); }
       const result = await request<Automation>('/ops/automations' + (automation ? '/' + encodeURIComponent(automation.id) : ''), { method: automation ? 'PATCH' : 'POST', body: { name: name.trim(), description, scope, requiresApproval: approval, steps, conditions: conditions ? normalizeCondition(conditions) : null, ...(!automation ? { enabled: false } : {}), trigger: { type: trigger, ...(trigger === 'event' ? { eventType: event } : {}), ...(trigger === 'scheduled' ? { cronExpression: cron.trim(), timezone: timezone.trim() } : {}) } } });

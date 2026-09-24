@@ -14,7 +14,7 @@ export default function CompetitorsScreen() {
   const { request } = useSession();
   const list = useResource<Competitor[]>(selectedWebsiteId ? '/competitors?website_id=' + encodeURIComponent(selectedWebsiteId) : null, { pollIntervalMs: 5000, shouldPoll: rows => !!rows?.some(c => c.status === 'running') });
   const [name, setName] = useState(''); const [url, setUrl] = useState('');
-  return <RobiaScreen fixedHeader><RobiaHeader compact back title="Concurrents" subtitle="Comparer les r?sultats d?audits r?alis?s par ROBIA." />
+  return <RobiaScreen fixedHeader><RobiaHeader compact back title="Concurrents" subtitle="Comparer les résultats d’audits réalisés par ROBIA." />
     <SiteSelector />
     {!selectedWebsiteId ? <NavCard title="Ajouter mon site" description="Choisissez d’abord le site auquel rattacher vos concurrents." href="/websites" /> : null}
     <RobiaCard style={s.stack}><Text style={s.title}>Suivre un concurrent</Text><Field label="Nom (facultatif)" value={name} onChangeText={setName} /><Field label="Adresse du site" value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" placeholder="https://exemple.fr" />

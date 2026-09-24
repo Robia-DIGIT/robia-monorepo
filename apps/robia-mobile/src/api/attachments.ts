@@ -10,7 +10,7 @@ export async function uploadApplicationDocument(request: Request, applicationId:
   if (result.canceled) return false;
   const asset = result.assets[0]; const mime = asset.mimeType || (asset.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
   try {
-    if (!type.mimeAllow.includes(mime)) throw new Error('Ce format de fichier n’est pas accept? pour cette pièce.');
+    if (!type.mimeAllow.includes(mime)) throw new Error('Ce format de fichier n’est pas accepté pour cette pièce.');
     if (asset.size == null || asset.size > MAX_UPLOAD_BYTES) throw new Error('Le fichier doit avoir une taille connue et ne pas dépasser 10 Mo.');
     const body = new FormData(); body.append('documentTypeId', type.id!);
     if (Platform.OS === 'web') {
@@ -37,6 +37,6 @@ export async function downloadApplicationDocument(request: Request, documentInfo
     reader.readAsArrayBuffer(blob);
   });
   const file = new File(Paths.cache, 'robia-' + Date.now() + '-' + name);
-  try { file.write(bytes); await Sharing.shareAsync(file.uri, { mimeType: documentInfo.mimeType, dialogTitle: 'Enregistrer ou partager la pi?ce' }); }
+  try { file.write(bytes); await Sharing.shareAsync(file.uri, { mimeType: documentInfo.mimeType, dialogTitle: 'Enregistrer ou partager la pièce' }); }
   finally { if (file.exists) file.delete(); }
 }

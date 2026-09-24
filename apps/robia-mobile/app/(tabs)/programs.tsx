@@ -15,7 +15,7 @@ export default function ProgramsScreen() {
     {!organization ? <NavCard title="Compléter mon entreprise" description="Une organisation est nécessaire pour gérer les programmes." href="/settings" /> : null}
     <AsyncButton label="Créer un programme" disabled={!organization} action={async () => router.push('/program-new')} />
     <Field label="Rechercher un programme" value={search} onChangeText={setSearch} />
-    <Choices value={filter} onChange={setFilter} options={[{ value: 'all', label: 'Tous' }, { value: 'open', label: 'Ouverts' }, { value: 'draft', label: 'Brouillons' }, { value: 'closed', label: 'Ferm?s' }]} />
+    <Choices value={filter} onChange={setFilter} options={[{ value: 'all', label: 'Tous' }, { value: 'open', label: 'Ouverts' }, { value: 'draft', label: 'Brouillons' }, { value: 'closed', label: 'Fermés' }]} />
     <LoadState {...r} retry={r.reload} empty={!visible?.length} />
     {visible?.map(p => <RobiaCard key={p.id} style={s.stack}><Text style={s.title}>{p.name}</Text><Status value={p.status} /><Text style={s.body}>{p.description || 'Programme de candidatures'}</Text>{p.closesAt ? <Text style={s.body}>Clôture indicative : {dateLabel(p.closesAt)}</Text> : null}<AsyncButton label="Ouvrir le programme" action={async () => router.push({ pathname: '/program', params: { id: p.id } })} /></RobiaCard>)}
   </RobiaScreen>;

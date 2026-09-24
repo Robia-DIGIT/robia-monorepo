@@ -15,7 +15,7 @@ function RunDetail({ id, reloadParent }: { id: string; reloadParent(): Promise<u
     {r.data ? <><Text style={s.body}>{statusLabels[r.data.status] ?? r.data.status}</Text>
       {r.data.errorMessage ? <Text style={s.body}>{r.data.errorMessage}</Text> : null}
       {r.data.steps?.map(step => <View key={step.id} style={s.stack}><Text style={s.body}>{ACTIONS.find(a => a.value === step.actionType)?.label ?? 'Étape'} : {statusLabels[step.status] ?? step.status}</Text>
-        {step.attemptCount != null ? <Text style={s.body}>Tentatives : {step.attemptCount}{step.nextAttemptAt ? ' ? Prochaine : ' + new Date(step.nextAttemptAt).function toLocaleString() { [native code] }('fr-FR') : ''}</Text> : null}
+        {step.attemptCount != null ? <Text style={s.body}>Tentatives : {step.attemptCount}{step.nextAttemptAt ? ' ? Prochaine : ' + new Date(step.nextAttemptAt).toLocaleString('fr-FR') : ''}</Text> : null}
         {step.errorMessage ? <Text style={s.body}>{step.errorMessage}</Text> : null}
         {step.evidence ? Object.entries(step.evidence).filter(([k, v]) => ['websiteCount', 'openOpportunityCount', 'pendingActionCount', 'opportunityCount', 'globalScore'].includes(k) && typeof v === 'number').map(([k,v]) => <Text key={k} style={s.body}>{{ websiteCount: 'Sites', openOpportunityCount: 'Opportunités ouvertes', pendingActionCount: 'Actions à faire', opportunityCount: 'Opportunités', globalScore: 'Score' }[k]} : {String(v)}</Text>) : null}
       </View>)}
@@ -42,7 +42,7 @@ function AutomationDetail({ id, reloadParent }: { id: string; reloadParent(): Pr
       }} />
     </> : null}
     <Text style={s.title}>Exécutions</Text><LoadState {...runs} retry={runs.reload} empty={!runs.data?.length} />
-    {runs.data?.map(run => <AsyncButton key={run.id} label={new Date(run.createdAt).function toLocaleString() { [native code] }('fr-FR') + ' · ' + (statusLabels[run.status] ?? run.status)} action={async () => setRunId(run.id)} />)}
+    {runs.data?.map(run => <AsyncButton key={run.id} label={new Date(run.createdAt).toLocaleString('fr-FR') + ' · ' + (statusLabels[run.status] ?? run.status)} action={async () => setRunId(run.id)} />)}
   </RobiaCard>{runId ? <RunDetail key={runId} id={runId} reloadParent={reload} /> : null}</>;
 }
 export default function AutomationsScreen() {
@@ -51,10 +51,10 @@ export default function AutomationsScreen() {
   const [selected, setSelected] = useState<string | null>(null); const [creating,setCreating] = useState(false);
   return <RobiaScreen fixedHeader><RobiaHeader compact back title="Automatisations" />
     {!organization ? <AsyncButton label="Compléter mon entreprise" action={async () => router.push('/settings')} /> : null}
-    <AsyncButton label={creating ? 'Fermer le formulaire' : 'Cr?er une automatisation'} disabled={!organization} action={async () => setCreating(!creating)} />
+    <AsyncButton label={creating ? 'Fermer le formulaire' : 'Créer une automatisation'} disabled={!organization} action={async () => setCreating(!creating)} />
     {creating ? <AutomationEditor onSaved={async a => { setCreating(false); setSelected(a.id); await list.reload(); }} /> : null}
     <LoadState {...list} retry={list.reload} empty={!list.data?.length} />
-    {list.data?.map(a => <View key={a.id} style={s.stack}><AsyncButton label={a.name + (a.enabled ? ' ? Active' : ' ? D?sactiv?e')} action={async () => setSelected(selected === a.id ? null : a.id)} />
+    {list.data?.map(a => <View key={a.id} style={s.stack}><AsyncButton label={a.name + (a.enabled ? ' ? Active' : ' ? Désactivée')} action={async () => setSelected(selected === a.id ? null : a.id)} />
       {selected === a.id ? <AutomationDetail id={a.id} reloadParent={list.reload} /> : null}</View>)}
   </RobiaScreen>;
 }

@@ -2,31 +2,31 @@ export type Condition = { field: string; operator: string; value?: unknown } | {
 export type Step = { actionType: string; input?: Record<string, unknown> };
 export type Automation = { id: string; name: string; description: string | null; enabled: boolean; requiresApproval: boolean; scope?: string; conditions?: Condition | null; trigger: { type: string; eventType?: string; cronExpression?: string; timezone?: string; nextRunAt?: string }; steps: Step[] };
 export const ACTIONS = [
-  { value: 'robia.report.prepare_organization_summary', label: 'Pr?parer un bilan' },
+  { value: 'robia.report.prepare_organization_summary', label: 'Préparer un bilan' },
   { value: 'robia.audit.run_diagnostic', label: 'Analyser un site' },
-  { value: 'robia.opportunities.regenerate', label: 'G?n?rer les priorit?s' },
-  { value: 'robia.action_items.create_internal_task', label: 'Cr?er une tâche interne' },
-  { value: 'robia.notification.send_email', label: 'M?envoyer un e-mail' },
-  { value: 'robia.odc.prepare_application_summary', label: 'R?sumer un dossier' },
-  { value: 'robia.odc.flag_missing_documents', label: 'V?rifier un dossier incomplet' },
-  { value: 'robia.odc.create_review_task', label: 'Cr?er une tâche de revue' },
+  { value: 'robia.opportunities.regenerate', label: 'Générer les priorités' },
+  { value: 'robia.action_items.create_internal_task', label: 'Créer une tâche interne' },
+  { value: 'robia.notification.send_email', label: 'M’envoyer un e-mail' },
+  { value: 'robia.odc.prepare_application_summary', label: 'Résumer un dossier' },
+  { value: 'robia.odc.flag_missing_documents', label: 'Vérifier un dossier incomplet' },
+  { value: 'robia.odc.create_review_task', label: 'Créer une tâche de revue' },
 ];
 export const EVENTS = [
-  { value: 'audit.completed', label: 'Audit termin?' },
+  { value: 'audit.completed', label: 'Audit terminé' },
   { value: 'odc.application.submitted', label: 'Candidature soumise' },
   { value: 'odc.application.incomplete', label: 'Dossier incomplet' },
   { value: 'odc.application.ready_for_review', label: 'Dossier prêt ? examiner' },
-  { value: 'odc.document.received', label: 'Pi?ce re?ue' },
-  { value: 'odc.application.decided', label: 'D?cision enregistr?e' },
+  { value: 'odc.document.received', label: 'Pièce reçue' },
+  { value: 'odc.application.decided', label: 'Décision enregistrée' },
 ];
 export const CONDITION_FIELDS = [
-  { value: 'audit.ageDays', label: '?ge du dernier audit (jours)', numeric: true },
+  { value: 'audit.ageDays', label: 'Âge du dernier audit (jours)', numeric: true },
   { value: 'audit.status', label: 'Statut du dernier audit', numeric: false },
   { value: 'audit.globalScore', label: 'Score du dernier audit', numeric: true },
   { value: 'integration.googleSearchConsole.status', label: 'Connexion Google', numeric: false },
   { value: 'integration.meta.status', label: 'Connexion Meta', numeric: false },
-  { value: 'opportunity.count', label: 'Opportunit?s ouvertes', numeric: true },
-  { value: 'opportunity.highPriorityCount', label: 'Opportunit?s ? fort impact', numeric: true },
+  { value: 'opportunity.count', label: 'Opportunités ouvertes', numeric: true },
+  { value: 'opportunity.highPriorityCount', label: 'Opportunités ? fort impact', numeric: true },
   { value: 'website.count', label: 'Nombre de sites', numeric: true },
 ];
 export function normalizeCondition(node: Condition, depth = 0): Condition {
@@ -48,7 +48,7 @@ export function hasEventInput(steps: Step[]) { return JSON.stringify(steps).incl
 export function validateEventInputs(steps: Step[], trigger: string, event: string) {
   const serialized = JSON.stringify(steps);
   if (!serialized.includes('{{event.')) return;
-  if (trigger !== 'event') throw new Error('Une étape utilise l’événement : choisissez un d?clenchement sur événement.');
-  if (serialized.includes('{{event.auditId}}') && event !== 'audit.completed') throw new Error('Ces étapes n?cessitent l’événement ? Audit terminé ?.');
-  if (serialized.includes('{{event.applicationId}}') && !event.startsWith('odc.')) throw new Error('Ces étapes n?cessitent un événement de candidature.');
+  if (trigger !== 'event') throw new Error('Une étape utilise l’événement : choisissez un déclenchement sur événement.');
+  if (serialized.includes('{{event.auditId}}') && event !== 'audit.completed') throw new Error('Ces étapes nécessitent l’événement ? Audit terminé ?.');
+  if (serialized.includes('{{event.applicationId}}') && !event.startsWith('odc.')) throw new Error('Ces étapes nécessitent un événement de candidature.');
 }
