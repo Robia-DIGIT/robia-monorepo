@@ -422,7 +422,7 @@ export default function GoogleDataPage() {
           <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-teal-dark">
             <BarChart3 size={15} /> Données Google
           </p>
-          <h1 className="text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">
+          <h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.035em] text-navy md:text-[36px]">
             Search Console et Analytics
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
@@ -459,7 +459,7 @@ export default function GoogleDataPage() {
       {notice && (
         <div
           role="status"
-          className="mb-5 flex items-start gap-2 border-l-2 border-teal bg-teal-light px-4 py-3 text-sm text-teal-dark"
+          className="mb-5 flex items-start gap-2 rounded-r-xl border-l-4 border-teal bg-teal-light px-4 py-3 text-sm text-teal-dark shadow-sm"
         >
           <CheckCircle2 size={17} />
           {notice}
@@ -468,7 +468,7 @@ export default function GoogleDataPage() {
       {error && (
         <div
           role="alert"
-          className="mb-5 border-l-2 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-5 rounded-r-xl border-l-4 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm"
         >
           {error}
         </div>
@@ -509,14 +509,19 @@ export default function GoogleDataPage() {
         </section>
       ) : (
         <>
-          <section className="mb-8 flex flex-col gap-4 border-l-2 border-teal bg-white px-5 py-4 shadow-sm md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-teal-dark">
-                Compte connecté
-              </p>
-              <p className="mt-1 font-semibold text-navy">
-                {status.googleAccountEmail ?? "Compte Google autorisé"}
-              </p>
+          <section className="mb-8 flex flex-col gap-4 rounded-xl border border-border bg-white px-5 py-4 shadow-[0_1px_2px_rgba(31,58,95,0.04)] md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-light text-teal-dark">
+                <CheckCircle2 size={16} />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-teal-dark">
+                  Compte connecté
+                </p>
+                <p className="mt-1 font-semibold text-navy">
+                  {status.googleAccountEmail ?? "Compte Google autorisé"}
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap gap-4">
               <a
