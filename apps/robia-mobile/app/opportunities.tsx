@@ -45,8 +45,8 @@ export default function OpportunitiesScreen() {
     filters,
     selected: filter,
     onChange: setFilter,
-    previousTab: '/(tabs)/dashboard',
-    nextTab: '/(tabs)/execution-pack',
+    previousTab: null,
+    nextTab: null,
   });
 
   async function act(id: string, kind: "document" | "actions") {
@@ -64,7 +64,7 @@ export default function OpportunitiesScreen() {
     <RobiaScreen fixedHeader scroll={false} swipeGesture={swipeGesture}
       contentStyle={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 }}>
       <RobiaFixedHeader>
-        <RobiaHeader compact
+        <RobiaHeader compact back
           eyebrow="RECOMMANDATIONS IA"
           title="Opportunités"
           subtitle="Les actions les plus utiles détectées à partir de votre dernier audit."

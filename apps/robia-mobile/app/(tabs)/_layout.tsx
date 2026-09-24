@@ -35,9 +35,9 @@ const SwipeTabs = withLayoutContext<
 const TABS = [
   { name: "dashboard", title: "Accueil", icon: "house.fill" },
   { name: "opportunities", title: "Opportunité", icon: "lightbulb.fill" },
-  { name: "execution-pack", title: "Document", icon: "doc.text.fill" },
-  { name: "progress", title: "Suivi", icon: "chart.bar.fill" },
-  { name: "profile", title: "Profil", icon: "person.crop.circle.fill" },
+  { name: "work", title: "Travail", icon: "doc.text.fill" },
+  { name: "programs", title: "Candidatures", icon: "person.crop.circle.fill" },
+  { name: "profile", title: "Entreprise", icon: "person.crop.circle.fill" },
 ] as const;
 
 // Use the navigator's selected route as the only source of selection. The

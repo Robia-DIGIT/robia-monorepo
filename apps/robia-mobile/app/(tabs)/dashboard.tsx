@@ -150,7 +150,7 @@ export default function HomeScreen() {
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Priorités</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Voir toutes les opportunités" onPress={() => router.navigate('/(tabs)/opportunities')} style={styles.sectionLink}><Text style={styles.seeAll}>Tout voir</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voir toutes les opportunités" onPress={() => router.navigate('/opportunities')} style={styles.sectionLink}><Text style={styles.seeAll}>Tout voir</Text></Pressable>
       </View>
       <RobiaCard style={styles.listCard}>
         {opportunities.length ? opportunities.slice(0, 3).map((item, index) => (

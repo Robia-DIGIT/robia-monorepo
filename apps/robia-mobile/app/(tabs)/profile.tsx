@@ -8,6 +8,10 @@ import { useRobiaData } from "@/src/api/data";
 import { useSession } from "@/src/auth/session";
 
 const LINKS = [
+  { label: "Sites internet", description: "Ajouter, archiver ou restaurer un site", icon: "language", href: "/websites" },
+  { label: "Connexions", description: "Google, Analytics, Meta et fiches locales", icon: "link", href: "/integrations" },
+  { label: "Abonnement", description: "Offre, facturation et moyens de paiement", icon: "credit-card", href: "/billing" },
+  { label: "Nous contacter", description: "Parler de vos besoins ? ROBIA", icon: "support-agent", href: "/support" },
   { label: "Mot de passe", description: "Recevoir un lien de réinitialisation", icon: "lock", href: "/password" },
   { label: "Paramètres du compte", description: "Sécurité et préférences", icon: "settings", href: "/settings" },
 ] as const;
@@ -49,7 +53,7 @@ export default function ProfileScreen() {
     <RobiaScreen fixedHeader>
       <View style={styles.topBar}>
         <View style={styles.topSpacer} />
-        <Text accessibilityRole="header" style={styles.pageTitle}>Profil</Text>
+        <Text accessibilityRole="header" style={styles.pageTitle}>Entreprise</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Modifier le profil"

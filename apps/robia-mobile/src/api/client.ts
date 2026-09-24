@@ -1,6 +1,6 @@
 const DEFAULT_API_URL = 'https://api.robiacopilot.site';
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, '');
-export type RequestOptions = Omit<RequestInit, 'body'> & { body?: unknown; timeoutMs?: number; responseType?: 'json' | 'blob' };
+export type RequestOptions = Omit<RequestInit, 'body'> & { body?: unknown; timeoutMs?: number; responseType?: 'json' | 'blob' | 'file' };
 export type ApiOptions = RequestOptions & { token?: string | null };
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly details?: unknown) { super(message); this.name = 'ApiError'; }
@@ -15,14 +15,16 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
     const requestHeaders = new Headers(headers);
-    requestHeaders.set('Accept', responseType === 'blob' ? 'application/pdf' : 'application/json');
-    if (body !== undefined) requestHeaders.set('Content-Type', 'application/json');
+    const multipart = typeof FormData !== 'undefined' && body instanceof FormData;
+    requestHeaders.set('Accept', responseType === 'file' ? '*/*' : responseType === 'blob' ? 'application/pdf' : 'application/json');
+    if (multipart) requestHeaders.delete('Content-Type');
+    else if (body !== undefined) requestHeaders.set('Content-Type', 'application/json');
     if (token) requestHeaders.set('Authorization', 'Bearer ' + token);
     const response = await fetch(API_URL + (path.startsWith('/') ? path : '/' + path), {
-      ...rest, headers: requestHeaders, body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal,
+      ...rest, headers: requestHeaders, body: body === undefined ? undefined : multipart ? body as FormData : JSON.stringify(body), signal: controller.signal,
     });
-    if (response.ok && responseType === 'blob') {
-      if (!response.headers.get('content-type')?.includes('application/pdf')) throw new ApiError('Le serveur ne renvoie pas un PDF valide.', 502);
+    if (response.ok && (responseType === 'blob' || responseType === 'file')) {
+      if (responseType === 'blob' && !response.headers.get('content-type')?.includes('application/pdf')) throw new ApiError('Le serveur ne renvoie pas un PDF valide.', 502);
       return await response.blob() as T;
     }
     const text = await response.text();

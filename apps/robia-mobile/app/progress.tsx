@@ -61,8 +61,8 @@ export default function ProgressScreen() {
     filters,
     selected: filter,
     onChange: setFilter,
-    previousTab: '/(tabs)/execution-pack',
-    nextTab: '/(tabs)/profile',
+    previousTab: null,
+    nextTab: null,
   });
 
   const { done, percent } = useMemo(() => {
@@ -85,7 +85,7 @@ export default function ProgressScreen() {
     <RobiaScreen fixedHeader scroll={false} swipeGesture={swipeGesture}
       contentStyle={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 }}>
       <RobiaFixedHeader>
-        <RobiaHeader compact
+        <RobiaHeader compact back
           eyebrow="PLAN D’ACTION"
           title="Suivi"
           subtitle="Pilotez les actions générées par RobIA et leurs échéances."

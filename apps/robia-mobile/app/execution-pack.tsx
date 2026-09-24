@@ -41,15 +41,15 @@ export default function ExecutionPackScreen() {
     filters,
     selected: filter,
     onChange: setFilter,
-    previousTab: '/(tabs)/opportunities',
-    nextTab: '/(tabs)/progress',
+    previousTab: null,
+    nextTab: null,
   });
 
   return (
     <RobiaScreen fixedHeader scroll={false} swipeGesture={swipeGesture}
       contentStyle={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 }}>
       <RobiaFixedHeader>
-        <RobiaHeader compact
+        <RobiaHeader compact back
           eyebrow="CENTRE DE PRODUCTION"
           title="Documents"
           subtitle="Les livrables générés par RobIA restent sous votre contrôle avant publication."

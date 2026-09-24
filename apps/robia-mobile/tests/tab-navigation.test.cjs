@@ -49,7 +49,7 @@ function renderBar(index, { prevent = false, fontScale = 1 } = {}) {
   new Function('require', 'module', 'exports', compiled)(
     name => mocks[name] ?? require(name), module, module.exports,
   );
-  const names = ['dashboard', 'opportunities', 'execution-pack', 'progress', 'profile'];
+  const names = ['dashboard', 'visibility', 'work', 'programs', 'profile'];
   const routes = names.map(name => ({ name, key: name + '-key' }));
   const tree = module.exports.RobiaTabBar({
     state: { index, routes },
@@ -109,9 +109,9 @@ test('a swipe visits each filter before crossing to the adjacent tab', () => {
   new Function('require', 'module', 'exports', compiled)(require, module, module.exports);
   const { getFilterSwipeTarget } = module.exports;
   const cases = [
-    { filters: ['Toutes', 'Prioritaires', 'Faible effort'], previous: '/dashboard', next: '/execution-pack' },
-    { filters: ['Tous', 'À valider', 'Validés'], previous: '/opportunities', next: '/progress' },
-    { filters: ['Toutes', 'À faire', 'En cours', 'Terminées'], previous: '/execution-pack', next: '/profile' },
+    { filters: ['Toutes', 'Prioritaires', 'Faible effort'], previous: '/dashboard', next: '/work' },
+    { filters: ['Tous', 'À valider', 'Validés'], previous: '/visibility', next: '/programs' },
+    { filters: ['Toutes', 'À faire', 'En cours', 'Terminées'], previous: '/work', next: '/profile' },
   ];
 
   for (const { filters, previous, next } of cases) {
@@ -133,7 +133,7 @@ test('all navbar routes use the common swipe navigator', () => {
   const layout = renderBar(0).layout();
   assert.equal(layout.props.backBehavior, 'history');
   assert.deepEqual(layout.props.children.map(screen => screen.props.name),
-    ['dashboard', 'opportunities', 'execution-pack', 'progress', 'profile']);
+    ['dashboard', 'visibility', 'work', 'programs', 'profile']);
   assert.ok(layout.props.children.every(screen => screen.props.options.swipeEnabled !== false));
 });
 
@@ -364,7 +364,7 @@ test('rotation and reduced motion align the selected page without leaving an int
 });
 
 
-test('the filter background shares page progress during drag, interruption, rotation and reduced motion', () => {
+test('the filter background shares page programs during drag, interruption, rotation and reduced motion', () => {
   const { motion } = createMotionHarness();
   motion.begin();
   motion.move(-160);
@@ -398,7 +398,7 @@ test('handoff to navbar aligns the filter without a spring and rejects stale nat
 
 
 function createSwipeHarness({ selected = 'All', filters = ['All', 'Priority', 'Easy'], tabIndex = 1 } = {}) {
-  const names = ['dashboard', 'opportunities', 'execution-pack', 'progress', 'profile'];
+  const names = ['dashboard', 'visibility', 'work', 'programs', 'profile'];
   const parent = createMotionHarness();
   parent.motion.configure(tabIndex, 320, false);
   parent.motion.offset.setValue(-tabIndex * 320);
@@ -531,7 +531,7 @@ test('a short fast flick commits while a cancelled gesture never commits', () =>
 });
 
 test('the shared navigator renders real adjacent screens and keeps all crossed pages mounted on navbar jumps', () => {
-  const names = ['dashboard', 'opportunities', 'execution-pack', 'progress', 'profile'];
+  const names = ['dashboard', 'visibility', 'work', 'programs', 'profile'];
   let state = { index: 1, routes: names.map(name => ({ key: name, name })), preloadedRouteKeys: [] };
   const { motion } = createMotionHarness();
   const slots = [];
@@ -572,7 +572,7 @@ test('the shared navigator renders real adjacent screens and keeps all crossed p
   assert.deepEqual(pages.slice(0, 3).map(page => page.props.children.props.children.props.name), names.slice(0, 3));
   assert.equal(pages[1].props.children.props.value.motion, motion);
   assert.equal(pages[1].props.children.props.value.previousTab, '/(tabs)/dashboard');
-  assert.equal(pages[1].props.children.props.value.nextTab, '/(tabs)/execution-pack');
+  assert.equal(pages[1].props.children.props.value.nextTab, '/(tabs)/work');
   assert.equal(tree.props.children.props.children[1].type, 'Navbar');
   motion.offset.setValue(-160); // Halfway toward Home.
   assert.equal(track.props.style[1].transform[0].translateX.value, -160);
