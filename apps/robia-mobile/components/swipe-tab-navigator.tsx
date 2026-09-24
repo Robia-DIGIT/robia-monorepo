@@ -12,7 +12,7 @@ import type {
   MaterialTopTabNavigatorProps,
 } from '@react-navigation/material-top-tabs';
 import type { Href } from 'expo-router';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 import { Animated, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { useFilterMotion } from '@/hooks/use-filter-motion';
@@ -35,7 +35,19 @@ export function SwipeTabNavigator({
   const dimensions = useWindowDimensions();
   const [size, setSize] = useState({ width: dimensions.width, height: 0 });
   const { motion, reduceMotion } = useFilterMotion();
-  const [loaded, setLoaded] = useState<Set<string>>(() => new Set());
+  const [prepared, setPrepared] = useState(() => ({
+    index: state.index,
+    keys: new Set(state.routes.filter((_, index) => Math.abs(index - state.index) <= 1).map(route => route.key)),
+  }));
+  let loaded = prepared.keys;
+  if (prepared.index !== state.index) {
+    // Mount the entire path before paint, including jumps made with the navbar.
+    // Previously visited screens keep their filters and vertical scroll positions.
+    const first = Math.min(prepared.index, state.index) - 1;
+    const last = Math.max(prepared.index, state.index) + 1;
+    loaded = new Set([...loaded, ...state.routes.filter((_, index) => index >= first && index <= last).map(route => route.key)]);
+    setPrepared({ index: state.index, keys: loaded });
+  }
   const position = useMemo(() => motion.position.interpolate({
     inputRange: [0, 1], outputRange: [0, 1],
   }), [motion]);
@@ -44,14 +56,6 @@ export function SwipeTabNavigator({
     motion.configure(state.index, size.width, reduceMotion);
   }, [motion, reduceMotion, size.width, state.index]);
 
-  useEffect(() => {
-    // Keep visited screens mounted and prepare both neighbors before a drag.
-    const neighbors = state.routes.filter((_, index) => Math.abs(index - state.index) <= 1);
-    setLoaded(previous => {
-      if (neighbors.every(route => previous.has(route.key))) return previous;
-      return new Set([...previous, ...neighbors.map(route => route.key)]);
-    });
-  }, [state.index, state.routes]);
 
   return (
     <NavigationContent>

@@ -132,7 +132,6 @@ export function RobiaTabBar({
 }
 
 export default function TabLayout() {
-  const reduceMotion = useReducedMotion();
   return (
     <SwipeTabs
       initialRouteName="dashboard"
@@ -140,10 +139,6 @@ export default function TabLayout() {
       tabBarPosition="bottom"
       tabBar={RobiaTabBar}
       screenOptions={{
-        animationEnabled: !reduceMotion,
-        swipeEnabled: true,
-        lazy: true,
-        lazyPreloadDistance: 1,
         sceneStyle: { backgroundColor: "#FBFCFC" },
       }}
     >
