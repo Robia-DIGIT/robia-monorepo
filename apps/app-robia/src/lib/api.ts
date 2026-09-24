@@ -476,6 +476,11 @@ export type ActionStatus =
 export interface ActionItem {
   id: string;
   opportunityId: string;
+  // RC42 — the exact document this Action is bound to. WordPress draft
+  // approval requires `action.documentId === document.id` precisely; never
+  // resolve an Action's document by any other heuristic (e.g. "most
+  // recently updated document referencing this action").
+  documentId?: string | null;
   title: string;
   status: ActionStatus;
   priority: string;

@@ -226,16 +226,20 @@ export default function PageExecution() {
       ])
       const documentIds = new Set(documentGroups.flat().map((item) => String(item.id)))
 
-      // One document per Action, for the WordPress draft panel — the most
-      // recently updated document linked to that Action, when more than one
-      // exists (e.g. a document was regenerated after an earlier draft).
-      const latestDocumentByAction: Record<string, DocumentItem> = {}
-      for (const doc of websiteDocuments) {
-        if (!doc.actionItemId) continue
-        const current = latestDocumentByAction[doc.actionItemId]
-        const docTime = doc.updatedAt ?? doc.createdAt ?? ''
-        const currentTime = current?.updatedAt ?? current?.createdAt ?? ''
-        if (!current || docTime >= currentTime) latestDocumentByAction[doc.actionItemId] = doc
+      // One document per Action, for the WordPress draft panel — resolved
+      // strictly by `action.documentId`, never by a heuristic like "most
+      // recently updated document referencing this action". The backend's
+      // WordPress draft approval requires action.documentId === document.id
+      // exactly (see WordPressService.approveDraft()); a document merely
+      // pointing back at this action via its own actionItemId is not proof
+      // of that binding — an action can be regenerated onto a new document
+      // while an older, stale one still carries the same actionItemId.
+      const documentsById = new Map(websiteDocuments.map((doc) => [String(doc.id), doc]))
+      const documentByAction: Record<string, DocumentItem> = {}
+      for (const action of allActions) {
+        if (!action.documentId) continue
+        const doc = documentsById.get(String(action.documentId))
+        if (doc) documentByAction[String(action.id)] = doc
       }
 
       setOrganizationName(organization.name ?? 'Organisation')
@@ -243,7 +247,7 @@ export default function PageExecution() {
       setActions(allActions.filter((item) => opportunityIds.has(String(item.opportunityId))))
       setValidations(allValidations.filter((item) => documentIds.has(String(item.documentId))))
       setOpportunityCount(opportunities.length)
-      setDocumentsByAction(latestDocumentByAction)
+      setDocumentsByAction(documentByAction)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les actions.')
     } finally {

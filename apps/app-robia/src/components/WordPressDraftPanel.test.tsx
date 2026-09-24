@@ -169,7 +169,9 @@ describe('WordPressDraftPanel', () => {
       attempt: { id: 'attempt-1', status: 'confirmed', remotePostId: '42', remoteUrl: null, remoteEditorUrl: null },
       idempotent: false,
     })
-    mockedApi.listWordPressAttempts.mockResolvedValue([CONFIRMED_ATTEMPT])
+    mockedApi.listWordPressAttempts
+      .mockResolvedValueOnce([]) // no existing attempt yet when the panel mounts
+      .mockResolvedValueOnce([CONFIRMED_ATTEMPT])
 
     render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
     fireEvent.click(await screen.findByRole('button', { name: /Autoriser et créer le brouillon/ }))
@@ -259,7 +261,9 @@ describe('WordPressDraftPanel', () => {
     mockedApi.createWordPressDraft.mockRejectedValue(
       new api.ApiError('Réponse WordPress ambiguë. Une réconciliation est requise.', 503),
     )
-    mockedApi.listWordPressAttempts.mockResolvedValue([UNKNOWN_ATTEMPT])
+    mockedApi.listWordPressAttempts
+      .mockResolvedValueOnce([]) // no existing attempt yet when the panel mounts
+      .mockResolvedValueOnce([UNKNOWN_ATTEMPT])
 
     render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
     fireEvent.click(await screen.findByRole('button', { name: /Autoriser et créer le brouillon/ }))
@@ -274,7 +278,9 @@ describe('WordPressDraftPanel', () => {
   it('on a network/timeout failure from createDraft, also moves to unknown rather than assuming success or failure', async () => {
     mockedApi.approveWordPressDraft.mockResolvedValue({ approval: APPROVAL, idempotent: false })
     mockedApi.createWordPressDraft.mockRejectedValue(new Error('Impossible de contacter le serveur ROBIA.'))
-    mockedApi.listWordPressAttempts.mockResolvedValue([UNKNOWN_ATTEMPT])
+    mockedApi.listWordPressAttempts
+      .mockResolvedValueOnce([]) // no existing attempt yet when the panel mounts
+      .mockResolvedValueOnce([UNKNOWN_ATTEMPT])
 
     render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
     fireEvent.click(await screen.findByRole('button', { name: /Autoriser et créer le brouillon/ }))
@@ -286,7 +292,9 @@ describe('WordPressDraftPanel', () => {
   it('an unknown attempt only ever calls /reconcile, never a fresh /drafts POST', async () => {
     mockedApi.approveWordPressDraft.mockResolvedValue({ approval: APPROVAL, idempotent: false })
     mockedApi.createWordPressDraft.mockRejectedValue(new api.ApiError('Réponse WordPress ambiguë.', 503))
-    mockedApi.listWordPressAttempts.mockResolvedValue([UNKNOWN_ATTEMPT])
+    mockedApi.listWordPressAttempts
+      .mockResolvedValueOnce([]) // no existing attempt yet when the panel mounts
+      .mockResolvedValueOnce([UNKNOWN_ATTEMPT])
     mockedApi.reconcileWordPressDraft.mockResolvedValue({ attemptId: 'attempt-1', status: 'unknown', found: false })
 
     render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
@@ -302,6 +310,7 @@ describe('WordPressDraftPanel', () => {
     mockedApi.approveWordPressDraft.mockResolvedValue({ approval: APPROVAL, idempotent: false })
     mockedApi.createWordPressDraft.mockRejectedValue(new api.ApiError('Réponse WordPress ambiguë.', 503))
     mockedApi.listWordPressAttempts
+      .mockResolvedValueOnce([]) // no existing attempt yet when the panel mounts
       .mockResolvedValueOnce([UNKNOWN_ATTEMPT])
       .mockResolvedValueOnce([CONFIRMED_ATTEMPT])
     mockedApi.reconcileWordPressDraft.mockResolvedValue({ attempt: CONFIRMED_ATTEMPT, idempotent: false })
@@ -354,7 +363,9 @@ describe('WordPressDraftPanel', () => {
       attempt: { id: 'attempt-1', status: 'confirmed', remotePostId: '42', remoteUrl: null, remoteEditorUrl: null },
       idempotent: false,
     })
-    mockedApi.listWordPressAttempts.mockResolvedValue([CONFIRMED_ATTEMPT])
+    mockedApi.listWordPressAttempts
+      .mockResolvedValueOnce([]) // no existing attempt yet when the panel mounts
+      .mockResolvedValueOnce([CONFIRMED_ATTEMPT])
 
     render(<WordPressDraftPanel websiteId="site-1" document={DOCUMENT} actionItem={approvedReadyAction()} />)
     fireEvent.click(await screen.findByRole('button', { name: /Autoriser et créer le brouillon/ }))

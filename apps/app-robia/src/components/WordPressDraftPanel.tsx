@@ -64,9 +64,11 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState<WordPressDraftAttempt | null>(null)
+  const [recoveryBusy, setRecoveryBusy] = useState(false)
   const mountedRef = useRef(true)
   const draftPostedRef = useRef(false)
   const idempotencyKeyRef = useRef<string | null>(null)
+  const lastApprovalIdRef = useRef<string | null>(null)
 
   const approved = actionItem?.approvalStatus === 'approved'
   const ready = actionItem?.executionStatus === 'ready'
@@ -91,7 +93,7 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
     setError('')
 
     void getWordPressStatus(websiteId)
-      .then((status) => {
+      .then(async (status) => {
         if (cancelled) return
         setConnection(status.connection)
 
@@ -111,6 +113,40 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
           if (current === 'page' && !conn.canCreatePages) return 'post'
           return current
         })
+
+        // A page refresh remounts this panel with no in-memory record of any
+        // attempt already created for this exact document/Action — the
+        // durable attempt row is the only source of truth, so it must be
+        // checked before ever defaulting back to the "confirm" form, which
+        // would let an operator authorize a second, redundant attempt.
+        try {
+          const attempts = await listWordPressAttempts(websiteId)
+          if (cancelled) return
+          const existing =
+            attempts.find(
+              (item) => item.documentId === document.id && item.actionItemId === actionItem.id,
+            ) ?? null
+          setAttempt(existing)
+          if (existing) {
+            lastApprovalIdRef.current = existing.approvalId
+            if (existing.status === 'confirmed') {
+              setPhase('confirmed')
+            } else if (existing.status === 'failed') {
+              setPhase('failed')
+            } else {
+              // in_flight or unknown this long after any dispatch — neither
+              // is safe to re-offer the confirm form for.
+              setPhase('unknown')
+            }
+            return
+          }
+        } catch {
+          // Listing failed — fall through to the confirm form rather than
+          // stalling here. A genuinely existing attempt is still protected
+          // server-side by the operationKey/idempotencyKey uniqueness
+          // constraints, so this can never cause a duplicate remote draft.
+        }
+
         setPhase('confirm')
       })
       .catch((loadError: unknown) => {
@@ -165,6 +201,7 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
       })
       if (!mountedRef.current) return
       approvalId = approvalResult.approval.id
+      lastApprovalIdRef.current = approvalId
     } catch (approveError) {
       if (!mountedRef.current) return
       if (approveError instanceof ApiError && approveError.status === 404) {
@@ -191,21 +228,24 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
       if (!mountedRef.current) return
       if (createError instanceof ApiError && createError.status === 404) {
         setPhase('context_invalid')
-      } else if (createError instanceof ApiError && (createError.status === 409 || createError.status === 422)) {
+        return
+      }
+      if (createError instanceof ApiError && (createError.status === 409 || createError.status === 422)) {
         // A definite, synchronous rejection — WordPress (or ROBIA's own
-        // pre-dispatch guard) never left this ambiguous.
+        // pre-dispatch guard) never left this ambiguous, so there is no
+        // attempt row to reload and nothing that should turn this into an
+        // 'unknown'/needs-reconciliation state.
         setError(errorMessage(createError))
         setPhase('failed')
-      } else {
-        // 503 (WordPress gave an ambiguous or unreadable answer), a network
-        // failure, or anything unexpected: the draft may or may not exist.
-        // Never resent automatically from here — only reconciliation can
-        // resolve it.
-        setPhase('unknown')
+        return
       }
-      // Whatever the client-side outcome, the durable attempt row is the
-      // real source of truth — reload it so a result the server actually
-      // confirmed is never masked by a lost response.
+      // 503 (WordPress gave an ambiguous or unreadable answer), a network
+      // failure, or anything unexpected: the draft may or may not exist.
+      // Never resent automatically from here — only reconciliation can
+      // resolve it. The durable attempt row is the real source of truth —
+      // reload it so a result the server actually confirmed is never masked
+      // by a lost response.
+      setPhase('unknown')
       try {
         await reloadAttemptFor(approvalId)
       } catch {
@@ -215,7 +255,8 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
   }
 
   async function handleReconcile() {
-    if (!attempt) return
+    if (!attempt || recoveryBusy) return
+    setRecoveryBusy(true)
     setError('')
     try {
       const result = await reconcileWordPressDraft(attempt.id)
@@ -229,6 +270,29 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
     } catch (reconcileError) {
       if (!mountedRef.current) return
       setError(errorMessage(reconcileError))
+    } finally {
+      if (mountedRef.current) setRecoveryBusy(false)
+    }
+  }
+
+  // Recovers the `phase === 'unknown', attempt === null` dead end: the
+  // approval succeeded (its id is durable in the ref) but the attempt row
+  // itself could not be loaded — either listWordPressAttempts() failed, or
+  // it succeeded without yet returning the row (a transient consistency
+  // gap). Retrying the same lookup is the only way forward; nothing here
+  // ever calls approveWordPressDraft()/createWordPressDraft() again.
+  async function handleRetryLoadState() {
+    const approvalId = lastApprovalIdRef.current
+    if (!approvalId || recoveryBusy) return
+    setRecoveryBusy(true)
+    setError('')
+    try {
+      await reloadAttemptFor(approvalId)
+    } catch (reloadError) {
+      if (!mountedRef.current) return
+      setError(errorMessage(reloadError))
+    } finally {
+      if (mountedRef.current) setRecoveryBusy(false)
     }
   }
 
@@ -357,8 +421,36 @@ export default function WordPressDraftPanel({ websiteId, document, actionItem }:
           <p className="flex items-center gap-1.5 text-xs font-semibold text-orange-dark">
             <FileWarning size={14} /> Résultat à vérifier — l’envoi vers WordPress n’a pas pu être confirmé.
           </p>
-          <Button variant="outline" size="sm" icon={<CircleHelp size={13} />} onClick={() => void handleReconcile()}>
+          <Button
+            variant="outline"
+            size="sm"
+            loading={recoveryBusy}
+            disabled={recoveryBusy}
+            icon={<CircleHelp size={13} />}
+            onClick={() => void handleReconcile()}
+          >
             Vérifier dans WordPress
+          </Button>
+        </div>
+      )}
+
+      {phase === 'unknown' && !attempt && (
+        <div className="mt-3 space-y-2">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-orange-dark">
+            <FileWarning size={14} /> Résultat à vérifier — l’état de cette tentative n’a pas pu être chargé.
+          </p>
+          <p className="text-[11px] text-muted">
+            Vérifiez manuellement dans l’administration WordPress si un brouillon a été créé avant de relancer une action ici.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            loading={recoveryBusy}
+            disabled={recoveryBusy || !lastApprovalIdRef.current}
+            icon={<CircleHelp size={13} />}
+            onClick={() => void handleRetryLoadState()}
+          >
+            Réessayer de charger l’état
           </Button>
         </div>
       )}
