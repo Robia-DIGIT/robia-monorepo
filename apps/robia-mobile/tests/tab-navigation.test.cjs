@@ -35,7 +35,7 @@ function renderBar(index, { prevent = false, fontScale = 1 } = {}) {
     '@/constants/theme': { Brand: { tealDark: '#0F766E', slate500: '#526174' }, Fonts: { sans: 'normal' } },
     '@/hooks/use-reduced-motion': { useReducedMotion: () => true },
     '@react-navigation/elements': { PlatformPressable: 'PlatformPressable' },
-    '@react-navigation/material-top-tabs': { createMaterialTopTabNavigator: () => ({ Navigator: navigator }) },
+    '@/components/swipe-tab-navigator': { SwipeTabNavigator: navigator },
     '@react-navigation/native': { useLinkBuilder: () => ({ buildHref: name => '/' + name }) },
     'expo-haptics': { selectionAsync: () => Promise.reject(new Error('Unavailable')) },
     'expo-router': { withLayoutContext: () => navigator },
@@ -129,95 +129,12 @@ test('a swipe visits each filter before crossing to the adjacent tab', () => {
   assert.equal(getFilterSwipeTarget(['Toutes'], 'Inconnu', 'next', '/a', '/b'), null);
 });
 
-test('the pager delegates swipes to filtered pages and keeps other pages swipeable', () => {
+test('all navbar routes use the common swipe navigator', () => {
   const layout = renderBar(0).layout();
-  assert.equal(layout.props.screenOptions.lazyPreloadDistance, 1);
-  const screens = layout.props.children;
-  const swipeByPage = Object.fromEntries(screens.map(screen => [
-    screen.props.name, screen.props.options.swipeEnabled,
-  ]));
-  assert.deepEqual(swipeByPage, {
-    dashboard: true,
-    opportunities: false,
-    'execution-pack': false,
-    progress: false,
-    profile: true,
-  });
-});
-
-test('native swipe completion changes filters first and ignores cancelled or short gestures', () => {
-  const visits = [];
-  const changes = [];
-  const filterLogic = loadTypeScript('../src/navigation/filter-swipe.ts');
-  function createPan() {
-    const gesture = { config: {} };
-    for (const method of ['enabled', 'maxPointers', 'activeOffsetX', 'failOffsetY', 'runOnJS']) {
-      gesture[method] = value => { gesture.config[method] = value; return gesture; };
-    }
-    gesture.onStart = callback => { gesture.start = callback; return gesture; };
-    gesture.onUpdate = callback => { gesture.update = callback; return gesture; };
-    gesture.onFinalize = callback => { gesture.finalize = callback; return gesture; };
-    gesture.onEnd = callback => { gesture.finish = callback; return gesture; };
-    return gesture;
-  }
-  const { useFilterSwipe: createFilterSwipe } = loadTypeScript('../hooks/use-filter-swipe.ts', {
-    react: { useMemo: callback => callback(), useRef: value => ({ current: value }) },
-    '@react-navigation/native': { useIsFocused: () => true },
-    'react-native-gesture-handler': { Gesture: { Pan: createPan } },
-    'expo-router': { router: { navigate: route => visits.push(route) } },
-    '@/src/navigation/filter-swipe': filterLogic,
-  });
-  const moves = [];
-  let resets = 0;
-  let begins = 0;
-  let handoffs = 0;
-  const motion = {
-    width: { current: 320 }, move: value => moves.push(value),
-    begin: () => begins++, cancel: () => resets++, settle: () => resets++,
-    resetToSelected: () => handoffs++,
-  };
-  const swipe = selected => createFilterSwipe({
-    motion,
-    filters: ['Toutes', 'Prioritaires', 'Faible effort'],
-    selected,
-    onChange: value => changes.push(value),
-    previousTab: '/(tabs)/dashboard',
-    nextTab: '/(tabs)/execution-pack',
-  });
-  const first = swipe('Toutes');
-  assert.ok(first.config.activeOffsetX[0] < 0 && first.config.activeOffsetX[1] > 0);
-  assert.ok(first.config.failOffsetY[0] < 0 && first.config.failOffsetY[1] > 0);
-  first.start();
-  assert.equal(begins, 1);
-  first.update({ translationX: -160 });
-  assert.deepEqual(moves, [-160]);
-  assert.deepEqual(changes, []); // Preview the next page before selecting it.
-  first.update({ translationX: -500 });
-  assert.equal(moves.at(-1), -320);
-  first.update({ translationX: 100 });
-  assert.equal(moves.at(-1), 0); // No blank overscroll before the navbar transition.
-  first.finalize({}, false);
-  assert.equal(resets, 1);
-  first.finish({ translationX: -120, velocityX: -500 }, false);
-  first.finish({ translationX: -12, velocityX: -20 }, true);
-  assert.deepEqual(changes, []);
-  assert.deepEqual(visits, []);
-
-  first.finish({ translationX: -90, velocityX: -250 }, true);
-  assert.deepEqual(changes, ['Prioritaires']);
-  assert.deepEqual(visits, []);
-  swipe('Prioritaires').finish({ translationX: -30, velocityX: -800 }, true);
-  assert.deepEqual(changes, ['Prioritaires', 'Faible effort']);
-  assert.deepEqual(visits, []);
-  swipe('Faible effort').finish({ translationX: 90, velocityX: 250 }, true);
-  assert.equal(changes.at(-1), 'Prioritaires');
-  assert.deepEqual(visits, []);
-  const previousResets = resets;
-  swipe('Faible effort').finish({ translationX: -90, velocityX: -250 }, true);
-  swipe('Toutes').finish({ translationX: 90, velocityX: 250 }, true);
-  assert.deepEqual(visits, ['/(tabs)/execution-pack', '/(tabs)/dashboard']);
-  assert.equal(handoffs, 2);
-  assert.equal(resets, previousResets); // No competing filter rebound during navigation.
+  assert.equal(layout.props.backBehavior, 'history');
+  assert.deepEqual(layout.props.children.map(screen => screen.props.name),
+    ['dashboard', 'opportunities', 'execution-pack', 'progress', 'profile']);
+  assert.ok(layout.props.children.every(screen => screen.props.options.swipeEnabled !== false));
 });
 
 test('the native filter gesture covers the header and content before vertical scrolling can activate', () => {
@@ -237,6 +154,8 @@ test('the native filter gesture covers the header and content before vertical sc
     'expo-router': { router: {} },
     '@/constants/theme': { Brand: {}, Fonts: {} },
     '@/hooks/use-reduced-motion': { useReducedMotion: () => true },
+    '@/hooks/use-filter-swipe': { useFilterSwipe: () => ({ defaultTabGesture: true }) },
+    '@/src/navigation/tab-swipe-context': { useTabSwipe: () => ({}) },
     'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
     'react-native-gesture-handler': {
       GestureDetector: 'GestureDetector',
@@ -291,6 +210,10 @@ test('the native filter gesture covers the header and content before vertical sc
     contentStyle: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 },
   });
   assert.equal(pagedScreen.props.children.props.children[1].type, 'View');
+
+  const plainTabScreen = RobiaScreen({ children: content });
+  assert.equal(plainTabScreen.type, 'GestureDetector');
+  assert.equal(plainTabScreen.props.gesture.defaultTabGesture, true);
 
   const chips = FilterChips({
     options: ['Toutes', 'Prioritaires'], selected: 'Prioritaires',
@@ -356,7 +279,7 @@ function createMotionHarness() {
     'react-native': { Animated: {
       Value,
       multiply: (value, factor) => ({ get value() { return value.value * factor; } }),
-      divide: (value, divisor) => ({ get value() { return value.value / divisor.value; } }),
+      divide: (value, divisor) => ({ get value() { return value.value / divisor.value; }, interpolate: config => config }),
       spring: (value, config) => ({ start() { animations.push({ value, ...config }); } }),
     } },
     '@/hooks/use-reduced-motion': { useReducedMotion: () => false },
@@ -471,4 +394,195 @@ test('handoff to navbar aligns the filter without a spring and rejects stale nat
   reply(-600);
   motion.move(-30);
   assert.equal(motion.offset.value, -640);
+});
+
+
+function createSwipeHarness({ selected = 'All', filters = ['All', 'Priority', 'Easy'], tabIndex = 1 } = {}) {
+  const names = ['dashboard', 'opportunities', 'execution-pack', 'progress', 'profile'];
+  const parent = createMotionHarness();
+  parent.motion.configure(tabIndex, 320, false);
+  parent.motion.offset.setValue(-tabIndex * 320);
+  const local = createMotionHarness();
+  local.motion.configure(Math.max(0, filters.indexOf(selected)), 320, false);
+  local.motion.offset.setValue(-Math.max(0, filters.indexOf(selected)) * 320);
+  const changes = [];
+  const visits = [];
+  const context = {
+    motion: parent.motion,
+    previousTab: tabIndex > 0 ? '/(tabs)/' + names[tabIndex - 1] : null,
+    nextTab: tabIndex < names.length - 1 ? '/(tabs)/' + names[tabIndex + 1] : null,
+  };
+  function createPan() {
+    const gesture = { config: {} };
+    for (const method of ['enabled', 'maxPointers', 'activeOffsetX', 'failOffsetY', 'runOnJS']) {
+      gesture[method] = value => { gesture.config[method] = value; return gesture; };
+    }
+    for (const [method, callbackName] of [['onStart', 'start'], ['onUpdate', 'update'], ['onFinalize', 'finalize'], ['onEnd', 'finish']]) {
+      gesture[method] = callback => { gesture[callbackName] = callback; return gesture; };
+    }
+    return gesture;
+  }
+  const { useFilterSwipe: createSwipe } = loadTypeScript('../hooks/use-filter-swipe.ts', {
+    react: { useMemo: callback => callback(), useRef: value => ({ current: value }) },
+    '@react-navigation/native': { useIsFocused: () => true },
+    'react-native-gesture-handler': { Gesture: { Pan: createPan } },
+    '@/src/navigation/tab-swipe-context': { useTabSwipe: () => context },
+    '@/src/navigation/filter-swipe': loadTypeScript('../src/navigation/filter-swipe.ts'),
+    'expo-router': { router: { navigate: route => visits.push(route) } },
+  });
+  const gesture = createSwipe({
+    filters, selected, motion: local.motion, onChange: value => changes.push(value),
+    previousTab: null, nextTab: null,
+  });
+  return { gesture, parent, local, changes, visits, context };
+}
+
+test('every first and last filter reveals the actual neighboring tab before release', () => {
+  for (const tabIndex of [1, 2, 3]) {
+    for (const direction of [-1, 1]) {
+      const selected = direction === 1 ? 'All' : 'Easy';
+      const { gesture, parent, local, changes, visits, context } = createSwipeHarness({ tabIndex, selected });
+      const localStart = local.motion.offset.value;
+      gesture.start({ translationX: direction * 20 });
+      gesture.update({ translationX: direction * 160 });
+      assert.equal(parent.motion.offset.value, -tabIndex * 320 + direction * 160);
+      assert.equal(local.motion.offset.value, localStart);
+      assert.deepEqual(visits, []);
+      assert.deepEqual(changes, []);
+      const neighbor = tabIndex - direction;
+      const outgoingLeft = tabIndex * 320 + parent.motion.offset.value;
+      const incomingLeft = neighbor * 320 + parent.motion.offset.value;
+      assert.equal(Math.abs(outgoingLeft), 160);
+      assert.equal(Math.abs(incomingLeft), 160);
+      gesture.finish({ translationX: direction * 160, velocityX: direction * 400 }, true);
+      assert.deepEqual(visits, [direction === 1 ? context.previousTab : context.nextTab]);
+      const releasePosition = parent.motion.offset.value;
+      parent.motion.configure(neighbor, 320, false); // Router commits the destination.
+      assert.equal(parent.motion.offset.value, releasePosition);
+      assert.equal(parent.animations.at(-1).toValue, -neighbor * 320);
+    }
+  }
+});
+
+test('internal filter swipes leave the outer pager stationary', () => {
+  for (const direction of [-1, 1]) {
+    const { gesture, parent, local, changes, visits } = createSwipeHarness({ selected: 'Priority' });
+    gesture.start({ translationX: direction * 20 });
+    gesture.update({ translationX: direction * 100 });
+    assert.equal(local.motion.offset.value, -320 + direction * 100);
+    assert.equal(parent.motion.offset.value, -320);
+    gesture.finish({ translationX: direction * 100, velocityX: direction * 400 }, true);
+    assert.deepEqual(changes, [direction === 1 ? 'All' : 'Easy']);
+    assert.deepEqual(visits, []);
+  }
+});
+
+test('cancelled or short boundary swipes restore the current tab without navigation', () => {
+  for (const cancel of [true, false]) {
+    const { gesture, parent, visits } = createSwipeHarness();
+    gesture.start({ translationX: 20 });
+    gesture.update({ translationX: 30 });
+    assert.equal(parent.motion.offset.value, -290);
+    if (cancel) gesture.finalize({}, false);
+    else gesture.finish({ translationX: 30, velocityX: 20 }, true);
+    assert.deepEqual(visits, []);
+    assert.equal(parent.animations.at(-1).toValue, -320);
+  }
+});
+
+test('reversing a boundary drag can return to the filter pager without moving both tracks', () => {
+  const { gesture, parent, local, changes, visits } = createSwipeHarness();
+  gesture.start({ translationX: 30 });
+  assert.equal(parent.motion.offset.value, -290);
+  gesture.update({ translationX: -90 });
+  assert.equal(parent.motion.offset.value, -320);
+  assert.equal(local.motion.offset.value, -90);
+  gesture.finish({ translationX: -90, velocityX: -200 }, true);
+  assert.deepEqual(changes, ['Priority']);
+  assert.deepEqual(visits, []);
+});
+
+test('Home and Profile use the same live pager and cannot swipe outside the route list', () => {
+  for (const tabIndex of [0, 4]) {
+    const inward = tabIndex === 0 ? -1 : 1;
+    const first = createSwipeHarness({ tabIndex, filters: ['page'], selected: 'page' });
+    first.gesture.start({ translationX: inward * 20 });
+    first.gesture.update({ translationX: inward * 100 });
+    assert.equal(first.parent.motion.offset.value, -tabIndex * 320 + inward * 100);
+    first.gesture.finish({ translationX: inward * 100, velocityX: inward * 200 }, true);
+    assert.equal(first.visits.length, 1);
+    const edge = createSwipeHarness({ tabIndex, filters: ['page'], selected: 'page' });
+    edge.gesture.start({ translationX: -inward * 30 });
+    edge.gesture.finish({ translationX: -inward * 100, velocityX: -inward * 200 }, true);
+    assert.equal(edge.parent.motion.offset.value, -tabIndex * 320);
+    assert.deepEqual(edge.visits, []);
+  }
+});
+
+test('a short fast flick commits while a cancelled gesture never commits', () => {
+  const flick = createSwipeHarness();
+  flick.gesture.start({ translationX: 25 });
+  flick.gesture.finish({ translationX: 30, velocityX: 800 }, true);
+  assert.deepEqual(flick.visits, ['/(tabs)/dashboard']);
+  const cancelled = createSwipeHarness();
+  cancelled.gesture.start({ translationX: 120 });
+  cancelled.gesture.finish({ translationX: 120, velocityX: 800 }, false);
+  assert.deepEqual(cancelled.visits, []);
+});
+
+test('the shared navigator renders real adjacent screens and keeps all crossed pages mounted on navbar jumps', () => {
+  const names = ['dashboard', 'opportunities', 'execution-pack', 'progress', 'profile'];
+  let state = { index: 1, routes: names.map(name => ({ key: name, name })), preloadedRouteKeys: [] };
+  const { motion } = createMotionHarness();
+  const slots = [];
+  let cursor = 0;
+  const descriptors = Object.fromEntries(names.map(name => [name, {
+    options: {}, render: () => React.createElement('ScreenContent', { name }),
+  }]));
+  const { SwipeTabNavigator } = loadTypeScript('../components/swipe-tab-navigator.tsx', {
+    react: {
+      ...React, useMemo: fn => fn(), useLayoutEffect: fn => fn(),
+      useState: initial => {
+        const slot = cursor++;
+        if (!(slot in slots)) slots[slot] = typeof initial === 'function' ? initial() : initial;
+        return [slots[slot], value => { slots[slot] = typeof value === 'function' ? value(slots[slot]) : value; }];
+      },
+    },
+    'react-native': {
+      Animated: { View: 'AnimatedView' }, View: 'View', StyleSheet: { create: styles => styles },
+      useWindowDimensions: () => ({ width: 320, height: 700 }),
+    },
+    '@react-navigation/native': {
+      TabRouter: {}, useNavigationBuilder: () => ({ state, descriptors, navigation: {}, NavigationContent: 'NavigationContent' }),
+    },
+    '@/hooks/use-filter-motion': { useFilterMotion: () => ({ motion, reduceMotion: false }) },
+    '@/src/navigation/tab-swipe-context': { TabSwipeContext: { Provider: 'TabSwipeProvider' } },
+  });
+  const render = index => {
+    state = { ...state, index };
+    cursor = 0;
+    return SwipeTabNavigator({ tabBar: () => React.createElement('Navbar') });
+  };
+  let tree = render(1);
+  const viewport = tree.props.children.props.children[0];
+  const track = viewport.props.children;
+  assert.equal(track.props.style[0].flexDirection, 'row');
+  assert.equal(track.props.style[1].width, 1600);
+  const pages = track.props.children;
+  assert.deepEqual(pages.slice(0, 3).map(page => page.props.children.props.children.props.name), names.slice(0, 3));
+  assert.equal(pages[1].props.children.props.value.motion, motion);
+  assert.equal(pages[1].props.children.props.value.previousTab, '/(tabs)/dashboard');
+  assert.equal(pages[1].props.children.props.value.nextTab, '/(tabs)/execution-pack');
+  assert.equal(tree.props.children.props.children[1].type, 'Navbar');
+  motion.offset.setValue(-160); // Halfway toward Home.
+  assert.equal(track.props.style[1].transform[0].translateX.value, -160);
+  assert.equal(pages[0].props.style.at(-1).width, 320);
+  tree = render(4);
+  const crossed = tree.props.children.props.children[0].props.children.props.children;
+  assert.ok(crossed.every(page => page.props.children.props.children !== null));
+  tree = render(0);
+  const retained = tree.props.children.props.children[0].props.children.props.children;
+  assert.ok(retained.every(page => page.props.children.props.children !== null));
+  assert.equal(retained[0].props.pointerEvents, 'auto');
+  assert.equal(retained[4].props.pointerEvents, 'none');
 });
