@@ -133,7 +133,7 @@ describe('PageCommandCenter — provider status grid', () => {
     expect(screen.getByTestId('intelligence-card-gbp')).toBeInTheDocument()
   })
 
-  it('computes "providers disponibles" and "à configurer" as factual counts, never a health score', async () => {
+  it('computes "sources connectées disponibles" and "à configurer" as factual counts, never a health score', async () => {
     mockedApi.getIntelligenceStatus.mockResolvedValue(fullStatus())
     mockedApi.listAudits.mockResolvedValue([])
 
@@ -145,8 +145,8 @@ describe('PageCommandCenter — provider status grid', () => {
     // configuration surface in RC-21, so it must never inflate this count
     // (Codex review) — the raw not_connected/not_configured tally is 4,
     // the correct "actionable" count is 3.
-    await waitFor(() => expect(screen.getByText('Providers disponibles')).toBeInTheDocument())
-    const available = screen.getByText('Providers disponibles').closest('div')
+    await waitFor(() => expect(screen.getByText('Sources connectées disponibles')).toBeInTheDocument())
+    const available = screen.getByText('Sources connectées disponibles').closest('div')
     expect(available).toHaveTextContent('2')
     const toConfigure = screen.getByText('À configurer').closest('div')
     expect(toConfigure).toHaveTextContent('4')
@@ -273,8 +273,8 @@ describe('PageCommandCenter — navigation to existing engines', () => {
 
     await waitFor(() => expect(screen.getByText('Passer à l\'action')).toBeInTheDocument())
     expect(screen.getByRole('link', { name: /Opportunités/i })).toHaveAttribute('href', '/opportunites')
-    expect(screen.getByRole('link', { name: /Actions \(RC-14\)/i })).toHaveAttribute('href', '/execution')
-    expect(screen.getByRole('link', { name: /Automatisations \(RC-20\)/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Actions/i })).toHaveAttribute('href', '/execution')
+    expect(screen.getByRole('link', { name: /Automatisations/i })).toHaveAttribute(
       'href',
       '/ops/automations',
     )

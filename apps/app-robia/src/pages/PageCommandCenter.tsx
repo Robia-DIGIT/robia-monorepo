@@ -126,7 +126,7 @@ export default function PageCommandCenter() {
         if (mounted) setSignals(result)
       })
       .catch((error) => {
-        if (mounted) setStatusError(errorMessage(error, "Impossible de charger l'état des providers."))
+        if (mounted) setStatusError(errorMessage(error, "Impossible de charger l'état des sources connectées."))
       })
       .finally(() => {
         if (mounted) setStatusLoading(false)
@@ -191,7 +191,7 @@ export default function PageCommandCenter() {
         if (mounted) setFindings(result)
       })
       .catch((error) => {
-        if (mounted) setFindingsError(errorMessage(error, 'Impossible de charger les findings providers.'))
+        if (mounted) setFindingsError(errorMessage(error, 'Impossible de charger les signaux détectés.'))
       })
       .finally(() => {
         if (mounted) setFindingsLoading(false)
@@ -248,7 +248,7 @@ export default function PageCommandCenter() {
         <StatTile
           icon={<CircleCheckBig size={16} aria-hidden="true" />}
           iconClassName="bg-teal-light text-teal-dark"
-          label="Providers disponibles"
+          label="Sources connectées disponibles"
           value={availableCount}
           valueClassName="text-teal-dark"
         />
@@ -262,7 +262,7 @@ export default function PageCommandCenter() {
         <StatTile
           icon={<Zap size={16} aria-hidden="true" />}
           iconClassName="bg-electric-light text-electric-dark"
-          label="Findings observés"
+          label="Signaux détectés"
           value={findings.length}
           valueClassName="text-navy"
         />
@@ -280,7 +280,7 @@ export default function PageCommandCenter() {
       )}
 
       <section className="mb-8">
-        <SectionHeading>État des providers</SectionHeading>
+        <SectionHeading>État des sources connectées</SectionHeading>
         {statusError ? (
           <Card className="p-4 text-sm text-red-700 bg-red-50 border-red-200" data-testid="intelligence-status-error">
             {statusError}
@@ -292,8 +292,8 @@ export default function PageCommandCenter() {
         ) : orderedSignals.length === 0 ? (
           <EmptyState
             icon={<LayoutDashboard size={18} />}
-            title="Aucun signal provider"
-            description="Aucun provider n'est encore rattaché à cette organisation."
+            title="Aucune source connectée"
+            description="Aucune source n'est encore rattachée à cette organisation."
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -305,7 +305,7 @@ export default function PageCommandCenter() {
       </section>
 
       <section className="mb-8">
-        <SectionHeading>Findings</SectionHeading>
+        <SectionHeading>Signaux détectés</SectionHeading>
         {auditLoading ? (
           <Card className="p-8">
             <div className="h-8 w-72 bg-slate-100 rounded-lg" />
@@ -314,7 +314,7 @@ export default function PageCommandCenter() {
           <EmptyState
             icon={<Zap size={18} />}
             title="Aucun audit terminé"
-            description="Lancez un audit complet pour ce site afin d'obtenir des findings providers."
+            description="Lancez un audit complet pour ce site afin d'obtenir des signaux détectés."
             action={
               <Link
                 to="/analyse"
@@ -339,8 +339,8 @@ export default function PageCommandCenter() {
         ) : findings.length === 0 ? (
           <EmptyState
             icon={<Zap size={18} />}
-            title="Aucun finding"
-            description="Aucun provider n'a signalé de finding pour cet audit."
+            title="Aucun signal détecté"
+            description="Aucune source n'a détecté de signal pour cet audit."
           />
         ) : (
           <div className="divide-y divide-border rounded-xl border border-border bg-white">
@@ -354,9 +354,9 @@ export default function PageCommandCenter() {
       <section>
         <SectionHeading>Passer à l'action</SectionHeading>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <ActionLinkCard to="/opportunites" icon={<Zap size={17} aria-hidden="true" />} title="Opportunités" description="Findings & opportunités priorisées" />
-          <ActionLinkCard to="/execution" icon={<Layers size={17} aria-hidden="true" />} title="Actions (RC-14)" description="Suivi des actions gouvernées" />
-          <ActionLinkCard to="/ops/automations" icon={<Workflow size={17} aria-hidden="true" />} title="Automatisations (RC-20)" description="Workflows internes" />
+          <ActionLinkCard to="/opportunites" icon={<Zap size={17} aria-hidden="true" />} title="Opportunités" description="Signaux détectés & opportunités priorisées" />
+          <ActionLinkCard to="/execution" icon={<Layers size={17} aria-hidden="true" />} title="Actions" description="Suivi des actions gouvernées" />
+          <ActionLinkCard to="/ops/automations" icon={<Workflow size={17} aria-hidden="true" />} title="Automatisations" description="Workflows internes" />
         </div>
       </section>
     </div>
