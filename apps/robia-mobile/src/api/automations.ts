@@ -15,7 +15,7 @@ export const EVENTS = [
   { value: 'audit.completed', label: 'Audit terminé' },
   { value: 'odc.application.submitted', label: 'Candidature soumise' },
   { value: 'odc.application.incomplete', label: 'Dossier incomplet' },
-  { value: 'odc.application.ready_for_review', label: 'Dossier prêt ? examiner' },
+  { value: 'odc.application.ready_for_review', label: "Dossier prêt à examiner" },
   { value: 'odc.document.received', label: 'Pièce reçue' },
   { value: 'odc.application.decided', label: 'Décision enregistrée' },
 ];
@@ -26,7 +26,7 @@ export const CONDITION_FIELDS = [
   { value: 'integration.googleSearchConsole.status', label: 'Connexion Google', numeric: false },
   { value: 'integration.meta.status', label: 'Connexion Meta', numeric: false },
   { value: 'opportunity.count', label: 'Opportunités ouvertes', numeric: true },
-  { value: 'opportunity.highPriorityCount', label: 'Opportunités ? fort impact', numeric: true },
+  { value: 'opportunity.highPriorityCount', label: "Opportunités à fort impact", numeric: true },
   { value: 'website.count', label: 'Nombre de sites', numeric: true },
 ];
 export function normalizeCondition(node: Condition, depth = 0): Condition {
@@ -41,7 +41,7 @@ export function normalizeCondition(node: Condition, depth = 0): Condition {
     return { field: node.field, operator: node.operator, value: ['in','notIn'].includes(node.operator) ? parsed : parsed[0] };
   }
   if ('not' in node) return { not: normalizeCondition(node.not, depth + 1) };
-  const children = 'all' in node ? node.all : node.any; if (!children.length) throw new Error('Ajoutez une règle ? chaque groupe.');
+  const children = 'all' in node ? node.all : node.any; if (!children.length) throw new Error("Ajoutez une règle à chaque groupe.");
   return 'all' in node ? { all: children.map(n => normalizeCondition(n, depth + 1)) } : { any: children.map(n => normalizeCondition(n, depth + 1)) };
 }
 export function hasEventInput(steps: Step[]) { return JSON.stringify(steps).includes('{{event.'); }
@@ -49,6 +49,6 @@ export function validateEventInputs(steps: Step[], trigger: string, event: strin
   const serialized = JSON.stringify(steps);
   if (!serialized.includes('{{event.')) return;
   if (trigger !== 'event') throw new Error('Une étape utilise l’événement : choisissez un déclenchement sur événement.');
-  if (serialized.includes('{{event.auditId}}') && event !== 'audit.completed') throw new Error('Ces étapes nécessitent l’événement ? Audit terminé ?.');
+  if (serialized.includes('{{event.auditId}}') && event !== 'audit.completed') throw new Error("Ces étapes nécessitent l’événement « Audit terminé ».");
   if (serialized.includes('{{event.applicationId}}') && !event.startsWith('odc.')) throw new Error('Ces étapes nécessitent un événement de candidature.');
 }

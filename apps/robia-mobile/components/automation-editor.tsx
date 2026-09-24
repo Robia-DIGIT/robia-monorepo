@@ -13,7 +13,7 @@ import type { Audit } from '@/src/api/types';
 const TEMPLATE_FIELDS: Record<string, { key: string; label: string }[]> = {
   audit_completed: [],
   weekly_opportunities_summary: [{ key: 'organizationName', label: 'Nom de l’entreprise' }, { key: 'openOpportunityCount', label: 'Nombre d’opportunités annoncé' }],
-  automation_failed: [{ key: 'automationName', label: 'Nom de l’automatisation concernée' }, { key: 'errorMessage', label: 'Message ? inclure' }],
+  automation_failed: [{ key: 'automationName', label: 'Nom de l’automatisation concernée' }, { key: 'errorMessage', label: "Message à inclure" }],
   odc_candidate_invite: [{ key: 'applicantName', label: 'Nom du candidat mentionné' }, { key: 'programName', label: 'Programme mentionné' }],
 };
 export function AutomationEditor({ automation, onSaved }: { automation?: Automation; onSaved(a: Automation): Promise<unknown> }) {
@@ -36,12 +36,12 @@ export function AutomationEditor({ automation, onSaved }: { automation?: Automat
     <Field label="Nom" value={name} onChangeText={setName} /><Field label="Description" value={description} onChangeText={setDescription} multiline />
     <Choices value={scope} onChange={setScope} options={[{ value: 'ORGANIZATION', label: 'Entreprise' }, { value: 'PROGRAM', label: 'Programme' }, { value: 'COHORT', label: 'Promotion' }, { value: 'ROBIA_INTERNAL', label: 'Interne' }]} />
     <Text style={s.body}>Cette catégorie sert au classement. Les conditions portent sur l’ensemble de votre entreprise.</Text>
-    <Choices value={trigger} onChange={setTrigger} options={[{ value: 'manual', label: '? la demande' }, { value: 'scheduled', label: 'Planifiée' }, { value: 'event', label: 'Sur événement' }]} />
-    {trigger === 'scheduled' ? <><Choices value={cron} onChange={setCron} options={[{ value: '0 9 * * *', label: 'Chaque jour ? 9 h' }, { value: '0 9 * * 1', label: 'Chaque lundi ? 9 h' }, { value: '0 9 1 * *', label: 'Le 1er du mois ? 9 h' }]} /><Field label="Horaire personnalisé (expression cron)" value={cron} onChangeText={setCron} autoCapitalize="none" /><Field label="Fuseau horaire" value={timezone} onChangeText={setTimezone} autoCapitalize="none" placeholder="Europe/Paris" /><Text style={s.body}>Les horaires s’appliquent dans le fuseau indiqué, lorsque l’automatisation est active.</Text></> : null}
+    <Choices value={trigger} onChange={setTrigger} options={[{ value: 'manual', label: "À la demande" }, { value: 'scheduled', label: 'Planifiée' }, { value: 'event', label: 'Sur événement' }]} />
+    {trigger === 'scheduled' ? <><Choices value={cron} onChange={setCron} options={[{ value: '0 9 * * *', label: "Chaque jour à 9 h" }, { value: '0 9 * * 1', label: "Chaque lundi à 9 h" }, { value: '0 9 1 * *', label: "Le 1er du mois à 9 h" }]} /><Field label="Horaire personnalisé (expression cron)" value={cron} onChangeText={setCron} autoCapitalize="none" /><Field label="Fuseau horaire" value={timezone} onChangeText={setTimezone} autoCapitalize="none" placeholder="Europe/Paris" /><Text style={s.body}>Les horaires s’appliquent dans le fuseau indiqué, lorsque l’automatisation est active.</Text></> : null}
     {trigger === 'event' ? <Choices value={event} onChange={setEvent} options={EVENTS} /> : null}
     <Toggle label="Ajouter des conditions" value={!!conditions} onChange={enabled => setConditions(enabled ? { field: 'opportunity.count', operator: 'gt', value: 0 } : null)} />
     {conditions ? <ConditionEditor value={conditions} onChange={setConditions} /> : null}
-    <Text style={s.title}>étapes ? {steps.length}/20</Text>
+    <Text style={s.title}>Étapes · {steps.length}/20</Text>
     {steps.map((step,i) => <View key={i} style={s.stack}><Text style={s.body}>{i+1}. {ACTIONS.find(a => a.value === step.actionType)?.label ?? step.actionType}</Text>
       <Text style={s.body}>{step.input?.title ? String(step.input.title) : step.input?.applicationId ? 'Dossier sélectionné' : step.input?.auditId ? 'Audit sélectionné' : step.input?.websiteId ? websites.find(w => w.id === step.input?.websiteId)?.url : ''}</Text>
       <AsyncButton label="Monter cette étape" disabled={i === 0} action={async () => setSteps(current => { const next = [...current]; [next[i-1], next[i]] = [next[i], next[i-1]]; return next; })} /><AsyncButton label="Retirer cette étape" action={async () => setSteps(current => current.filter((_,j) => i !== j))} />
@@ -72,7 +72,7 @@ export function AutomationEditor({ automation, onSaved }: { automation?: Automat
     }} />
     <Toggle label="Approbation avant chaque exécution" value={approval} onChange={setApproval} />
     <Text style={s.body}>{automation ? 'L’enregistrement conserve l’état actif ou inactif de cette automatisation.' : 'L’automatisation sera créée désactivée. Vous pourrez vérifier ses étapes avant de l’activer.'}</Text>
-    <AsyncButton label={automation ? 'Enregistrer les modifications' : 'Créer l’automatisation'} disabled={!organization || !name.trim() || !steps.length} confirm={automation?.enabled ? 'Appliquer cette configuration ? une automatisation active ?' : undefined} action={async () => {
+    <AsyncButton label={automation ? 'Enregistrer les modifications' : 'Créer l’automatisation'} disabled={!organization || !name.trim() || !steps.length} confirm={automation?.enabled ? "Appliquer cette configuration à une automatisation active ?" : undefined} action={async () => {
       validateEventInputs(steps, trigger, event);
       if (trigger === 'scheduled') { try { new Intl.DateTimeFormat('fr-FR', { timeZone: timezone }).format(); } catch { throw new Error('Fuseau horaire invalide.'); } if (!cron.trim()) throw new Error('Renseignez un horaire.'); }
       const result = await request<Automation>('/ops/automations' + (automation ? '/' + encodeURIComponent(automation.id) : ''), { method: automation ? 'PATCH' : 'POST', body: { name: name.trim(), description, scope, requiresApproval: approval, steps, conditions: conditions ? normalizeCondition(conditions) : null, ...(!automation ? { enabled: false } : {}), trigger: { type: trigger, ...(trigger === 'event' ? { eventType: event } : {}), ...(trigger === 'scheduled' ? { cronExpression: cron.trim(), timezone: timezone.trim() } : {}) } } });
