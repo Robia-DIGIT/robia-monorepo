@@ -198,6 +198,8 @@ const styles = StyleSheet.create({
   },
   topSpacer: { width: 40 },
   pageTitle: {
+    flex: 1,
+    textAlign: "center",
     color: Brand.navyDark,
     fontFamily: Fonts.rounded,
     fontSize: 16,
@@ -258,6 +260,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   role: {
+    textAlign: "center",
     color: Brand.slate500,
     fontFamily: Fonts.sans,
     fontSize: 14,
@@ -265,6 +268,8 @@ const styles = StyleSheet.create({
   },
   infoCard: { paddingTop: 17, paddingBottom: 4 },
   cardTitleRow: {
+    flexWrap: "wrap",
+    gap: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -285,6 +290,7 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     minHeight: 61,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -307,6 +313,7 @@ const styles = StyleSheet.create({
   linksCard: { paddingTop: 17, paddingBottom: 3 },
   linkRow: {
     minHeight: 66,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
@@ -344,6 +351,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF4EB",
   },
   logoutText: {
+    flexShrink: 1,
+    textAlign: "center",
     color: Brand.orangeDark,
     fontFamily: Fonts.sans,
     fontSize: 13,

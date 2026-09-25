@@ -14,8 +14,6 @@ import { router } from "expo-router";
 import { useState, type ComponentProps } from "react";
 import {
     ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
     StyleSheet,
     Text,
     TextInput,
@@ -63,10 +61,7 @@ export default function AuditScreen() {
     }
   }
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <>
       <RobiaScreen fixedHeader>
         <RobiaHeader
           compact
@@ -114,7 +109,7 @@ export default function AuditScreen() {
             size={21}
             color={Brand.tealDark}
           />
-          <Text style={robiaStyles.body}>
+          <Text style={[robiaStyles.body, { flex: 1 }]}>
             L’analyse peut prendre quelques instants. Aucune action n’est
             publiée automatiquement.
           </Text>
@@ -144,7 +139,7 @@ export default function AuditScreen() {
           />
         )}
       </RobiaScreen>
-    </KeyboardAvoidingView>
+    </>
   );
 }
 function LabeledInput({
@@ -198,7 +193,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loading: { flexDirection: "row", alignItems: "center", gap: 14 },
-  loadingCopy: { gap: 2 },
+  loadingCopy: { flex: 1, minWidth: 0, gap: 2 },
   error: {
     padding: 12,
     borderRadius: 8,

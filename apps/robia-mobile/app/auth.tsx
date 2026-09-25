@@ -1,3 +1,5 @@
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import { Brand, Fonts } from "@/constants/theme";
 import { ApiError } from "@/src/api/client";
 import { useSession } from "@/src/auth/session";
@@ -15,14 +17,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
 import PagerView from "react-native-pager-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AuthScreen() {
-  const { height, width } = useWindowDimensions();
+  const layout = useResponsiveLayout();
+  const keyboardVisible = useKeyboardVisible();
   const reduceMotion = useReducedMotion();
   const { login, register, sessionError, restore } = useSession();
   const pager = useRef<PagerView>(null);
@@ -35,7 +37,7 @@ export default function AuthScreen() {
   const submitLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const compact = height < 700;
+  const compact = layout.safeHeight < 700;
   function selectPage(next: number) {
     setPage(next);
     setError("");
@@ -92,14 +94,17 @@ export default function AuthScreen() {
     setPassword,
     setShowPassword,
     submit,
+    sessionNotice: sessionError ? <Pressable accessibilityRole="button" onPress={() => void restore()} style={{ minHeight: 48, justifyContent: 'center' }}>
+      <Text accessibilityRole="alert" style={[s.errorText, { flex: undefined }]}>{sessionError} · Réessayer</Text>
+    </Pressable> : null,
   };
   return (
-    <SafeAreaView style={s.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={s.safeArea} edges={["top", "bottom", "left", "right"]}>
       <KeyboardAvoidingView
         style={s.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={[s.hero, compact && s.heroCompact]}>
+        {!keyboardVisible && !layout.short && layout.fontScale < 1.4 ? <View style={[s.hero, compact && s.heroCompact]}>
           {/* <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
             <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
           </Pressable> */}
@@ -113,13 +118,8 @@ export default function AuthScreen() {
           </View>
           <Text style={s.heroTitle}>Votre croissance, guidée par l’IA</Text>
           <Text style={s.heroSubtitle}>Analysez. Décidez. Agissez.</Text>
-        </View>
-        {sessionError ? (
-          <Pressable accessibilityRole="button" onPress={() => void restore()}>
-            <Text style={s.errorText}>{sessionError} · Réessayer</Text>
-          </Pressable>
-        ) : null}
-        <View style={[s.sheet, width >= 560 && s.sheetWide]}>
+        </View> : null}
+        <View style={[s.sheet, { width: Math.min(620, layout.safeWidth - layout.gutter * 2) }]}>
           <View style={s.handle} />
           <View style={s.modeSwitch}>
             <ModeButton
@@ -157,6 +157,7 @@ export default function AuthScreen() {
 }
 
 type AuthPageProps = {
+  sessionNotice: ReactNode;
   registration: boolean;
   name: string;
   company: string;
@@ -173,6 +174,7 @@ type AuthPageProps = {
   submit(registration: boolean): Promise<void>;
 };
 function AuthPage({
+  sessionNotice,
   registration,
   name,
   company,
@@ -193,8 +195,10 @@ function AuthPage({
       bounces={false}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
+      keyboardDismissMode="on-drag"
       contentContainerStyle={s.pageContent}
     >
+      {sessionNotice}
       <View style={s.heading}>
         <View style={s.headingIcon}>
           <MaterialIcons
@@ -396,15 +400,15 @@ const s = StyleSheet.create({
     borderWidth: 0,
   },
   hero: {
-    flex: 0.42,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     minHeight: 164,
-    maxHeight: 220,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
     backgroundColor: Brand.slate50,
   },
-  heroCompact: { flex: 0, minHeight: 126, maxHeight: 142 },
+  heroCompact: { minHeight: 126, paddingVertical: 12 },
   orb: { position: "absolute", borderRadius: 999, opacity: 0.7 },
   orbTeal: {
     width: 190,
@@ -438,12 +442,14 @@ const s = StyleSheet.create({
   },
   logo: { width: 78, height: 50 },
   heroTitle: {
+    textAlign: "center",
     color: Brand.navyDark,
     fontFamily: Fonts?.rounded,
     fontSize: 18,
     fontWeight: "900",
   },
   heroSubtitle: {
+    textAlign: "center",
     marginTop: 5,
     color: Brand.tealDark,
     fontSize: 14,
@@ -451,7 +457,7 @@ const s = StyleSheet.create({
   },
   sheet: {
     flex: 1,
-    marginHorizontal: 12,
+    alignSelf: "center",
     marginBottom: 8,
     paddingTop: 10,
     overflow: "hidden",
@@ -482,13 +488,15 @@ const s = StyleSheet.create({
   },
   modeButton: {
     flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
     minHeight: 48,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
   modeButtonActive: { backgroundColor: Brand.white, elevation: 2 },
-  modeLabel: { color: Brand.slate400, fontSize: 14, fontWeight: "800" },
+  modeLabel: { textAlign: "center", flexShrink: 1, color: Brand.slate400, fontSize: 14, fontWeight: "800" },
   modeLabelActive: { color: Brand.navyDark },
   pager: { flex: 1 },
   page: { flex: 1 },
@@ -536,7 +544,8 @@ const s = StyleSheet.create({
   input: {
     flex: 1,
     minHeight: 50,
-    paddingVertical: 0,
+    paddingVertical: 12,
+    minWidth: 0,
     color: Brand.slate800,
     fontSize: 16,
   },
@@ -561,6 +570,8 @@ const s = StyleSheet.create({
     alignSelf: "center",
     minHeight: 56,
     marginTop: 19,
+    paddingVertical: 8,
+    gap: 12,
     paddingLeft: 20,
     paddingRight: 8,
     borderRadius: 20,
@@ -570,6 +581,8 @@ const s = StyleSheet.create({
     backgroundColor: Brand.navyDark,
   },
   submitText: {
+    flex: 1,
+    flexShrink: 1,
     color: Brand.white,
     fontFamily: Fonts?.sans,
     fontSize: 14,

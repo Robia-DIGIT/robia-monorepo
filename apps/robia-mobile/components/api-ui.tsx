@@ -3,7 +3,7 @@ import { Brand } from '@/constants/theme';
 import { useRef, useState, type ComponentProps } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 export function Field({ label, ...props }: ComponentProps<typeof TextInput> & { label: string }) {
-  return <View style={{ gap: 6 }}><Text style={robiaStyles.body}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor={Brand.slate400} {...props} style={[s.input, props.multiline && { minHeight: 120, textAlignVertical: 'top' }, props.style]} /></View>;
+  return <View style={{ gap: 6, minWidth: 0, maxWidth: '100%' }}><Text style={robiaStyles.body}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor={Brand.slate400} {...props} style={[s.input, props.multiline && { minHeight: 120, textAlignVertical: 'top' }, props.style]} /></View>;
 }
 export function AsyncButton({ label, action, disabled = false, confirm, onSuccess }: { label: string; action(): Promise<unknown>; disabled?: boolean; confirm?: string; onSuccess?: string }) {
   const lock = useRef(false);
@@ -17,7 +17,7 @@ export function AsyncButton({ label, action, disabled = false, confirm, onSucces
     catch (e) { setError(e instanceof Error ? e.message : 'Action impossible. Réessayez.'); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <View style={{ gap: 6 }}>
+  return <View style={{ gap: 6, minWidth: 0, maxWidth: '100%' }}>
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: disabled || busy, busy }} disabled={disabled || busy}
       onPress={() => {
         if (!confirm) { void run(); return; }
@@ -42,8 +42,8 @@ export function Choices<T extends string>({ value, options, onChange }: { value:
 }
 export const apiStyles = StyleSheet.create({ stack: { gap: 14 }, title: robiaStyles.cardTitle, body: robiaStyles.body });
 const s = StyleSheet.create({
-  input: { minHeight: 52, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: Brand.borderSubtle, borderRadius: 8, backgroundColor: Brand.slate50, color: Brand.navyDark, fontSize: 16 },
+  input: { width: '100%', minWidth: 0, minHeight: 52, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: Brand.borderSubtle, borderRadius: 8, backgroundColor: Brand.slate50, color: Brand.navyDark, fontSize: 16 },
   button: { minHeight: 52, padding: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealDark },
-  buttonText: { color: 'white', fontWeight: '700', fontSize: 15 }, error: { color: '#9F2D20', lineHeight: 21 },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { minHeight: 48, padding: 12, borderRadius: 8, backgroundColor: Brand.slate100, justifyContent: 'center' }, selected: { backgroundColor: Brand.tealLight },
+  buttonText: { textAlign: 'center', flexShrink: 1, color: 'white', fontWeight: '700', fontSize: 15 }, error: { color: '#9F2D20', lineHeight: 21 },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { maxWidth: '100%', flexShrink: 1, minHeight: 48, padding: 12, borderRadius: 8, backgroundColor: Brand.slate100, justifyContent: 'center' }, selected: { backgroundColor: Brand.tealLight },
 });

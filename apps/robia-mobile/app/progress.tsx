@@ -219,6 +219,8 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   hero: { gap: 16 },
   progressHeader: {
+    flexWrap: "wrap",
+    gap: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

@@ -11,7 +11,7 @@ const EXAMPLES = [
 ] as const;
 
 const SHORTCUTS = [
-  { icon: 'insights', label: 'Consulter mes opportunités', href: '/(tabs)/opportunities' },
+  { icon: 'insights', label: 'Consulter mes opportunités', href: '/opportunities' },
   { icon: 'travel-explore', label: 'Lancer un audit', href: '/audit' },
   { icon: 'support-agent', label: 'Contacter l’équipe RobIA', href: '/support' },
 ] as const;
