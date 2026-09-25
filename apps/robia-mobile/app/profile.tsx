@@ -2,7 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { RobiaCard, RobiaScreen } from "@/components/robia-ui";
+import { RobiaCard, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
 import { Brand, Fonts } from "@/constants/theme";
 import { useRobiaData } from "@/src/api/data";
 import { useSession } from "@/src/auth/session";
@@ -51,18 +51,12 @@ export default function ProfileScreen() {
 
   return (
     <RobiaScreen fixedHeader>
-      <View style={styles.topBar}>
-        <View style={styles.topSpacer} />
-        <Text accessibilityRole="header" style={styles.pageTitle}>Entreprise</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Modifier le profil"
-          onPress={() => router.push("/settings")}
-          style={styles.editButton}
-        >
+      <RobiaHeader compact back title="Mon entreprise" action={
+        <Pressable accessibilityRole="button" accessibilityLabel="Modifier le profil"
+          onPress={() => router.push('/settings')} style={styles.editButton}>
           <MaterialIcons name="edit" size={18} color={Brand.navyDark} />
         </Pressable>
-      </View>
+      } />
 
       <View
         accessible

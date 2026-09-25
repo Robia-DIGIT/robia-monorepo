@@ -79,7 +79,7 @@ export function RobiaScreen({
       style={[
         styles.screenContent,
         scroll ? { width: "100%", maxWidth: layout.containerWidth, alignSelf: "center", flexGrow: 1 } : styles.fill,
-        { paddingHorizontal: layout.gutter, paddingBottom: tabPager ? 88 : 24 },
+        { paddingHorizontal: layout.gutter, paddingBottom: 24 },
         pinHeader && styles.screenContentBelowHeader,
         contentStyle,
       ]}
@@ -266,7 +266,6 @@ function FilterPage({ width, active, swipeGesture, refreshing, onRefresh, childr
   onRefresh?: () => Promise<unknown>;
 }>) {
   const layout = useResponsiveLayout();
-  const tabPager = useTabSwipe();
   const nativeScrollGesture = useMemo(() =>
     Gesture.Native().requireExternalGestureToFail(swipeGesture), [swipeGesture]);
 
@@ -284,7 +283,7 @@ function FilterPage({ width, active, swipeGesture, refreshing, onRefresh, childr
           showsVerticalScrollIndicator={false}
           refreshControl={onRefresh ? <RefreshControl refreshing={refreshing}
             onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
-          contentContainerStyle={[styles.filterPageContent, { paddingHorizontal: layout.gutter, paddingBottom: tabPager ? 88 : 24, width: "100%", maxWidth: layout.containerWidth, alignSelf: "center" }]}>
+          contentContainerStyle={[styles.filterPageContent, { paddingHorizontal: layout.gutter, paddingBottom: 24, width: "100%", maxWidth: layout.containerWidth, alignSelf: "center" }]}>
           {children}
         </ScrollView>
       </GestureDetector>
@@ -351,14 +350,22 @@ export function FilterChips({
   onChange,
   swipeToSelect = false,
   motion,
+  labels,
+  scrollGesture,
 }: {
   options: readonly string[];
   selected: string;
   onChange: (value: string) => void;
   swipeToSelect?: boolean;
   motion?: FilterMotion;
+  labels?: Readonly<Record<string, string>>;
+  scrollGesture?: PanGesture;
 }) {
   const scroll = useRef<ScrollView>(null);
+  const nativeChipGesture = useMemo(() => {
+    const gesture = Gesture.Native();
+    return scrollGesture ? gesture.blocksExternalGesture(scrollGesture) : gesture;
+  }, [scrollGesture]);
   const viewportWidth = useRef(0);
   const [layouts, setLayouts] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
   const positions = useRef<Record<string, { x: number; width: number }>>({});
@@ -385,7 +392,7 @@ export function FilterChips({
     extrapolate: 'clamp',
   });
 
-  return (
+  const chips = (
     <ScrollView
       ref={scroll}
       horizontal
@@ -449,13 +456,14 @@ export function FilterChips({
                   outputRange: [Brand.slate500, Brand.white, Brand.slate500],
                   extrapolate: 'clamp',
                 }) },
-              ]}>{option}</Animated.Text>
+              ]} >{labels?.[option] ?? option}</Animated.Text>
             </Pressable>
           );
         })}
       </View>
     </ScrollView>
   );
+  return scrollGesture ? <GestureDetector gesture={nativeChipGesture}>{chips}</GestureDetector> : chips;
 }
 
 export function StatusPill({

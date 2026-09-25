@@ -7,8 +7,8 @@ L’application reste verrouillée en portrait dans app.json. Les dimensions uti
 - Marges de 12, 20 ou 28 points selon la largeur disponible ; contenu centré, limité à 720 points sur les écrans larges.
 - Zones sûres pour les encoches et les barres système. La barre du bas gère son propre espace système.
 - Cartes de l’accueil en une ou plusieurs colonnes selon la place et la taille du texte. Les intitulés restent lisibles sans troncature systématique.
-- Navigation défilante quand les onglets ne tiennent plus. Le bouton de l’assistant suit la hauteur mesurée de cette navigation.
-- Formulaires défilants ; la navigation et l’assistant s’effacent pendant la saisie. Android redimensionne la fenêtre pour le clavier, iOS utilise un conteneur d’évitement du clavier.
+- Navigation défilante quand les onglets ne tiennent plus. Le profil, l’aide et l’assistant sont accessibles dans l’en-tête.
+- Formulaires défilants ; la navigation inférieure s’efface pendant la saisie. Android redimensionne la fenêtre pour le clavier, iOS utilise un conteneur d’évitement du clavier.
 - En-têtes ordinaires intégrés au défilement si la fenêtre est courte ou le texte très agrandi. Les en-têtes des pages à filtres restent défilants dans une zone limitée, laissant de la place aux résultats.
 - Boutons, choix et statuts autorisent le retour à la ligne. Les gestes entre pages et filtres gardent leur animation partagée.
 

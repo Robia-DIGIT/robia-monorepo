@@ -1,13 +1,42 @@
-import { RobiaHeader, RobiaScreen } from '@/components/robia-ui';
-import { NavCard } from '@/components/workspace-ui';
+import { Text } from 'react-native';
+import { apiStyles as s, LoadState } from '@/components/api-ui';
+import { RobiaCard, SectionTitle } from '@/components/robia-ui';
+import { SectionPager } from '@/components/section-pager';
+import { SiteSelector } from '@/components/site-selector';
+import { NavCard, Metric } from '@/components/workspace-ui';
+import { useRobiaData } from '@/src/api/data';
+import { auditScore } from '@/src/api/presentation';
+import { VISIBILITY_SECTIONS } from '@/src/navigation/sections';
+
 export default function VisibilityScreen() {
-  return <RobiaScreen fixedHeader><RobiaHeader compact title="Visibilité" subtitle="Comprendre votre présence en ligne et la faire progresser." />
-    <NavCard title="Diagnostic de mon site" description="Lancer un audit et consulter son historique." href="/history" icon="travel-explore" />
-    <NavCard title="Concurrents" description="Comparer les sites que vous suivez." href="/competitors" icon="compare-arrows" />
-    <NavCard title="Performances" description="Recherche Google, Analytics et réseaux sociaux." href="/reports" icon="insights" />
-    <NavCard title="Réseaux sociaux" description="Audience Facebook, Instagram et publications récentes." href="/social" icon="groups" />
-    <NavCard title="Fiches Google et avis" description="Synchroniser vos fiches, lire les avis et suivre les interactions." href="/business-profile" icon="storefront" />
-    <NavCard title="Mes Établissements" description="Adresses, horaires et météo locale." href="/locations" icon="place" />
-    <NavCard title="Analyse approfondie" description="Signaux et constats issus de vos audits." href="/intelligence" icon="psychology" />
-  </RobiaScreen>;
+  const { latestAudit, isLoading, error, refresh } = useRobiaData();
+  const score = auditScore(latestAudit);
+  return <SectionPager title="Visibilité" sections={VISIBILITY_SECTIONS} refreshing={isLoading} onRefresh={refresh}>
+    {section => section === 'audits' ? <>
+      <SectionTitle title="Comprendre ma visibilité" />
+      <SiteSelector />
+      <LoadState loading={isLoading} error={error} retry={refresh} />
+      <RobiaCard style={s.stack}>
+        <Metric label={score.label} value={score.value == null ? 'Non mesuré' : score.value + ' / 100'} />
+        <Text style={s.body}>Le diagnostic du site sélectionné guide vos prochaines améliorations.</Text>
+      </RobiaCard>
+      <NavCard title="Lancer un diagnostic" description="Analyser mon site et identifier ses points à améliorer." href="/audit" icon="travel-explore" />
+      <NavCard title="Historique et analyses" description="Retrouver les diagnostics déjà réalisés." href="/history" icon="history" />
+      <NavCard title="Analyse approfondie" description="Explorer les signaux et constats de mes audits." href="/intelligence" icon="psychology" />
+      <NavCard title="Concurrents" description="Comparer les sites que je suis." href="/competitors" icon="compare-arrows" />
+      <SectionTitle title="Mes sources" />
+      <NavCard title="Sites internet" description="Ajouter ou gérer mes sites." href="/websites" icon="language" />
+      <NavCard title="Connexions" description="Connecter mes comptes Google et Meta." href="/integrations" icon="hub" />
+    </> : section === 'performance' ? <>
+      <SectionTitle title="Mesurer mes résultats" />
+      <NavCard title="Rapports de performance" description="Recherche Google, Analytics et évolution de ma visibilité." href="/reports" icon="insights" />
+      <NavCard title="Réseaux sociaux" description="Audience Facebook, Instagram et publications récentes." href="/social" icon="groups" />
+      <NavCard title="Gérer mes connexions" description="Choisir les comptes et les sources de mes rapports." href="/integrations" icon="hub" />
+    </> : <>
+      <SectionTitle title="Être visible près de mes clients" />
+      <NavCard title="Fiches Google et avis" description="Synchroniser mes fiches, lire les avis et suivre les interactions." href="/business-profile" icon="storefront" />
+      <NavCard title="Mes établissements" description="Gérer mes adresses, coordonnées et consulter la météo locale." href="/locations" icon="place" />
+      <NavCard title="Importer mes établissements" description="Ajouter plusieurs adresses depuis un fichier." href="/location-import" icon="upload-file" />
+    </>}
+  </SectionPager>;
 }

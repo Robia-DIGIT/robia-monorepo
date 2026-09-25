@@ -26,7 +26,6 @@ function renderBar(index, { prevent = false, fontScale = 1, width = 390, insets 
   const navigator = Object.assign(() => null, { Screen: () => null });
   const mocks = {
     '@/src/navigation/responsive-layout': loadTypeScript('../src/navigation/responsive-layout.ts'),
-    '@/src/navigation/chrome-context': { useNavigationChrome: () => ({ setTabBarHeight() {} }) },
     '@/hooks/use-keyboard-visible': { useKeyboardVisible: () => keyboard },
     react: { ...React, useEffect() {}, useRef: value => ({ current: value }) },
     'react-native': {
@@ -52,7 +51,7 @@ function renderBar(index, { prevent = false, fontScale = 1, width = 390, insets 
   new Function('require', 'module', 'exports', compiled)(
     name => mocks[name] ?? require(name), module, module.exports,
   );
-  const names = ['dashboard', 'visibility', 'work', 'programs', 'profile'];
+  const names = ['dashboard', 'visibility', 'work'];
   const routes = names.map(name => ({ name, key: name + '-key' }));
   const tree = module.exports.RobiaTabBar({
     state: { index, routes },
@@ -67,7 +66,7 @@ function renderBar(index, { prevent = false, fontScale = 1, width = 390, insets 
 }
 
 test('exactly the displayed page has a selected icon after each navigation update', () => {
-  for (const index of [0, 4, 1, 3, 2, 0]) {
+  for (const index of [0, 2, 1, 2, 0]) {
     const { buttons } = renderBar(index);
     assert.deepEqual(buttons.map(button => button.props.accessibilityState.selected),
       buttons.map((_, position) => position === index));
@@ -80,10 +79,10 @@ test('exactly the displayed page has a selected icon after each navigation updat
 
 test('pressing another tab navigates to its route and handles unavailable haptics', async () => {
   const { buttons, visits, events } = renderBar(0);
-  buttons[4].props.onPress();
+  buttons[2].props.onPress();
   await Promise.resolve();
-  assert.deepEqual(visits, [['profile', undefined]]);
-  assert.deepEqual(events, [{ type: 'tabPress', target: 'profile-key', canPreventDefault: true }]);
+  assert.deepEqual(visits, [['work', undefined]]);
+  assert.deepEqual(events, [{ type: 'tabPress', target: 'work-key', canPreventDefault: true }]);
 });
 
 test('pressing the active tab or a prevented tab does not navigate again', () => {
@@ -91,17 +90,17 @@ test('pressing the active tab or a prevented tab does not navigate again', () =>
   active.buttons[2].props.onPress();
   assert.equal(active.visits.length, 0);
   const prevented = renderBar(0, { prevent: true });
-  prevented.buttons[4].props.onPress();
+  prevented.buttons[2].props.onPress();
   assert.equal(prevented.visits.length, 0);
 });
 
 test('large text keeps tabs reachable by scrolling and preserves long-press events', () => {
   const normal = renderBar(0);
-  const large = renderBar(4, { fontScale: 2 });
+  const large = renderBar(2, { fontScale: 2 });
   assert.equal(normal.scroll.props.scrollEnabled, false);
   assert.equal(large.scroll.props.scrollEnabled, true);
-  large.buttons[4].props.onLongPress();
-  assert.deepEqual(large.events, [{ type: 'tabLongPress', target: 'profile-key' }]);
+  large.buttons[2].props.onLongPress();
+  assert.deepEqual(large.events, [{ type: 'tabLongPress', target: 'work-key' }]);
 });
 
 test('a swipe visits each filter before crossing to the adjacent tab', () => {
@@ -137,7 +136,7 @@ test('all navbar routes use the common swipe navigator', () => {
   const layout = renderBar(0).layout();
   assert.equal(layout.props.backBehavior, 'history');
   assert.deepEqual(layout.props.children.map(screen => screen.props.name),
-    ['dashboard', 'visibility', 'work', 'programs', 'profile']);
+    ['dashboard', 'visibility', 'work']);
   assert.ok(layout.props.children.every(screen => screen.props.options.swipeEnabled !== false));
 });
 
@@ -168,6 +167,7 @@ test('the native filter gesture covers the header and content before vertical sc
       GestureDetector: 'GestureDetector',
       Gesture: { Native: () => ({
         requireExternalGestureToFail(gesture) { this.waitFor = gesture; return this; },
+        blocksExternalGesture(gesture) { this.blocks = gesture; return this; },
       }) },
     },
   });
@@ -238,6 +238,11 @@ test('the native filter gesture covers the header and content before vertical sc
     onChange() {}, swipeToSelect: true,
   });
   assert.equal(chips.props.scrollEnabled, false);
+  const subsectionBar = FilterChips({ options: ['actions', 'documents'], labels: { actions: 'Actions', documents: 'Documents' }, selected: 'actions', onChange() {}, scrollGesture: swipeGesture });
+  assert.equal(subsectionBar.type, 'GestureDetector');
+  assert.equal(subsectionBar.props.gesture.blocks, swipeGesture);
+  assert.equal(subsectionBar.props.children.props.scrollEnabled, true);
+  assert.equal(subsectionBar.props.children.props.children.props.children[2][0].props.children.props.children, 'Actions');
   const scrolls = [];
   chips.props.ref.current = { scrollTo: value => scrolls.push(value) };
   chips.props.onLayout({ nativeEvent: { layout: { width: 200 } } });
@@ -520,7 +525,7 @@ test('reversing a boundary drag can return to the filter pager without moving bo
   assert.deepEqual(visits, []);
 });
 
-test('Home and Profile use the same live pager and cannot swipe outside the route list', () => {
+test('first and last routes use the same live pager and cannot swipe outside the route list', () => {
   for (const tabIndex of [0, 4]) {
     const inward = tabIndex === 0 ? -1 : 1;
     const first = createSwipeHarness({ tabIndex, filters: ['page'], selected: 'page' });
@@ -610,7 +615,7 @@ test('navbar stays inside safe bounds on small phones and large displays', () =>
   for (const width of [280, 320, 360, 390, 430, 600, 768, 1024]) {
     for (const fontScale of [1, 1.3, 2, 3]) {
       const insets = { top: 24, bottom: 34, left: 24, right: 48 };
-      const { tree, buttons, scroll } = renderBar(3, { width, fontScale, insets });
+      const { tree, buttons, scroll } = renderBar(2, { width, fontScale, insets });
       const bar = tree.props.style[1];
       assert.ok(bar.width > 0 && bar.width <= 720);
       assert.ok(bar.marginLeft >= insets.left);
@@ -624,5 +629,5 @@ test('navbar stays inside safe bounds on small phones and large displays', () =>
 });
 test('keyboard releases navbar space for form fields', () => {
   assert.equal(renderBar(0, { keyboard: true }).hidden, true);
-  assert.equal(renderBar(0, { keyboard: false }).buttons.length, 5);
+  assert.equal(renderBar(0, { keyboard: false }).buttons.length, 3);
 });

@@ -1,6 +1,3 @@
-import { NavigationChromeProvider, useNavigationChrome } from '@/src/navigation/chrome-context';
-import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Image } from 'expo-image';
@@ -8,7 +5,7 @@ import { router, Stack, useRootNavigationState, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { CopilotProvider } from 'react-native-copilot';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -19,7 +16,6 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { LOGO_SETTLED_PROGRESS, useLaunchAnimation } from '@/hooks/use-launch-animation';
 import { RobiaDataProvider } from '@/src/api/data';
 import { SessionProvider, useSession } from '@/src/auth/session';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // The native splash may already be hidden during fast refresh.
@@ -34,7 +30,7 @@ export const unstable_settings = { anchor: '(tabs)', initialRouteName: 'index' }
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationChromeProvider><SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider></NavigationChromeProvider>
+      <SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider>
     </GestureHandlerRootView>
   );
 }
@@ -42,9 +38,6 @@ export default function RootLayout() {
 function AppLayout() {
   const colorScheme = useColorScheme();
   const reduceMotion = useReducedMotion();
-  const insets = useSafeAreaInsets();
-  const { tabBarHeight } = useNavigationChrome();
-  const keyboardVisible = useKeyboardVisible();
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
   const { token, user, isLoading } = useSession();
@@ -201,10 +194,6 @@ function AppLayout() {
     curveY: -70,
     rotation: '300deg',
   });
-  // Keep the assistant outside the pager so it stays mounted and stationary
-  // while the user changes tabs by pressing the navbar or swiping.
-  const showAssistantButton = Boolean(token) && !isLoading && !keyboardVisible && segments[0] === '(tabs)';
-
   return (
     <ThemeProvider value={navigationTheme}>
       <CopilotProvider>
@@ -229,24 +218,6 @@ function AppLayout() {
         <Stack.Screen name="reports" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
-
-      {showAssistantButton ? (
-        <Pressable
-          accessibilityLabel="Ouvrir l'assistant RobIA"
-          accessibilityRole="button"
-          testID="floating-assistant"
-          onPress={() => router.navigate('/chat')}
-          accessibilityHint="Découvrir le chatbot RobIA, bientôt disponible"
-          style={[styles.assistantButton, { right: insets.right + 18, bottom: Math.max(insets.bottom, 10) + tabBarHeight + 18 }]}>
-          <View pointerEvents="none" style={styles.assistantHalo} />
-          <View pointerEvents="none" style={styles.assistantCore}>
-            <MaterialIcons name="chat-bubble-outline" size={27} color={Brand.tealDark} />
-            <View style={styles.assistantRobot}>
-              <MaterialIcons name="smart-toy" size={12} color={Brand.white} />
-            </View>
-          </View>
-        </Pressable>
-      ) : null}
 
       {showLaunchAnimation ? (
         <Animated.View
@@ -292,52 +263,6 @@ function AppLayout() {
 }
 
 const styles = StyleSheet.create({
-  assistantButton: {
-    position: 'absolute',
-    right: 18,
-    zIndex: 900,
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Brand.white,
-    borderWidth: 0,
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 5,
-  },
-  assistantHalo: {
-    position: 'absolute',
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: Brand.tealLight,
-  },
-  assistantCore: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Brand.tealLight,
-    borderWidth: 0,
-  },
-  assistantRobot: {
-    position: 'absolute',
-    right: 3,
-    bottom: 3,
-    width: 20,
-    height: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Brand.teal,
-    borderWidth: 2,
-    borderColor: Brand.white,
-  },
   launchOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,

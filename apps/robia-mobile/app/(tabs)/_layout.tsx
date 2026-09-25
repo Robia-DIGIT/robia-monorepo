@@ -1,5 +1,4 @@
 import { tabLayout } from '@/src/navigation/responsive-layout';
-import { useNavigationChrome } from '@/src/navigation/chrome-context';
 import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Brand, Fonts } from "@/constants/theme";
@@ -38,9 +37,7 @@ const SwipeTabs = withLayoutContext<
 const TABS = [
   { name: "dashboard", title: "Accueil", icon: "house.fill" },
   { name: "visibility", title: "Visibilité", icon: "chart.bar.fill" },
-  { name: "work", title: "Travail", icon: "doc.text.fill" },
-  { name: "programs", title: "Candidature", icon: "person.3.fill" },
-  { name: "profile", title: "Entreprise", icon: "person.crop.circle.fill" },
+  { name: "work", title: "Activité", icon: "doc.text.fill" },
 ] as const;
 
 // Use the navigator's selected route as the only source of selection. The
@@ -56,7 +53,6 @@ export function RobiaTabBar({
   const reduceMotion = useReducedMotion();
   const { buildHref } = useLinkBuilder();
   const scroll = useRef<ScrollView>(null);
-  const { setTabBarHeight } = useNavigationChrome();
   const keyboardVisible = useKeyboardVisible();
   const { width: barWidth, scroll: shouldScroll, itemWidth } = tabLayout(
     width - insets.left - insets.right - 24, fontScale, state.routes.length,
@@ -73,7 +69,7 @@ export function RobiaTabBar({
 
   if (keyboardVisible) return null;
   return (
-    <View onLayout={event => setTabBarHeight(event.nativeEvent.layout.height)}
+    <View
       style={[styles.bar, { width: barWidth, marginLeft: insets.left + (width - insets.left - insets.right - barWidth) / 2, marginBottom: Math.max(insets.bottom, 10) }]}>
       <ScrollView
         ref={scroll}

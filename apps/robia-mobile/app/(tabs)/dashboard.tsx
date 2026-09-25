@@ -1,3 +1,4 @@
+import { WorkspaceHeader } from '@/components/workspace-header';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { AsyncButton } from '@/components/api-ui';
 import { auditScore } from '@/src/api/presentation';
@@ -5,7 +6,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
-import { RobiaCard, RobiaHeader, RobiaScreen } from '@/components/robia-ui';
+import { RobiaCard, RobiaScreen } from '@/components/robia-ui';
 import { SiteSelector } from '@/components/site-selector';
 import { Brand, Fonts } from '@/constants/theme';
 import { useRobiaData } from '@/src/api/data';
@@ -19,16 +20,10 @@ const CopilotTarget = walkthroughable(View);
 const GUIDE_SEEN_KEY = 'robia.dashboard-guide-seen';
 
 const TOOLS = [
-  { label: 'Vue d’ensemble', description: 'Sources et constats', icon: 'insights', href: '/intelligence' },
-  { label: 'Mes sites', description: 'Présences connectées', icon: 'language', href: '/websites' },
-  { label: 'Connexions', description: 'Google, Meta et autres', icon: 'hub', href: '/integrations' },
-  { label: 'Rapports', description: 'Mesurer les performances', icon: 'assessment', href: '/reports' },
-  { label: 'Automatisations', description: 'Déclencheurs et contrôles', icon: 'autorenew', href: '/automations' },
-  { label: 'Validations', description: 'Décisions à confirmer', icon: 'fact-check', href: '/validations' },
-  { label: 'Historique', description: 'Tous vos audits', icon: 'history', href: '/history' },
-  { label: 'Établissements', description: 'Coordonnées et météo', icon: 'storefront', href: '/locations' },
-  { label: 'Abonnement', description: 'Offre et facturation', icon: 'credit-card', href: '/billing' },
-  { label: 'Support', description: 'Besoin d’aide ?', icon: 'support-agent', href: '/support' },
+  { label: 'Mes performances', description: 'Comprendre mes résultats', icon: 'insights', href: '/(tabs)/visibility?section=performance' },
+  { label: 'Mes actions', description: 'Choisir mes prochaines étapes', icon: 'checklist', href: '/(tabs)/work?section=actions' },
+  { label: 'Mes documents', description: 'Retrouver mes contenus', icon: 'description', href: '/(tabs)/work?section=documents' },
+  { label: 'Candidatures', description: 'Programmes et dossiers', icon: 'groups', href: '/(tabs)/work?section=programs' },
 ] as const;
 
 export default function HomeScreen() {
@@ -65,14 +60,14 @@ export default function HomeScreen() {
     <RobiaScreen fixedHeader refreshing={isLoading} onRefresh={refresh}>
       <CopilotStep order={1} name="welcome" text="Votre tableau de bord rassemble les indicateurs et les prochaines actions de votre entreprise.">
         <CopilotTarget style={styles.header}>
-          <RobiaHeader
-            eyebrow="ROBIA COPILOT"
-            title={`Bonjour, ${firstName}`}
-            subtitle={`${organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui`}
-          />
+          <WorkspaceHeader title="Accueil" />
         </CopilotTarget>
       </CopilotStep>
 
+      <View style={{ gap: 4 }}>
+        <Text style={styles.greeting}>Bonjour, {firstName}</Text>
+        <Text style={styles.context}>{organization?.city ?? 'Votre espace'} · Votre visibilité aujourd’hui</Text>
+      </View>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
 
 
@@ -135,7 +130,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={tool.label}
             accessibilityHint={tool.description}
-            onPress={() => router.push(tool.href)}
+            onPress={() => router.navigate(tool.href)}
             style={({ pressed }) => [styles.tool, { width: toolWidth }, pressed && styles.pressed]}>
             <View style={styles.toolIcon}>
               <MaterialIcons name={tool.icon} size={19} color={Brand.tealDark} />
