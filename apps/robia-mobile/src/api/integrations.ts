@@ -15,8 +15,9 @@ export function assetLabel(asset: Asset) {
   return asset.pageName ?? asset.displayName ?? asset.siteUrl ?? asset.propertyId ?? asset.pageId ?? 'Élément sans nom';
 }
 export type MetaPerformance = {
-  facebook: { pageName: string; followersCount: number | null; fanCount: number | null };
-  instagram: { username: string; followersCount: number | null; mediaCount: number | null } | null;
+  lastSyncedAt?: string;
+  facebook: { talkingAboutCount?: number | null; pageName: string; followersCount: number | null; fanCount: number | null };
+  instagram: { followsCount?: number | null; recentMedia?: { id: string | null; caption: string | null; permalink: string | null; timestamp: string | null; likeCount: number | null; commentsCount: number | null }[]; username: string; followersCount: number | null; mediaCount: number | null } | null;
 };
 export type Performance = {
   startDate: string; endDate: string; siteUrl?: string; propertyName?: string | null;

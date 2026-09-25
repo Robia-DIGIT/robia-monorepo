@@ -44,7 +44,7 @@ export type Opportunity = {
   status: "open" | "in_progress" | "done" | "ignored";
   createdAt: string;
 };
-export type RobiaDocument = {
+export type RobiaDocument = { revision: number;
   id: string;
   opportunityId: string;
   type: string;

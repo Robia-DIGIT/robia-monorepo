@@ -1,4 +1,4 @@
-import { AsyncButton, LoadState } from '@/components/api-ui';
+import { AsyncButton, Choices, LoadState } from '@/components/api-ui';
 import {
     FilterChips,
     FilterTransition,
@@ -17,7 +17,8 @@ import { useFilterMotion } from '@/hooks/use-filter-motion';
 import { useFilterSwipe } from '@/hooks/use-filter-swipe';
 import { useRobiaData } from "@/src/api/data";
 import { shareActionPdf } from '@/src/api/export';
-import type { ActionStatus } from "@/src/api/types";
+import type { ActionItem, ActionStatus } from "@/src/api/types";
+import { useResource } from '@/src/api/use-resource';
 import { useSession } from '@/src/auth/session';
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from 'expo-router';
@@ -48,9 +49,13 @@ const ICON: Record<
   ignored: "visibility-off",
 };
 export default function ProgressScreen() {
-  const { actions, isLoading, error, refresh, selectedWebsiteId, generatePlan } =
+  const { selectedWebsiteId, generatePlan } =
     useRobiaData();
   const { request } = useSession();
+  const [scope, setScope] = useState('all');
+  const resource = useResource<ActionItem[]>(scope === 'all' ? '/actions' : selectedWebsiteId ? '/actions?website_id=' + encodeURIComponent(selectedWebsiteId) : null);
+  const actions = useMemo(() => resource.data ?? [], [resource.data]);
+  const { loading: isLoading, error, reload: refresh } = resource;
   const [planError, setPlanError] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
   const [filter, setFilter] = useState("Toutes");
@@ -76,7 +81,7 @@ export default function ProgressScreen() {
     if (planning) return;
     setPlanError(null); setPlanning(true);
     try {
-      await generatePlan();
+      await generatePlan(); await refresh();
     } catch (error) { setPlanError(error instanceof Error ? error.message : "Planification impossible."); } finally {
       setPlanning(false);
     }
@@ -87,10 +92,11 @@ export default function ProgressScreen() {
       <RobiaFixedHeader>
         <RobiaHeader compact back
           eyebrow="PLAN D’ACTION"
-          title="Suivi"
+          title="Plan d’action"
           subtitle="Pilotez les actions générées par RobIA et leurs échéances."
         />
-        <SiteSelector />
+        <Choices value={scope} onChange={setScope} options={[{value:'all',label:'Toute l’entreprise'},{value:'site',label:'Un site'}]} />
+        {scope === 'site' ? <SiteSelector /> : null}
         <FilterChips options={filters} selected={filter} onChange={setFilter} swipeToSelect motion={motion} />
       </RobiaFixedHeader>
       <FilterTransition filterKey={filter} options={filters} motion={motion}
@@ -104,7 +110,7 @@ export default function ProgressScreen() {
           });
           return (<>
             <LoadState loading={isLoading} error={error ?? planError} retry={refresh} />
-            <AsyncButton label="Partager le plan PDF" disabled={!actions.length} action={() => shareActionPdf(request, selectedWebsiteId)} />
+            <AsyncButton label="Partager le plan PDF" disabled={!actions.length} action={() => shareActionPdf(request, scope === 'site' ? selectedWebsiteId : null)} />
             <RobiaCard style={styles.hero} accent={Brand.teal}>
               <View style={styles.progressHeader}>
                 <View>

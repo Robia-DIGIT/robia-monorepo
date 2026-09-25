@@ -9,6 +9,9 @@ import {
     StatusPill,
     robiaStyles,
 } from "@/components/robia-ui";
+import { AsyncButton } from '@/components/api-ui';
+import { isSiteAudit } from '@/src/api/presentation';
+import { useSession } from '@/src/auth/session';
 import { SiteSelector } from '@/components/site-selector';
 import { Brand } from "@/constants/theme";
 import { useFilterMotion } from '@/hooks/use-filter-motion';
@@ -27,6 +30,7 @@ import {
 } from "react-native";
 
 export default function OpportunitiesScreen() {
+  const { request } = useSession();
   const {
     opportunities,
     latestAudit,
@@ -82,7 +86,7 @@ export default function OpportunitiesScreen() {
           });
           return (<>
               {actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}
-            {/* {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null} */}
+            {latestAudit?.status === "completed" ? <><AsyncButton label="Actualiser les recommandations" action={async () => { await request(isSiteAudit(latestAudit.resultJson) ? "/opportunities/generate-site" : "/opportunities/generate", { method: "POST", body: { auditId: latestAudit.id }, timeoutMs: 180000 }); await refresh(); }} /></> : null}
             <View style={styles.summary}>
               <Text style={styles.summaryCount}>{visibleOpportunities.length}</Text>
               <Text style={robiaStyles.body}>opportunités classées par impact.</Text>

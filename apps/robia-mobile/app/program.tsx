@@ -12,21 +12,21 @@ function NewApplication({ program, applications, reload }: { program: Program; a
   const { request } = useSession(); const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [phone, setPhone] = useState('');
   const [applicant, setApplicant] = useState<Applicant | null>(null);
   const otherPrograms = useResource<Program[]>('/odc/programs');
-  const [source, setSource] = useState(''); const [reuse, setReuse] = useState('');
+  const [mode, setMode] = useState('new'); const [source, setSource] = useState(''); const [reuse, setReuse] = useState('');
   const candidates = useResource<Application[]>(source ? '/odc/programs/' + encodeURIComponent(source) + '/applications' : null);
   return <RobiaCard style={s.stack}><Text style={s.title}>Nouveau dossier</Text>
-    <Choices value={source ? 'existing' : 'new'} onChange={v => { setSource(v === 'new' ? '' : otherPrograms.data?.find(p => p.id !== program.id)?.id ?? ''); setReuse(''); }} options={[{ value: 'new', label: 'Nouveau candidat' }, { value: 'existing', label: 'Candidat d’un autre programme' }]} />
-    {source ? <><LoadState {...otherPrograms} retry={otherPrograms.reload} /><Choices value={source} onChange={v => { setSource(v); setReuse(''); }} options={otherPrograms.data?.filter(p => p.id !== program.id).map(p => ({ value: p.id, label: p.name })) ?? []} /><LoadState {...candidates} retry={candidates.reload} /><Choices value={reuse} onChange={setReuse} options={candidates.data?.filter(a => !applications.some(existing => existing.applicantId === a.applicantId)).map(a => ({ value: a.applicantId, label: a.applicant.displayName })) ?? []} /></> : <>
+    <Choices value={mode} onChange={v => { setMode(v); setSource(v === 'new' ? '' : otherPrograms.data?.find(p => p.id !== program.id)?.id ?? ''); setReuse(''); }} options={[{ value: 'new', label: 'Nouveau candidat' }, { value: 'existing', label: 'Candidat d’un autre programme' }]} />
+    {mode === 'existing' ? <><LoadState {...otherPrograms} retry={otherPrograms.reload} />{!otherPrograms.loading && !otherPrograms.data?.some(p => p.id !== program.id) ? <Text style={s.body}>Aucun autre programme disponible. Ajoutez un nouveau candidat.</Text> : null}<Choices value={source} onChange={v => { setSource(v); setReuse(''); }} options={otherPrograms.data?.filter(p => p.id !== program.id).map(p => ({ value: p.id, label: p.name })) ?? []} /><LoadState {...candidates} retry={candidates.reload} /><Choices value={reuse} onChange={setReuse} options={candidates.data?.filter(a => !applications.some(existing => existing.applicantId === a.applicantId)).map(a => ({ value: a.applicantId, label: a.applicant.displayName })) ?? []} /></> : <>
       <Field label="Nom du candidat" value={name} onChangeText={setName} editable={!applicant} /><Field label="E-mail (pour les invitations)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={!applicant} /><Field label="Téléphone (facultatif)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" editable={!applicant} />
     </>}
-    <AsyncButton label="Créer le dossier" disabled={source ? !reuse : !name.trim()} action={async () => {
+    <AsyncButton label="Créer le dossier" disabled={mode === 'existing' ? !reuse : !name.trim()} action={async () => {
       let applicantId = reuse;
-      if (!source) {
+      if (mode === 'new') {
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error('Saisissez une adresse e-mail valide.');
         const candidate = applicant ?? await request<Applicant>('/odc/applicants', { method: 'POST', body: { displayName: name.trim(), email: email.trim() || undefined, phone: phone.trim() || undefined } }); setApplicant(candidate); applicantId = candidate.id;
       }
       const result = await request<Application>('/odc/programs/' + encodeURIComponent(program.id) + '/applications', { method: 'POST', body: { applicantId } });
-      await reload(); router.push({ pathname: '/application', params: { id: result.id } });
+      setApplicant(null); setName(''); setEmail(''); setPhone(''); setReuse(''); await reload(); router.push({ pathname: '/application', params: { id: result.id } });
     }} />
     {applicant ? <Text style={s.body}>Le candidat est enregistré. En cas d’erreur, vous pouvez réessayer la création du dossier sans le recréer.</Text> : null}
   </RobiaCard>;

@@ -25,7 +25,7 @@ export async function uploadApplicationDocument(request: Request, applicationId:
   }
 }
 export async function downloadApplicationDocument(request: Request, documentInfo: ApplicationDocument) {
-  const blob = await request<Blob>('/odc/documents/' + encodeURIComponent(documentInfo.id) + '/file', { responseType: 'file', timeoutMs: 90000 });
+  const blob = await request<Blob>('/odc/documents/' + encodeURIComponent(documentInfo.id) + '/file', { responseType: 'file', expectedContentType: documentInfo.mimeType, timeoutMs: 90000 });
   const name = documentInfo.originalName.replace(/[^a-zA-Z0-9._ -]/g, '_').replace(/^\.+/, '').slice(-120) || 'document';
   if (Platform.OS === 'web') {
     const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); return;

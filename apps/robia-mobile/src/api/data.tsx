@@ -41,18 +41,17 @@ export function RobiaDataProvider({ children }: PropsWithChildren) {
       const site = websites.find(s => s.id === selectedRef.current) ?? websites[0];
       const next: Snapshot = { ...EMPTY, websites };
       if (site) {
-        const [actions, audit] = await Promise.all([
+        const [actions, audit, documents] = await Promise.all([
           request<ActionItem[]>('/actions' + queryString({ website_id: site.id })),
           request<Audit | null>('/audits/latest' + queryString({ website_id: site.id })).catch(error => {
             if (error instanceof ApiError && error.status === 404) return null; throw error;
           }),
+          request<RobiaDocument[]>('/documents' + queryString({ website_id: site.id })),
         ]);
-        next.actions = actions; next.latestAudit = audit;
+        next.actions = actions; next.latestAudit = audit; next.documents = documents;
         if (audit?.status === 'completed') {
           next.opportunities = await request<Opportunity[]>('/opportunities' + queryString({ audit_id: audit.id }));
-          const groups = await Promise.allSettled(next.opportunities.map(o => request<RobiaDocument[]>('/documents' + queryString({ opportunity_id: o.id }))));
-          next.documents = groups.flatMap(g => g.status === 'fulfilled' ? g.value : []);
-          if (current() && groups.some(g => g.status === 'rejected')) setError('Certains documents sont indisponibles. Actualisez pour réessayer.');
+
         }
       }
       if (current()) {

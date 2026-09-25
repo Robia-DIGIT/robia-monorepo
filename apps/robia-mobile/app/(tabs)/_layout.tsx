@@ -36,7 +36,7 @@ const TABS = [
   { name: "dashboard", title: "Accueil", icon: "house.fill" },
   { name: "visibility", title: "Visibilité", icon: "chart.bar.fill" },
   { name: "work", title: "Travail", icon: "doc.text.fill" },
-  { name: "programs", title: "Candidatures", icon: "person.crop.circle.fill" },
+  { name: "programs", title: "Candidatures", icon: "person.3.fill" },
   { name: "profile", title: "Entreprise", icon: "person.crop.circle.fill" },
 ] as const;
 

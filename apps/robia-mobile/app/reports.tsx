@@ -1,5 +1,6 @@
 import { AsyncButton, LoadState, apiStyles as s } from "@/components/api-ui";
 import { RobiaCard, RobiaFixedHeader, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
+import { NavCard } from "@/components/workspace-ui";
 import { SiteSelector } from "@/components/site-selector";
 import { useRobiaData } from "@/src/api/data";
 import { shareActionPdf } from "@/src/api/export";
@@ -111,6 +112,8 @@ export default function ReportsScreen() {
         label="Gérer mes connexions"
         action={async () => router.push("/integrations")}
       />
+      <NavCard title="Facebook et Instagram" description="Audience et publications récentes" href="/social" />
+      <NavCard title="Performances locales Google" description="Vues, appels et itinéraires de vos établissements" href="/business-profile" />
       <LoadState {...connection} retry={connection.reload} />
       {connection.data?.connected && connection.data.selectedSiteUrl ? (
         <PerformanceCard

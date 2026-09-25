@@ -37,6 +37,7 @@ export function normalizeCondition(node: Condition, depth = 0): Condition {
     if (!allowed.includes(node.operator)) throw new Error('Comparaison incompatible avec ' + field.label + '.');
     if (['exists','notExists'].includes(node.operator)) return { field: node.field, operator: node.operator };
     const values = ['in','notIn'].includes(node.operator) ? (Array.isArray(node.value) ? node.value : String(node.value ?? '').split('\n')) : [node.value];
+    if (!values.length) throw new Error('Renseignez au moins une valeur.');
     const parsed = values.map(v => { const text = String(v ?? '').trim(); if (!text) throw new Error('Renseignez la valeur de ' + field.label + '.'); const result = field.numeric ? Number(text.replace(',', '.')) : text; if (typeof result === 'number' && !Number.isFinite(result)) throw new Error(field.label + ' : nombre invalide.'); return result; });
     return { field: node.field, operator: node.operator, value: ['in','notIn'].includes(node.operator) ? parsed : parsed[0] };
   }

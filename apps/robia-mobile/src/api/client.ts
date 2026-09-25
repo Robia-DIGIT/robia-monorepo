@@ -1,12 +1,12 @@
 const DEFAULT_API_URL = 'https://api.robiacopilot.site';
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, '');
-export type RequestOptions = Omit<RequestInit, 'body'> & { body?: unknown; timeoutMs?: number; responseType?: 'json' | 'blob' | 'file' };
+export type RequestOptions = Omit<RequestInit, 'body'> & { body?: unknown; timeoutMs?: number; responseType?: 'json' | 'blob' | 'file'; expectedContentType?: string };
 export type ApiOptions = RequestOptions & { token?: string | null };
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly details?: unknown) { super(message); this.name = 'ApiError'; }
 }
 export async function apiRequest<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { body, token, headers, signal, timeoutMs = 30000, responseType = 'json', ...rest } = options;
+  const { body, token, headers, signal, timeoutMs = 30000, responseType = 'json', expectedContentType, ...rest } = options;
   const controller = new AbortController();
   let timedOut = false;
   const abort = () => controller.abort();
@@ -25,6 +25,7 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
     });
     if (response.ok && (responseType === 'blob' || responseType === 'file')) {
       if (responseType === 'blob' && !response.headers.get('content-type')?.includes('application/pdf')) throw new ApiError('Le serveur ne renvoie pas un PDF valide.', 502);
+      if (responseType === 'file' && expectedContentType && response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== expectedContentType.toLowerCase()) throw new ApiError('Le fichier reçu ne correspond pas au format attendu.', 502);
       return await response.blob() as T;
     }
     const text = await response.text();

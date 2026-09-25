@@ -26,7 +26,7 @@ function DocumentEditor({ id }: { id: string }) {
   const navigation = useNavigation();
   const path = id ? "/documents/" + encodeURIComponent(id) : null;
   const resource = useResource<RobiaDocument>(path);
-  const [editor, setEditor] = useState<{ text: string; base: string } | null>(
+  const [editor, setEditor] = useState<{ text: string; base: string; revision: number } | null>(
     null,
   );
   const [actionType, setActionType] = useState("publish");
@@ -38,13 +38,13 @@ function DocumentEditor({ id }: { id: string }) {
     const content = resource.data.content;
     setEditor((previous) =>
       !previous || previous.text === previous.base
-        ? { text: content, base: content }
+        ? { text: content, base: content, revision: resource.data!.revision }
         : previous,
     );
   }, [resource.data]);
   const dirty = !!editor && editor.text !== editor.base;
   const remoteChanged =
-    !!editor && !!resource.data && resource.data.content !== editor.base;
+    !!editor && !!resource.data && (resource.data.content !== editor.base || resource.data.revision !== editor.revision);
   usePreventRemove(dirty, ({ data }) => {
     const discard = () => navigation.dispatch(data.action);
     if (Platform.OS === "web") {
@@ -121,6 +121,7 @@ function DocumentEditor({ id }: { id: string }) {
                   setEditor({
                     text: resource.data!.content,
                     base: resource.data!.content,
+                    revision: resource.data!.revision,
                   });
                 }}
               />
@@ -133,11 +134,11 @@ function DocumentEditor({ id }: { id: string }) {
             action={() =>
               mutate(async () => {
                 const submitted = editor.text;
-                await request(path!, {
+                const saved = await request<RobiaDocument>(path!, {
                   method: "PATCH",
-                  body: { content: submitted },
+                  body: { content: submitted, expectedRevision: editor.revision },
                 });
-                setEditor({ text: submitted, base: submitted });
+                setEditor({ text: saved.content, base: saved.content, revision: saved.revision });
                 await reload();
               })
             }

@@ -5,6 +5,7 @@ import {
   apiStyles as s,
 } from "@/components/api-ui";
 import { RobiaCard, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
+import { NavCard, Toggle } from "@/components/workspace-ui";
 import { useResource } from "@/src/api/use-resource";
 import { useSession } from "@/src/auth/session";
 import { useState } from "react";
@@ -15,6 +16,8 @@ type Location = {
   address: string | null;
   city: string | null;
   country: string | null;
+  phone?: string | null;
+  isPrimary?: boolean;
   openingHours?: { weekdayText?: string[] } | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -25,7 +28,8 @@ type Weather = {
   description: string;
   observedAt: string;
 };
-function LocationDetail({ id }: { id: string }) {
+function LocationDetail({ id, onRemoved }: { id: string; onRemoved(): Promise<unknown> }) {
+  const { request } = useSession();
   const r = useResource<Location>("/locations/" + encodeURIComponent(id));
   const hasCoordinates = r.data?.latitude != null && r.data?.longitude != null;
   const weather = useResource<Weather>(
@@ -41,6 +45,8 @@ function LocationDetail({ id }: { id: string }) {
           .filter(Boolean)
           .join(", ")}
       </Text>
+      {r.data?.phone ? <Text style={s.body}>{r.data.phone}</Text> : null}
+      {r.data?.isPrimary ? <Text style={s.body}>Établissement principal</Text> : null}
       {r.data?.openingHours?.weekdayText?.map((t) => (
         <Text key={t} style={s.body}>
           {t}
@@ -53,6 +59,7 @@ function LocationDetail({ id }: { id: string }) {
         </Text>
       ) : null}
       <LoadState {...weather} retry={weather.reload} />
+      {r.data ? <AsyncButton label="Supprimer cet établissement" confirm={"Supprimer " + r.data.name + " de ROBIA ?"} action={async () => { await request("/locations/" + encodeURIComponent(id), { method: "DELETE" }); await onRemoved(); }} /> : null}
       {w?.temperatureC != null ? (
         <Text style={s.body}>
           {w.description} · {w.temperatureC} °C · {w.observedAt}
@@ -70,11 +77,13 @@ export default function LocationsScreen() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [phone, setPhone] = useState(""); const [primary, setPrimary] = useState(false);
   const [placeId, setPlaceId] = useState<string | undefined>();
   const [selected, setSelected] = useState<string | null>(null);
   return (
     <RobiaScreen fixedHeader>
       <RobiaHeader compact back title="Mes établissements" />
+      <NavCard title="Importer mes établissements" description="Reprendre les adresses de votre ancien outil depuis un fichier CSV." href="/location-import" />
       <RobiaCard style={s.stack}>
         <Field
           label="Rechercher un établissement"
@@ -115,6 +124,8 @@ export default function LocationsScreen() {
         <Field label="Adresse" value={address} onChangeText={setAddress} />
         <Field label="Ville" value={city} onChangeText={setCity} />
         <Field label="Pays" value={country} onChangeText={setCountry} />
+        <Field label="Téléphone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <Toggle label="Établissement principal" value={primary} onChange={setPrimary} />
         <AsyncButton
           label="Ajouter cet établissement"
           disabled={!name.trim()}
@@ -127,6 +138,7 @@ export default function LocationsScreen() {
                 address: address || undefined,
                 city: city || undefined,
                 country: country || undefined,
+                phone: phone.trim() || undefined, isPrimary: primary,
               },
             });
             setSelected(location.id);
@@ -134,7 +146,7 @@ export default function LocationsScreen() {
             setAddress("");
             setCity("");
             setCountry("");
-            setPlaceId(undefined);
+            setPlaceId(undefined); setPhone(""); setPrimary(false);
             await list.reload();
           }}
         />
@@ -147,7 +159,7 @@ export default function LocationsScreen() {
           action={async () => setSelected(l.id)}
         />
       ))}
-      {selected ? <LocationDetail key={selected} id={selected} /> : null}
+      {selected ? <LocationDetail key={selected} id={selected} onRemoved={async () => { setSelected(null); await list.reload(); }} /> : null}
     </RobiaScreen>
   );
 }
