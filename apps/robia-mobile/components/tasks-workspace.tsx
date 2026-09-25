@@ -52,7 +52,7 @@ export function TasksWorkspace() {
       <Text style={s.eyebrow}>MON PLAN DE TRAVAIL</Text>
       <View style={s.heroRow}>
         <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={s.ring}>
-          <Svg width={76} height={76} viewBox="0 0 76 76"><Circle cx={38} cy={38} r={32} stroke="#CCE4DC" strokeWidth={6} fill="none" />
+          <Svg width={64} height={64} viewBox="0 0 76 76"><Circle cx={38} cy={38} r={32} stroke="#CCE4DC" strokeWidth={6} fill="none" />
             <Circle cx={38} cy={38} r={32} stroke={Brand.tealDark} strokeWidth={6} fill="none" strokeDasharray={2 * Math.PI * 32}
               strokeDashoffset={2 * Math.PI * 32 * (1 - summary.percent / 100)} strokeLinecap="round" rotation={-90} origin="38,38" />
           </Svg><View style={s.ringIcon}><MaterialIcons name="task-alt" size={28} color={Brand.tealDark} /></View>
@@ -72,7 +72,7 @@ export function TasksWorkspace() {
           </Pressable>)}
       </View>
     </View>
-    <LoadState {...resource} retry={resource.reload} />
+    {resource.loading || resource.error ? <LoadState {...resource} retry={resource.reload} /> : null}
     <View style={s.tools}>
       <Pressable accessibilityRole="button" onPress={() => router.push('/opportunities')} style={c.textButton}><Text style={c.link}>Explorer les opportunités →</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: toolsOpen }} onPress={() => setToolsOpen(!toolsOpen)} style={s.organize}>
@@ -147,12 +147,12 @@ export function TaskCard({ task, now }: { task: ActionItem; now: Date }) {
   </Pressable>;
 }
 const s = StyleSheet.create({
-  hero: { backgroundColor: '#E5F3EC', borderRadius: 24, padding: 20, gap: 12 },
+  hero: { backgroundColor: '#E5F3EC', borderRadius: 24, padding: 18, gap: 8 },
   eyebrow: { fontSize: 10, letterSpacing: 1.3, color: Brand.tealDark, fontWeight: '800' }, heroRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  ring: { width: 76, height: 76 }, ringIcon: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  percent: { fontSize: 32, color: Brand.navyDark, fontWeight: '800' }, heroTitle: { color: Brand.navyDark, fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  ring: { width: 64, height: 64 }, ringIcon: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  percent: { fontSize: 28, color: Brand.navyDark, fontWeight: '800' }, heroTitle: { color: Brand.navyDark, fontSize: 14, lineHeight: 20, fontWeight: '600' },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, borderTopWidth: 1, borderTopColor: '#C8DED4', paddingTop: 12 },
-  stat: { flexGrow: 1, flexBasis: 70, minHeight: 56, gap: 3 }, statNumber: { fontSize: 22, color: Brand.navyDark, fontWeight: '800' },
+  stat: { flexGrow: 1, flexBasis: 70, minHeight: 48, gap: 3 }, statNumber: { fontSize: 22, color: Brand.navyDark, fontWeight: '800' },
   tools: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
   organize: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6 }, toolsPanel: { gap: 12, padding: 16, backgroundColor: Brand.surfaceSoft, borderRadius: 18 },
   viewSwitch: { flexDirection: 'row', padding: 4, borderRadius: 16, backgroundColor: '#EDF2F1', gap: 4 },

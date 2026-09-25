@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LoadState } from '@/components/api-ui';
-import { CollectionHeading, CollectionRail, EmptyCollection, FilterButton, SearchBox, c } from '@/components/collection-ui';
+import { CollectionRail, EmptyCollection, FilterButton, SearchBox, c } from '@/components/collection-ui';
 import { SiteSelector } from '@/components/site-selector';
 import { StatusPill } from '@/components/robia-ui';
 import { Brand } from '@/constants/theme';
@@ -31,9 +31,7 @@ export function DocumentsLibrary() {
   return <View style={c.stack}>
     <SiteSelector />
     <View style={s.hero}>
-      <Text style={s.eyebrow}>MON ESPACE DE CONTENU</Text>
       <View style={s.heroRow}><Text style={s.heroTitle}>Bibliothèque</Text><MaterialIcons name="auto-stories" size={30} color="#8ADBC5" /></View>
-      <Text style={s.heroDescription}>Vos livrables, de la première idée à la validation.</Text>
       <View style={s.stats}>
         {[{ label: 'Documents', count: documents.length, filter: 'all' }, { label: 'À revoir', count: review, filter: 'review' }, { label: 'Validés', count: approved, filter: 'approved' }].map(item =>
           <Pressable key={item.filter} accessibilityRole="button" accessibilityLabel={item.label + ' : ' + (unknownCount ? 'chargement' : item.count)}
@@ -42,7 +40,7 @@ export function DocumentsLibrary() {
           </Pressable>)}
       </View>
     </View>
-    <LoadState loading={isLoading} error={error} retry={refresh} />
+    {isLoading || error ? <LoadState loading={isLoading} error={error} retry={refresh} /> : null}
     <View style={s.shortcuts}>
       <Pressable accessibilityRole="button" onPress={() => router.push('/opportunities')} style={s.create}>
         <MaterialIcons name="add" size={20} color={Brand.white} /><Text style={s.createText}>Créer un contenu</Text>
@@ -52,7 +50,6 @@ export function DocumentsLibrary() {
       </Pressable>
     </View>
     <SearchBox value={query} onChange={setQuery} placeholder="Rechercher dans mes documents" />
-    <CollectionHeading title="Collections" detail="Retrouvez vos contenus par usage" />
     <CollectionRail>
       <CollectionType label="Tout" icon="folder-open" count={documents.length} selected={type === 'all'} onPress={() => setType('all')} />
       {DOCUMENT_TYPES.filter(item => documents.some(doc => doc.type === item.id)).map(item => <CollectionType key={item.id} label={item.label} icon={item.icon}
@@ -111,16 +108,14 @@ export function DocumentTile({ document: doc, compact, width }: { document: Robi
   </Pressable>;
 }
 const s = StyleSheet.create({
-  hero: { backgroundColor: Brand.navyDark, borderRadius: 24, padding: 22, gap: 10 },
-  eyebrow: { color: '#BCE5DC', fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, heroTitle: { flex: 1, color: Brand.white, fontSize: 27, fontWeight: '800' },
-  heroDescription: { color: '#D0DCE6', fontSize: 13, lineHeight: 20 },
-  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, borderTopWidth: 1, borderTopColor: '#365067', marginTop: 8, paddingTop: 12 },
-  stat: { flexGrow: 1, flexBasis: 72, minHeight: 56, gap: 3 }, statNumber: { fontSize: 25, fontWeight: '800', color: Brand.white }, statLabel: { fontSize: 12, color: '#D0DCE6' },
+  hero: { backgroundColor: Brand.navyDark, borderRadius: 24, padding: 18, gap: 8 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, heroTitle: { flex: 1, color: Brand.white, fontSize: 24, fontWeight: '800' },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, borderTopWidth: 1, borderTopColor: '#365067', marginTop: 4, paddingTop: 10 },
+  stat: { flexGrow: 1, flexBasis: 72, minHeight: 48, gap: 3 }, statNumber: { fontSize: 23, fontWeight: '800', color: Brand.white }, statLabel: { fontSize: 12, color: '#D0DCE6' },
   shortcuts: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' },
   create: { flexDirection: 'row', gap: 7, alignItems: 'center', minHeight: 48, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 16, backgroundColor: Brand.tealDark, flexShrink: 1 },
   createText: { color: Brand.white, fontWeight: '700', fontSize: 14, flexShrink: 1 },
-  collection: { padding: 14, minHeight: 98, gap: 14, borderRadius: 18, backgroundColor: '#F0F4F3', borderWidth: 1, borderColor: 'transparent' },
+  collection: { padding: 12, minHeight: 84, gap: 10, borderRadius: 18, backgroundColor: '#F0F4F3', borderWidth: 1, borderColor: 'transparent' },
   collectionActive: { borderColor: Brand.tealDark, backgroundColor: '#E3F3EC' },
   collectionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, collectionCount: { fontSize: 13, color: Brand.tealDark, fontWeight: '800' },
   collectionLabel: { color: Brand.navyDark, fontSize: 13, fontWeight: '700' },

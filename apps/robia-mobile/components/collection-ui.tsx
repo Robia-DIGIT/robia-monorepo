@@ -14,7 +14,7 @@ export function CollectionRail({ children, snap }: PropsWithChildren<{ snap?: nu
     const native = Gesture.Native();
     return parent ? native.blocksExternalGesture(parent) : native;
   }, [parent]);
-  return <GestureDetector gesture={gesture}><ScrollView horizontal nestedScrollEnabled
+  return <GestureDetector gesture={gesture}><ScrollView horizontal nestedScrollEnabled style={{ flexGrow: 0, flexShrink: 0 }}
     keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false}
     snapToInterval={snap} decelerationRate={snap ? 'fast' : 'normal'}
     contentContainerStyle={c.rail}>{children}</ScrollView></GestureDetector>;
@@ -56,7 +56,7 @@ export function QuickActions({ items }: { items: readonly { label: string; icon:
   </Pressable>)}</View>;
 }
 export const c = StyleSheet.create({
-  stack: { gap: 18 }, rail: { flexDirection: 'row', gap: 10, paddingVertical: 2, alignItems: 'flex-start' },
+  stack: { gap: 14 }, rail: { flexDirection: 'row', gap: 10, paddingVertical: 2, alignItems: 'flex-start' },
   title: { fontSize: 19, lineHeight: 25, fontWeight: '800', color: Brand.navyDark },
   body: { fontSize: 14, lineHeight: 21, color: Brand.slate500 }, caption: { fontSize: 12, lineHeight: 18, color: Brand.slate500 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
