@@ -12,7 +12,7 @@ import { Brand, Fonts } from "@/constants/theme";
 
 export default function ModalScreen() {
   return (
-    <RobiaScreen scroll={false} contentStyle={styles.content}>
+    <RobiaScreen contentStyle={styles.content}>
       <RobiaCard style={styles.card} accent={Brand.teal}>
         <MaterialIcons name="auto-awesome" size={38} color={Brand.tealDark} />
         <Text style={styles.title}>RobIA est prêt</Text>

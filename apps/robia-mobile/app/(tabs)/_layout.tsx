@@ -1,3 +1,6 @@
+import { tabLayout } from '@/src/navigation/responsive-layout';
+import { useNavigationChrome } from '@/src/navigation/chrome-context';
+import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Brand, Fonts } from "@/constants/theme";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -53,22 +56,25 @@ export function RobiaTabBar({
   const reduceMotion = useReducedMotion();
   const { buildHref } = useLinkBuilder();
   const scroll = useRef<ScrollView>(null);
-  const shouldScroll = fontScale > 1.15 || width < 360;
-  const itemWidth = shouldScroll
-    ? 104 * fontScale
-    : (width - 32) / state.routes.length;
+  const { setTabBarHeight } = useNavigationChrome();
+  const keyboardVisible = useKeyboardVisible();
+  const { width: barWidth, scroll: shouldScroll, itemWidth } = tabLayout(
+    width - insets.left - insets.right - 24, fontScale, state.routes.length,
+  );
 
   useEffect(() => {
     if (shouldScroll) {
       scroll.current?.scrollTo({
-        x: Math.max(0, state.index * itemWidth - (width - 32 - itemWidth) / 2),
+        x: Math.max(0, state.index * itemWidth - (barWidth - itemWidth) / 2),
         animated: !reduceMotion,
       });
     }
-  }, [itemWidth, reduceMotion, shouldScroll, state.index, width]);
+  }, [itemWidth, reduceMotion, shouldScroll, state.index, barWidth]);
 
+  if (keyboardVisible) return null;
   return (
-    <View style={[styles.bar, { marginBottom: Math.max(insets.bottom, 10) }]}>
+    <View onLayout={event => setTabBarHeight(event.nativeEvent.layout.height)}
+      style={[styles.bar, { width: barWidth, marginLeft: insets.left + (width - insets.left - insets.right - barWidth) / 2, marginBottom: Math.max(insets.bottom, 10) }]}>
       <ScrollView
         ref={scroll}
         horizontal
@@ -155,7 +161,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   bar: {
-    marginHorizontal: 16,
+    alignSelf: "flex-start",
     marginTop: 8,
     borderRadius: 12,
     backgroundColor: Brand.white,
@@ -184,6 +190,8 @@ const styles = StyleSheet.create({
   },
   iconSelected: { backgroundColor: Brand.tealLight },
   label: {
+    width: "100%",
+    flexShrink: 1,
     color: Brand.slate500,
     fontFamily: Fonts.sans,
     fontSize: 11,

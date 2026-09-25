@@ -1,3 +1,4 @@
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { AsyncButton } from '@/components/api-ui';
 import { auditScore } from '@/src/api/presentation';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -32,6 +33,9 @@ const TOOLS = [
 
 export default function HomeScreen() {
   const { start } = useCopilot();
+  const layout = useResponsiveLayout();
+  const toolWidth = (layout.contentWidth - 9 * (layout.toolColumns - 1)) / layout.toolColumns;
+  const metricWidth = (layout.contentWidth - 9 * (layout.metricColumns - 1)) / layout.metricColumns;
   const { user, organization, sessionError, refreshOrganization } = useSession();
   const { latestAudit, opportunities, documents, actions, error, refresh, isLoading } = useRobiaData();
   const displayScore = auditScore(latestAudit);
@@ -78,6 +82,9 @@ export default function HomeScreen() {
       <CopilotStep order={3} name="audit-score" text="Votre score de visibilité résume le dernier diagnostic. Lancez un audit pour obtenir vos premières recommandations.">
         <CopilotTarget>
           <RobiaCard style={styles.balanceCard}>
+            <CopilotStep order={2} name="site-selector" text="Sélectionnez le site à analyser. Vous pouvez en connecter plusieurs depuis cet espace.">
+              <CopilotTarget><SiteSelector /></CopilotTarget>
+            </CopilotStep>
             <View style={styles.cardHeading}>
               <View>
                 <Text style={styles.balanceLabel}>{displayScore.label}</Text>
@@ -85,12 +92,6 @@ export default function HomeScreen() {
                   <Text style={styles.score}>{score ?? '—'}</Text>
                   <Text style={styles.scoreSuffix}>/100</Text>
                 </View>
-              </View>
-              <View style={styles.trend}>
-                <MaterialIcons name="trending-up" size={15} color={Brand.tealDark} />
-                <Text style={styles.trendText}><CopilotStep order={2} name="site-selector" text="Sélectionnez le site à analyser. Vous pouvez en connecter plusieurs depuis cet espace.">
-                  <SiteSelector />
-                </CopilotStep></Text>
               </View>
             </View>
             <View
@@ -116,9 +117,9 @@ export default function HomeScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir la vue d’ensemble" onPress={() => router.push("/intelligence")} style={styles.sectionLink}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
           </View>
           <View style={styles.metrics}>
-            <Metric icon="lightbulb" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
-            <Metric icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
-            <Metric icon="task-alt" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
+            <Metric width={metricWidth} icon="lightbulb" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
+            <Metric width={metricWidth} icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
+            <Metric width={metricWidth} icon="task-alt" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
           </View>
         </CopilotTarget>
       </CopilotStep>
@@ -135,13 +136,13 @@ export default function HomeScreen() {
             accessibilityLabel={tool.label}
             accessibilityHint={tool.description}
             onPress={() => router.push(tool.href)}
-            style={({ pressed }) => [styles.tool, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.tool, { width: toolWidth }, pressed && styles.pressed]}>
             <View style={styles.toolIcon}>
               <MaterialIcons name={tool.icon} size={19} color={Brand.tealDark} />
             </View>
             <View style={styles.toolCopy}>
-              <Text style={styles.toolTitle} numberOfLines={1}>{tool.label}</Text>
-              <Text style={styles.toolDescription} numberOfLines={1}>{tool.description}</Text>
+              <Text style={styles.toolTitle}>{tool.label}</Text>
+              <Text style={styles.toolDescription}>{tool.description}</Text>
             </View>
             <MaterialIcons name="chevron-right" size={18} color={Brand.slate400} />
           </Pressable>
@@ -165,7 +166,7 @@ export default function HomeScreen() {
               <MaterialIcons name="lightbulb" size={19} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />
             </View>
             <View style={styles.priorityCopy}>
-              <Text style={styles.priorityTitle} numberOfLines={1}>{item.title}</Text>
+              <Text style={styles.priorityTitle}>{item.title}</Text>
               <Text style={styles.priorityMeta}>{item.category ?? 'Recommandation'} · Impact {item.impactScore}/10</Text>
             </View>
             <MaterialIcons name="chevron-right" size={21} color={Brand.slate400} />
@@ -184,8 +185,8 @@ export default function HomeScreen() {
   );
 }
 
-function Metric({ icon, value, label, color, tint }: { icon: IconName; value: string | number; label: string; color: string; tint: string }) {
-  return <View accessible accessibilityLabel={`${label} : ${value}`} style={styles.metric}>
+function Metric({ width, icon, value, label, color, tint }: { width: number; icon: IconName; value: string | number; label: string; color: string; tint: string }) {
+  return <View accessible accessibilityLabel={`${label} : ${value}`} style={[styles.metric, { width }]}>
     <View style={[styles.metricIcon, { backgroundColor: tint }]}><MaterialIcons name={icon} size={18} color={color} /></View>
     <Text style={styles.metricValue}>{value}</Text>
     <Text style={styles.metricLabel}>{label}</Text>
@@ -193,7 +194,7 @@ function Metric({ icon, value, label, color, tint }: { icon: IconName; value: st
 }
 
 const styles = StyleSheet.create({
-  header: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { minHeight: 64, alignSelf: 'stretch' },
   guideTarget: { gap: 9 },
   guideButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealLight },
   greeting: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, lineHeight: 28, fontWeight: '900', letterSpacing: -0.4 },
@@ -211,24 +212,24 @@ const styles = StyleSheet.create({
   trendText: { color: Brand.tealDark, fontSize: 12, fontWeight: '800' },
   track: { height: 7, borderRadius: 4, overflow: 'hidden', backgroundColor: Brand.slate100 },
   fill: { height: '100%', borderRadius: 4, backgroundColor: Brand.teal },
-  auditButton: { minHeight: 50, paddingHorizontal: 17, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Brand.navyDark },
-  auditButtonText: { color: Brand.white, fontFamily: Fonts.sans, fontSize: 14, fontWeight: '800' },
-  sectionHeading: { minHeight: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  auditButton: { minHeight: 50, paddingVertical: 12, paddingHorizontal: 17, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Brand.navyDark },
+  auditButtonText: { flexShrink: 1, textAlign: 'center', color: Brand.white, fontFamily: Fonts.sans, fontSize: 14, fontWeight: '800' },
+  sectionHeading: { minHeight: 26, flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 17, fontWeight: '900' },
   sectionAction: { color: Brand.slate400, fontSize: 11, fontWeight: '600' },
   sectionLink: { minHeight: 48, paddingHorizontal: 4, justifyContent: 'center' },
   seeAll: { color: Brand.tealDark, fontSize: 13, fontWeight: '800' },
-  metrics: { flexDirection: 'row', gap: 9 },
-  metric: { flex: 1, minHeight: 116, padding: 12, borderRadius: 10, justifyContent: 'space-between', backgroundColor: Brand.white, borderWidth: 0, },
+  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  metric: { minHeight: 116, padding: 12, borderRadius: 10, justifyContent: 'space-between', backgroundColor: Brand.white, borderWidth: 0, },
   metricIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   metricValue: { color: Brand.navyDark, fontFamily: Fonts.rounded, fontSize: 22, fontWeight: '900' },
   metricLabel: { color: Brand.slate500, fontFamily: Fonts.sans, fontSize: 12, lineHeight: 16, fontWeight: '600' },
   toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  tool: { width: '48.5%', minHeight: 70, padding: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Brand.white },
+  tool: { minHeight: 70, padding: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Brand.white },
   toolIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealLight },
   toolCopy: { flex: 1, gap: 2 },
   toolTitle: { color: Brand.navyDark, fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800' },
-  toolDescription: { color: Brand.slate400, fontFamily: Fonts.sans, fontSize: 10, lineHeight: 14, fontWeight: '600' },
+  toolDescription: { color: Brand.slate400, fontFamily: Fonts.sans, fontSize: 12, lineHeight: 18, fontWeight: '600' },
   listCard: { paddingVertical: 3 },
   priorityRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 10 },
   rowBorder: { borderTopWidth: 1, borderTopColor: Brand.slate100 },

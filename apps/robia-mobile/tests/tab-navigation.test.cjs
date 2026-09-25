@@ -20,16 +20,19 @@ function loadTypeScript(relativePath, mocks = {}) {
 
 // Exercise the tab bar's real press handlers and selected state without a
 // native runtime. Device swipes and TalkBack still require an Android device.
-function renderBar(index, { prevent = false, fontScale = 1 } = {}) {
+function renderBar(index, { prevent = false, fontScale = 1, width = 390, insets = { top: 0, bottom: 0, left: 0, right: 0 }, keyboard = false } = {}) {
   const events = [];
   const visits = [];
   const navigator = Object.assign(() => null, { Screen: () => null });
   const mocks = {
+    '@/src/navigation/responsive-layout': loadTypeScript('../src/navigation/responsive-layout.ts'),
+    '@/src/navigation/chrome-context': { useNavigationChrome: () => ({ setTabBarHeight() {} }) },
+    '@/hooks/use-keyboard-visible': { useKeyboardVisible: () => keyboard },
     react: { ...React, useEffect() {}, useRef: value => ({ current: value }) },
     'react-native': {
       ScrollView: 'ScrollView', View: 'View', Text: 'Text',
       StyleSheet: { create: styles => styles },
-      useWindowDimensions: () => ({ width: 390, height: 844, fontScale }),
+      useWindowDimensions: () => ({ width, height: 844, fontScale }),
     },
     '@/components/ui/icon-symbol': { IconSymbol: 'IconSymbol' },
     '@/constants/theme': { Brand: { tealDark: '#0F766E', slate500: '#526174' }, Fonts: { sans: 'normal' } },
@@ -39,7 +42,7 @@ function renderBar(index, { prevent = false, fontScale = 1 } = {}) {
     '@react-navigation/native': { useLinkBuilder: () => ({ buildHref: name => '/' + name }) },
     'expo-haptics': { selectionAsync: () => Promise.reject(new Error('Unavailable')) },
     'expo-router': { withLayoutContext: () => navigator },
-    'react-native-safe-area-context': { useSafeAreaInsets: () => ({ bottom: 0 }) },
+    'react-native-safe-area-context': { useSafeAreaInsets: () => insets },
   };
   const filename = path.resolve(__dirname, '../app/(tabs)/_layout.tsx');
   const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
@@ -59,7 +62,8 @@ function renderBar(index, { prevent = false, fontScale = 1 } = {}) {
       navigate: (...args) => visits.push(args),
     },
   });
-  return { buttons: tree.props.children.props.children, scroll: tree.props.children, events, visits, layout: module.exports.default };
+  if (!tree) return { hidden: true };
+  return { tree, buttons: tree.props.children.props.children, scroll: tree.props.children, events, visits, layout: module.exports.default };
 }
 
 test('exactly the displayed page has a selected icon after each navigation update', () => {
@@ -139,12 +143,15 @@ test('all navbar routes use the common swipe navigator', () => {
 
 test('the native filter gesture covers the header and content before vertical scrolling can activate', () => {
   let chipLayouts = {};
+  let responsive = { gutter: 12, containerWidth: 744, headerMaxHeight: 240, short: false, fontScale: 1 };
   const { RobiaScreen, FilterChips, FilterTransition } = loadTypeScript('../components/robia-ui.tsx', {
+    '@/hooks/use-responsive-layout': { useResponsiveLayout: () => responsive },
     react: {
       ...React, useMemo: callback => callback(), useCallback: callback => callback,
       useEffect() {}, useLayoutEffect() {}, useState: initial => [typeof initial === 'number' ? 320 : chipLayouts, () => {}], useRef: value => ({ current: value }),
     },
     'react-native': {
+      KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'ios' },
       Animated: { View: 'AnimatedView', Text: 'AnimatedText' },
       ScrollView: 'ScrollView', View: 'View', Text: 'Text', Pressable: 'Pressable', RefreshControl: 'RefreshControl',
       StyleSheet: { create: styles => styles, hairlineWidth: 1 },
@@ -200,7 +207,9 @@ test('the native filter gesture covers the header and content before vertical sc
   const screen = RobiaScreen({ fixedHeader: true, swipeGesture, children: [header, content] });
   assert.equal(screen.type, 'GestureDetector');
   assert.equal(screen.props.gesture, swipeGesture);
-  const [fixedHeader, scrollDetector] = screen.props.children.props.children;
+  const keyboardContainer = screen.props.children.props.children;
+  assert.equal(keyboardContainer.props.behavior, 'padding');
+  const [fixedHeader, scrollDetector] = keyboardContainer.props.children;
   assert.equal(fixedHeader.props.children.props.children.type, 'Header');
   assert.equal(scrollDetector.props.gesture.waitFor, swipeGesture);
   assert.equal(scrollDetector.props.children.type, 'ScrollView');
@@ -209,7 +218,15 @@ test('the native filter gesture covers the header and content before vertical sc
     fixedHeader: true, scroll: false, swipeGesture, children: [header, transition],
     contentStyle: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 0 },
   });
-  assert.equal(pagedScreen.props.children.props.children[1].type, 'View');
+  assert.equal(pagedScreen.props.children.props.children.props.children[1].type, 'View');
+
+  responsive = { ...responsive, short: true, fontScale: 2 };
+  const shortScreen = RobiaScreen({ fixedHeader: true, swipeGesture, children: [header, content] });
+  const [shortHeader, shortBody] = shortScreen.props.children.props.children.props.children;
+  assert.equal(shortHeader, null);
+  assert.deepEqual(shortBody.props.children.props.children.props.children.map(child => child.type), ['Header', 'Content']);
+  const shortPaged = RobiaScreen({ fixedHeader: true, scroll: false, swipeGesture, children: [header, transition] });
+  assert.equal(shortPaged.props.children.props.children.props.children[0].props.style[1].maxHeight, 240);
 
   const plainTabScreen = RobiaScreen({ children: content });
   assert.equal(plainTabScreen.type, 'GestureDetector');
@@ -585,4 +602,26 @@ test('the shared navigator renders real adjacent screens and keeps all crossed p
   assert.ok(retained.every(page => page.props.children.props.children !== null));
   assert.equal(retained[0].props.pointerEvents, 'auto');
   assert.equal(retained[4].props.pointerEvents, 'none');
+});
+
+// Insets and dynamic text must never push a destination outside the scrollable bar.
+test('navbar stays inside safe bounds at phone, landscape and foldable widths', () => {
+  for (const width of [280, 320, 360, 390, 430, 600, 844, 1024]) {
+    for (const fontScale of [1, 1.3, 2, 3]) {
+      const insets = { top: 0, bottom: 34, left: 24, right: 48 };
+      const { tree, buttons, scroll } = renderBar(3, { width, fontScale, insets });
+      const bar = tree.props.style[1];
+      assert.ok(bar.width > 0 && bar.width <= 720);
+      assert.ok(bar.marginLeft >= insets.left);
+      assert.ok(bar.marginLeft + bar.width <= width - insets.right);
+      assert.equal(bar.marginBottom, 34);
+      const total = buttons.reduce((sum, b) => sum + b.props.style[1].width, 0);
+      if (!scroll.props.scrollEnabled) assert.ok(Math.abs(total - bar.width) < 0.01);
+      else assert.ok(buttons.every(b => b.props.style[1].width <= bar.width));
+    }
+  }
+});
+test('keyboard releases the navbar space for form fields', () => {
+  assert.equal(renderBar(0, { keyboard: true }).hidden, true);
+  assert.equal(renderBar(0, { keyboard: false }).buttons.length, 5);
 });

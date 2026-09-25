@@ -3,7 +3,7 @@
     "name": "robia-mobile",
     "slug": "robia-mobile",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/logo-robia-copilot.png",
     "scheme": "robiamobile",
     "userInterfaceStyle": "automatic",
@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/logo-robia-copilot.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",

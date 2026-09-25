@@ -1,3 +1,5 @@
+import { NavigationChromeProvider, useNavigationChrome } from '@/src/navigation/chrome-context';
+import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
@@ -32,7 +34,7 @@ export const unstable_settings = { anchor: '(tabs)', initialRouteName: 'index' }
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider>
+      <NavigationChromeProvider><SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider></NavigationChromeProvider>
     </GestureHandlerRootView>
   );
 }
@@ -41,6 +43,8 @@ function AppLayout() {
   const colorScheme = useColorScheme();
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
+  const { tabBarHeight } = useNavigationChrome();
+  const keyboardVisible = useKeyboardVisible();
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
   const { token, user, isLoading } = useSession();
@@ -199,7 +203,7 @@ function AppLayout() {
   });
   // Keep the assistant outside the pager so it stays mounted and stationary
   // while the user changes tabs by pressing the navbar or swiping.
-  const showAssistantButton = Boolean(token) && !isLoading && segments[0] === '(tabs)';
+  const showAssistantButton = Boolean(token) && !isLoading && !keyboardVisible && segments[0] === '(tabs)';
 
   return (
     <ThemeProvider value={navigationTheme}>
@@ -233,7 +237,7 @@ function AppLayout() {
           testID="floating-assistant"
           onPress={() => router.navigate('/chat')}
           accessibilityHint="Découvrir le chatbot RobIA, bientôt disponible"
-          style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
+          style={[styles.assistantButton, { right: insets.right + 18, bottom: Math.max(insets.bottom, 10) + tabBarHeight + 18 }]}>
           <View pointerEvents="none" style={styles.assistantHalo} />
           <View pointerEvents="none" style={styles.assistantCore}>
             <MaterialIcons name="chat-bubble-outline" size={27} color={Brand.tealDark} />

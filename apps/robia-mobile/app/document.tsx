@@ -6,6 +6,7 @@ import {
   apiStyles as s,
 } from "@/components/api-ui";
 import { RobiaCard, RobiaHeader, RobiaScreen } from "@/components/robia-ui";
+import { ApiError } from "@/src/api/client";
 import { useRobiaData } from "@/src/api/data";
 import { DOCUMENT_STATUS_LABELS } from "@/src/api/presentation";
 import type { RobiaDocument } from "@/src/api/types";
@@ -67,6 +68,9 @@ function DocumentEditor({ id }: { id: string }) {
     setBusy(true);
     try {
       await action();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) await resource.reload();
+      throw error;
     } finally {
       lock.current = false;
       setBusy(false);

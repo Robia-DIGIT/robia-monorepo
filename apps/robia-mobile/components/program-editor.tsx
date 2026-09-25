@@ -60,6 +60,7 @@ export function ProgramEditor({ program, definitionLocked = false, onSaved }: { 
     <AsyncButton label={program ? 'Enregistrer les modifications' : 'Créer le programme'} disabled={!name.trim()} action={async () => {
       const ref = slug.trim(); if (!program && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(ref)) throw new Error('La référence doit contenir des lettres minuscules, des chiffres ou des tirets.');
       const opensAt = dateInput(opens, 'Ouverture'); const closesAt = dateInput(closes, 'Clôture'); if (opensAt && closesAt && opensAt > closesAt) throw new Error('La clôture doit suivre l’ouverture.');
+      if (program && ((program.opensAt && !opensAt) || (program.closesAt && !closesAt) || (program.decisionThreshold != null && !threshold.trim()))) throw new Error('Conservez ou modifiez les dates et le seuil existants ; leur suppression n’est pas prise en charge.');
       const definitions = definitionPayload({ fields: fields.map(f => ({ ...f, options: Array.isArray(f.options) ? [...new Set(f.options.map(String).map(x => x.trim()).filter(Boolean))] : f.options })), criteria, docTypes });
       const body = { name: name.trim(), description, opensAt, closesAt, requireDualReview: dual, decisionThreshold: threshold.trim() ? integer(threshold, 'Seuil') : undefined, fields: definitions.fields,
         ...(!definitionLocked ? { criteria: definitions.criteria, docTypes: definitions.docTypes } : {}), ...(!program ? { slug: ref } : {}) };

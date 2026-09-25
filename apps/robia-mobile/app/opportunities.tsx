@@ -1,3 +1,4 @@
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import {
     FilterChips,
     FilterTransition,
@@ -144,6 +145,7 @@ function OpportunityCard({
   busy: boolean;
   onAction(id: string, kind: "document" | "actions"): Promise<void>;
 }) {
+  const { compact } = useResponsiveLayout();
   const impact =
     item.impactScore >= 7
       ? "Prioritaire"
@@ -178,7 +180,7 @@ function OpportunityCard({
           value={`${Math.round(item.confidenceScore <= 1 ? item.confidenceScore * 100 : item.confidenceScore)} %`}
         />
       </View>
-      <View style={styles.actions}>
+      <View style={[styles.actions, compact && { flexDirection: "column" }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Ajouter ${item.title} au plan`}
@@ -248,6 +250,8 @@ const styles = StyleSheet.create({
   summaryCount: { color: Brand.tealDark, fontSize: 28, fontWeight: "900" },
   card: { gap: 12 },
   cardHeader: {
+    flexWrap: "wrap",
+    gap: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -257,13 +261,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Brand.slate100,
     flexDirection: "row",
-    gap: 24,
+    flexWrap: "wrap",
+    gap: 16,
   },
   meta: { gap: 2 },
   metaValue: { color: Brand.navyDark, fontSize: 13, fontWeight: "800" },
   actions: { flexDirection: "row", gap: 9 },
   secondaryButton: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    padding: 12,
     minHeight: 48,
     borderRadius: 8,
     borderWidth: 1,
@@ -273,8 +280,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
-  secondaryLabel: { color: Brand.tealDark, fontSize: 13, fontWeight: "800" },
+  secondaryLabel: { flexShrink: 1, textAlign: "center", color: Brand.tealDark, fontSize: 13, fontWeight: "800" },
   primaryButton: {
+    paddingVertical: 12,
     minWidth: 98,
     minHeight: 48,
     paddingHorizontal: 13,
@@ -285,7 +293,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 5,
   },
-  primaryLabel: { color: Brand.white, fontSize: 13, fontWeight: "800" },
+  primaryLabel: { flexShrink: 1, textAlign: "center", color: Brand.white, fontSize: 13, fontWeight: "800" },
   error: { color: Brand.orangeDark, fontWeight: "700" },
   retry: { marginTop: 5, color: Brand.tealDark, fontSize: 12 },
 });

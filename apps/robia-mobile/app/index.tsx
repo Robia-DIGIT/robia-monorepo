@@ -1,3 +1,4 @@
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { Brand, Fonts } from "@/constants/theme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
@@ -13,7 +14,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
   type ViewToken,
 } from "react-native";
@@ -57,7 +57,7 @@ const SLIDES = [
 type Slide = (typeof SLIDES)[number];
 
 export default function OnboardingScreen() {
-  const { width, height } = useWindowDimensions();
+  const { safeWidth: width, safeHeight: height, gutter } = useResponsiveLayout();
   const listRef = useRef<FlatList<Slide>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -120,7 +120,7 @@ export default function OnboardingScreen() {
       };
 
   const compact = height < 720;
-  const stageWidth = Math.min(width - 40, 360);
+  const stageWidth = Math.max(0, Math.min(width - gutter * 2, height * 0.46, 360));
   const stageHeight = stageWidth * (compact ? 0.88 : 1.02);
   const isLastSlide = activeIndex === SLIDES.length - 1;
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
@@ -365,15 +365,18 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Brand.white },
   header: {
-    height: 68,
+    minHeight: 68,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  headerCompact: { height: 48 },
+  headerCompact: { minHeight: 48 },
   logo: { width: 37, height: 29 },
   brandName: {
+    flexShrink: 1,
     fontFamily: Fonts.sans,
     fontSize: 16,
     fontWeight: "700",
@@ -423,8 +426,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   dotTarget: {
-    width: 32,
-    height: 44,
+    width: 48,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -476,6 +479,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   skipButton: {
+    flexShrink: 1,
+    paddingVertical: 10,
     minWidth: 72,
     minHeight: 44,
     paddingHorizontal: 18,

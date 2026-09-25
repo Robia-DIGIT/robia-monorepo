@@ -1,3 +1,4 @@
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -14,6 +15,8 @@ import {
 } from "react";
 import {
     Animated,
+    KeyboardAvoidingView,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -52,6 +55,8 @@ export function RobiaScreen({
   swipeGesture?: PanGesture;
 }>) {
   const tabPager = useTabSwipe();
+  const layout = useResponsiveLayout();
+  const pinHeader = fixedHeader && (!scroll || (!layout.short && layout.fontScale < 1.6));
   const tabGesture = useFilterSwipe({
     filters: ['page'], selected: 'page', onChange: () => {},
     previousTab: null, nextTab: null, enabled: !!tabPager && !providedSwipeGesture,
@@ -64,12 +69,14 @@ export function RobiaScreen({
     return swipeGesture ? gesture.requireExternalGestureToFail(swipeGesture) : gesture;
   }, [swipeGesture]);
   const items = Children.toArray(children);
-  const header = fixedHeader ? items.shift() : null;
+  const header = pinHeader ? items.shift() : null;
   const content = (
     <View
       style={[
         styles.screenContent,
-        fixedHeader && styles.screenContentBelowHeader,
+        scroll ? { width: "100%", maxWidth: layout.containerWidth, alignSelf: "center", flexGrow: 1 } : styles.fill,
+        { paddingHorizontal: layout.gutter, paddingBottom: tabPager ? 88 : 24 },
+        pinHeader && styles.screenContentBelowHeader,
         contentStyle,
       ]}
     >
@@ -84,7 +91,6 @@ export function RobiaScreen({
       refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      automaticallyAdjustKeyboardInsets
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
@@ -93,13 +99,16 @@ export function RobiaScreen({
   );
 
   const screen = (
-    <SafeAreaView collapsable={false} style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView collapsable={false} style={styles.safeArea} edges={tabPager ? ["top", "left", "right"] : ["top", "bottom", "left", "right"]}>
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* <View pointerEvents="none" style={styles.ambientTop} />
       <View pointerEvents="none" style={styles.ambientSide} /> */}
       {header ? (
-        <View style={styles.fixedHeader}>
+        <ScrollView style={[styles.fixedHeader, { maxHeight: layout.headerMaxHeight }]}
+          contentContainerStyle={{ paddingHorizontal: layout.gutter }} nestedScrollEnabled
+          keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.fixedHeaderInner}>{header}</View>
-        </View>
+        </ScrollView>
       ) : null}
       {scroll ? (
         swipeGesture ? (
@@ -110,6 +119,7 @@ export function RobiaScreen({
       ) : (
         content
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 
@@ -247,6 +257,8 @@ function FilterPage({ width, active, swipeGesture, refreshing, onRefresh, childr
   refreshing: boolean;
   onRefresh?: () => Promise<unknown>;
 }>) {
+  const layout = useResponsiveLayout();
+  const tabPager = useTabSwipe();
   const nativeScrollGesture = useMemo(() =>
     Gesture.Native().requireExternalGestureToFail(swipeGesture), [swipeGesture]);
 
@@ -261,11 +273,10 @@ function FilterPage({ width, active, swipeGesture, refreshing, onRefresh, childr
           removeClippedSubviews={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
           refreshControl={onRefresh ? <RefreshControl refreshing={refreshing}
             onRefresh={() => void onRefresh()} tintColor={Brand.tealDark} /> : undefined}
-          contentContainerStyle={styles.filterPageContent}>
+          contentContainerStyle={[styles.filterPageContent, { paddingHorizontal: layout.gutter, paddingBottom: tabPager ? 88 : 24, width: "100%", maxWidth: layout.containerWidth, alignSelf: "center" }]}>
           {children}
         </ScrollView>
       </GestureDetector>
@@ -520,6 +531,7 @@ export const robiaStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
+  fill: { flex: 1, minHeight: 0 },
   safeArea: { flex: 1, backgroundColor: "#FBFCFC", overflow: "hidden" },
   ambientTop: {
     position: "absolute",
@@ -547,7 +559,8 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   fixedHeader: {
     zIndex: 20,
-    paddingHorizontal: 20,
+    flexGrow: 0,
+    flexShrink: 1,
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: "#FBFCFC",
@@ -568,13 +581,13 @@ const styles = StyleSheet.create({
   filterPageContent: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 112, gap: 22 },
   screenContentBelowHeader: { paddingTop: 12 },
   screenContent: {
-    flex: 1,
+    minWidth: 0,
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 112,
     gap: 22,
   },
-  header: { gap: 5, marginBottom: 4 },
+  header: { minWidth: 0, alignSelf: "stretch", gap: 5, marginBottom: 4 },
   headerCompact: { marginBottom: 0, gap: 0 },
   brandRow: {
     minHeight: 42,
@@ -599,6 +612,7 @@ const styles = StyleSheet.create({
   },
   navigationTitleGroup: {
     flex: 1,
+    minWidth: 0,
     paddingHorizontal: 12,
     paddingVertical: 8,
     alignItems: "center",
@@ -615,7 +629,9 @@ const styles = StyleSheet.create({
   },
   subtitleAfterNavigation: { marginTop: 4 },
   headerActions: {
-    minWidth: 40,
+    flexShrink: 1,
+    flexWrap: "wrap",
+    minWidth: 0,
     flexDirection: "row",
     gap: 8,
     minHeight: 40,
@@ -645,6 +661,8 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   card: {
+    minWidth: 0,
+    maxWidth: "100%",
     padding: 16,
     borderRadius: 12,
     backgroundColor: Brand.surfaceSoft,
@@ -670,6 +688,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sectionTitle: {
+    flexShrink: 1,
     color: Brand.navyDark,
     fontFamily: Fonts?.rounded,
     fontSize: 19,
@@ -681,11 +700,13 @@ const styles = StyleSheet.create({
   filterChipSurface: { position: 'absolute', borderRadius: 8, backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
   filterChipIndicator: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 8, backgroundColor: Brand.navyDark },
   filterChipTransparent: { backgroundColor: 'transparent', borderColor: 'transparent' },
-  filterChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 8, justifyContent: "center", backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
+  filterChip: { minHeight: 48, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, justifyContent: "center", backgroundColor: Brand.white, borderWidth: 1, borderColor: Brand.borderSubtle },
   filterChipActive: { backgroundColor: Brand.navyDark, borderColor: Brand.navyDark },
   filterChipLabel: { color: Brand.slate500, fontFamily: Fonts?.sans, fontSize: 12, fontWeight: "700" },
   filterChipLabelActive: { color: Brand.white },
   pill: {
+    maxWidth: "100%",
+    flexShrink: 1,
     alignSelf: "flex-start",
     borderRadius: 999,
     paddingHorizontal: 10,
