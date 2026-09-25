@@ -1,3 +1,4 @@
+import { QuickActions } from '@/components/collection-ui';
 import { WorkspaceHeader } from '@/components/workspace-header';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { AsyncButton } from '@/components/api-ui';
@@ -29,7 +30,6 @@ const TOOLS = [
 export default function HomeScreen() {
   const { start } = useCopilot();
   const layout = useResponsiveLayout();
-  const toolWidth = (layout.contentWidth - 9 * (layout.toolColumns - 1)) / layout.toolColumns;
   const metricWidth = (layout.contentWidth - 9 * (layout.metricColumns - 1)) / layout.metricColumns;
   const { user, organization, sessionError, refreshOrganization } = useSession();
   const { latestAudit, opportunities, documents, actions, error, refresh, isLoading } = useRobiaData();
@@ -123,26 +123,7 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Outils</Text>
         <Text style={styles.sectionAction}>Accès rapide</Text>
       </View>
-      <View style={styles.toolsGrid}>
-        {TOOLS.map((tool) => (
-          <Pressable
-            key={tool.href}
-            accessibilityRole="button"
-            accessibilityLabel={tool.label}
-            accessibilityHint={tool.description}
-            onPress={() => router.navigate(tool.href)}
-            style={({ pressed }) => [styles.tool, { width: toolWidth }, pressed && styles.pressed]}>
-            <View style={styles.toolIcon}>
-              <MaterialIcons name={tool.icon} size={19} color={Brand.tealDark} />
-            </View>
-            <View style={styles.toolCopy}>
-              <Text style={styles.toolTitle}>{tool.label}</Text>
-              <Text style={styles.toolDescription}>{tool.description}</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={18} color={Brand.slate400} />
-          </Pressable>
-        ))}
-      </View>
+      <QuickActions items={TOOLS} />
 
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Priorités</Text>

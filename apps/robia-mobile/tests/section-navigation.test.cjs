@@ -29,6 +29,7 @@ test('subsection presses and swipes update the route and share the same page mot
     '@/hooks/use-filter-motion': { useFilterMotion: () => ({ motion, reduceMotion: false }) },
     '@/hooks/use-filter-swipe': { useFilterSwipe: config => { gestureConfig = config; return 'gesture'; } },
     '@/src/navigation/sections': sections,
+    '@/src/navigation/section-gesture-context': { SectionGestureContext: { Provider: 'GestureContext' } },
   });
   const render = () => SectionPager({ title: 'Activité', sections: sections.WORK_SECTIONS, children: id => id });
   let screen = render();
@@ -48,12 +49,12 @@ test('profile, support and assistant are accessible from the shared header', () 
   const visits = [];
   const { WorkspaceHeader } = load('../components/workspace-header.tsx', {
     '@expo/vector-icons/MaterialIcons': 'Icon',
-    'expo-router': { router: { push: href => visits.push(href) } },
+    'expo-router': { router: { push: href => visits.push(href), navigate: href => visits.push(href) } },
     'react-native': { Pressable: 'Button', Text: 'Text', View: 'View', StyleSheet: { create: s => s } },
     '@/constants/theme': { Brand: {} },
   });
   const header = WorkspaceHeader({ title: 'Accueil' });
-  const buttons = header.props.children.filter(child => child.type === 'Button');
+  const buttons = header.props.children.filter(child => child?.type === 'Button');
   assert.equal(buttons.length, 3);
   buttons.forEach(button => { assert.ok(button.props.accessibilityLabel); button.props.onPress(); });
   assert.deepEqual(visits, ['/profile', '/support', '/chat']);

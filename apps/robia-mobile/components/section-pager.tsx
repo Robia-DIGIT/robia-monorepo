@@ -1,3 +1,4 @@
+import { SectionGestureContext } from '@/src/navigation/section-gesture-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { ReactNode } from 'react';
 import { FilterChips, FilterTransition, RobiaFixedHeader, RobiaScreen } from '@/components/robia-ui';
@@ -27,6 +28,6 @@ export function SectionPager({ title, sections, children, refreshing, onRefresh 
         motion={motion} scrollGesture={gesture} />
     </RobiaFixedHeader>
     <FilterTransition options={options} filterKey={selected} motion={motion} reduceMotion={reduceMotion}
-      swipeGesture={gesture} refreshing={refreshing} onRefresh={onRefresh}>{children}</FilterTransition>
+      swipeGesture={gesture} refreshing={refreshing} onRefresh={onRefresh}>{id => <SectionGestureContext.Provider value={gesture}>{children(id)}</SectionGestureContext.Provider>}</FilterTransition>
   </RobiaScreen>;
 }

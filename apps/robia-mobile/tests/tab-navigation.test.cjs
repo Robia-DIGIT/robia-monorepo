@@ -144,6 +144,7 @@ test('the native filter gesture covers the header and content before vertical sc
   let chipLayouts = {};
   let responsive = { gutter: 12, containerWidth: 744, headerMaxHeight: 240, short: false, fontScale: 1 };
   const { RobiaScreen, FilterChips, FilterTransition } = loadTypeScript('../components/robia-ui.tsx', {
+    '@/components/workspace-header': { ProfileShortcut: 'ProfileShortcut' },
     '@/hooks/use-responsive-layout': { useResponsiveLayout: () => responsive },
     react: {
       ...React, useMemo: callback => callback(), useCallback: callback => callback,
