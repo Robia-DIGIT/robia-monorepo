@@ -1,7 +1,10 @@
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
 import { Brand, Fonts } from "@/constants/theme";
 import { ApiError } from "@/src/api/client";
 import { useSession } from "@/src/auth/session";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { AppIcon } from '@/components/ui/app-icon';
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
@@ -20,7 +23,10 @@ import PagerView from "react-native-pager-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AuthScreen() {
-  const { login, register } = useSession();
+  const layout = useResponsiveLayout();
+  const keyboardVisible = useKeyboardVisible();
+  const reduceMotion = useReducedMotion();
+  const { login, register, sessionError, restore } = useSession();
   const pager = useRef<PagerView>(null);
   const [page, setPage] = useState(0);
   const [name, setName] = useState("");
@@ -28,24 +34,29 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const submitLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const compact = layout.safeHeight < 700;
   function selectPage(next: number) {
     setPage(next);
     setError("");
-    pager.current?.setPage(next);
+    if (reduceMotion) pager.current?.setPageWithoutAnimation(next);
+    else pager.current?.setPage(next);
   }
   async function submit(registration: boolean) {
+    if (submitLock.current) return;
     if (
-      !email.trim() ||
-      password.length < 8 ||
-      (registration && (!name.trim() || !company.trim()))
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+      (registration ? password.length < 8 : !password) ||
+      (registration && (name.trim().length < 2 || !company.trim()))
     ) {
       setError(
         "Complétez les champs requis. Le mot de passe doit contenir au moins 8 caractères.",
       );
       return;
     }
+    submitLock.current = true;
     setIsSubmitting(true);
     setError("");
     try {
@@ -57,7 +68,7 @@ export default function AuthScreen() {
           password,
         });
       else await login(email, password);
-      router.replace('/(tabs)/dashboard');
+      router.replace("/(tabs)/dashboard");
     } catch (cause) {
       setError(
         cause instanceof ApiError
@@ -65,6 +76,7 @@ export default function AuthScreen() {
           : "Connexion impossible. Vérifiez votre réseau.",
       );
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   }
@@ -82,14 +94,20 @@ export default function AuthScreen() {
     setPassword,
     setShowPassword,
     submit,
+    sessionNotice: sessionError ? <Pressable accessibilityRole="button" onPress={() => void restore()} style={{ minHeight: 48, justifyContent: 'center' }}>
+      <Text accessibilityRole="alert" style={[s.errorText, { flex: undefined }]}>{sessionError} · Réessayer</Text>
+    </Pressable> : null,
   };
   return (
-    <SafeAreaView style={s.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={s.safeArea} edges={["top", "bottom", "left", "right"]}>
       <KeyboardAvoidingView
         style={s.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={s.hero}>
+        {!keyboardVisible && !layout.short && layout.fontScale < 1.4 ? <View style={[s.hero, compact && s.heroCompact]}>
+          {/* <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
+            <AppIcon name="arrow-back" size={21} color={Brand.navyDark} />
+          </Pressable> */}
           <View style={s.brandMark}>
             <Image
               source={require("@/assets/images/logo-robia-copilot.svg")}
@@ -100,8 +118,8 @@ export default function AuthScreen() {
           </View>
           <Text style={s.heroTitle}>Votre croissance, guidée par l’IA</Text>
           <Text style={s.heroSubtitle}>Analysez. Décidez. Agissez.</Text>
-        </View>
-        <View style={s.sheet}>
+        </View> : null}
+        <View style={[s.sheet, { width: Math.min(620, layout.safeWidth - layout.gutter * 2) }]}>
           <View style={s.handle} />
           <View style={s.modeSwitch}>
             <ModeButton
@@ -125,10 +143,10 @@ export default function AuthScreen() {
               setError("");
             }}
           >
-            <View key="login" style={s.page}>
+            <View key="login" style={s.page} accessibilityElementsHidden={page !== 0} importantForAccessibility={page === 0 ? 'auto' : 'no-hide-descendants'}>
               <AuthPage registration={false} {...shared} />
             </View>
-            <View key="register" style={s.page}>
+            <View key="register" style={s.page} accessibilityElementsHidden={page !== 1} importantForAccessibility={page === 1 ? 'auto' : 'no-hide-descendants'}>
               <AuthPage registration {...shared} />
             </View>
           </PagerView>
@@ -139,6 +157,7 @@ export default function AuthScreen() {
 }
 
 type AuthPageProps = {
+  sessionNotice: ReactNode;
   registration: boolean;
   name: string;
   company: string;
@@ -155,6 +174,7 @@ type AuthPageProps = {
   submit(registration: boolean): Promise<void>;
 };
 function AuthPage({
+  sessionNotice,
   registration,
   name,
   company,
@@ -175,12 +195,14 @@ function AuthPage({
       bounces={false}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
+      keyboardDismissMode="on-drag"
       contentContainerStyle={s.pageContent}
     >
+      {sessionNotice}
       <View style={s.heading}>
         <View style={s.headingIcon}>
-          <MaterialIcons
-            name={registration ? "waving-hand" : "waving-hand"}
+          <AppIcon
+            name={registration ? "register" : "login"}
             size={18}
             color={Brand.tealDark}
           />
@@ -199,7 +221,7 @@ function AuthPage({
       <View style={s.form}>
         {registration ? (
           <Field
-            icon="person-outline"
+            icon="user"
             label="Nom complet"
             placeholder="Votre nom"
             value={name}
@@ -208,7 +230,7 @@ function AuthPage({
         ) : null}
         {registration ? (
           <Field
-            icon="business"
+            icon="organization"
             label="Entreprise"
             placeholder="Nom de votre entreprise"
             value={company}
@@ -216,7 +238,7 @@ function AuthPage({
           />
         ) : null}
         <Field
-          icon="mail-outline"
+          icon="email"
           label="Email professionnel"
           placeholder="vous@entreprise.com"
           value={email}
@@ -227,7 +249,7 @@ function AuthPage({
           autoComplete="email"
         />
         <Field
-          icon="lock-outline"
+          icon="password"
           label="Mot de passe"
           placeholder="8 caractères minimum"
           value={password}
@@ -245,10 +267,11 @@ function AuthPage({
                   : "Afficher le mot de passe"
               }
               hitSlop={10}
+              style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => setShowPassword((current) => !current)}
             >
-              <MaterialIcons
-                name={showPassword ? "visibility-off" : "visibility"}
+              <AppIcon
+                name={showPassword ? "hidePassword" : "showPassword"}
                 size={20}
                 color={Brand.slate400}
               />
@@ -258,8 +281,8 @@ function AuthPage({
       </View>
       {error ? (
         <View style={s.error} accessibilityRole="alert">
-          <MaterialIcons
-            name="error-outline"
+          <AppIcon
+            name="error"
             size={18}
             color={Brand.orangeDark}
           />
@@ -267,6 +290,9 @@ function AuthPage({
         </View>
       ) : null}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={registration ? "Créer mon espace RobIA" : "Continuer avec RobIA"}
+        accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
         disabled={isSubmitting}
         onPress={() => void submit(registration)}
         style={({ pressed }) => [
@@ -283,8 +309,8 @@ function AuthPage({
               {registration ? "Créer mon espace RobIA" : "Continuer avec RobIA"}
             </Text>
             <View style={s.submitIcon}>
-              <MaterialIcons
-                name="arrow-forward"
+              <AppIcon
+                name="forward"
                 size={18}
                 color={Brand.navyDark}
               />
@@ -292,6 +318,17 @@ function AuthPage({
           </>
         )}
       </Pressable>
+      {!registration ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/password")}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text style={{ color: Brand.tealDark, textAlign: "center" }}>
+            Mot de passe oublié ?
+          </Text>
+        </Pressable>
+      ) : null}
       <Text style={s.legal}>
         En continuant, vous acceptez les conditions d’utilisation et la
         politique de confidentialité de RobIA.
@@ -325,7 +362,7 @@ function Field({
   right,
   ...props
 }: React.ComponentProps<typeof TextInput> & {
-  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  icon: React.ComponentProps<typeof AppIcon>["name"];
   label: string;
   right?: ReactNode;
 }) {
@@ -333,8 +370,9 @@ function Field({
     <View style={s.fieldGroup}>
       <Text style={s.fieldLabel}>{label}</Text>
       <View style={s.field}>
-        <MaterialIcons name={icon} size={20} color={Brand.tealDark} />
+        <AppIcon name={icon} size={20} color={Brand.tealDark} />
         <TextInput
+          accessibilityLabel={label}
           placeholderTextColor={Brand.slate400}
           style={s.input}
           {...props}
@@ -346,17 +384,31 @@ function Field({
 }
 
 const s = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#EAF8F6" },
+  safeArea: { flex: 1, backgroundColor: Brand.slate50 },
   flex: { flex: 1 },
+  backButton: {
+    position: "absolute",
+    left: 20,
+    top: 10,
+    zIndex: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Brand.white,
+    borderWidth: 0,
+  },
   hero: {
-    height: "34%",
-    minHeight: 210,
-    maxHeight: 295,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    minHeight: 164,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: "#EAF8F6",
+    backgroundColor: Brand.slate50,
   },
+  heroCompact: { minHeight: 126, paddingVertical: 12 },
   orb: { position: "absolute", borderRadius: 999, opacity: 0.7 },
   orbTeal: {
     width: 190,
@@ -381,40 +433,44 @@ const s = StyleSheet.create({
     opacity: 0.55,
   },
   brandMark: {
-    width: 106,
-    height: 74,
-    marginBottom: 13,
+    width: 100,
+    height: 58,
+    marginBottom: 8,
     borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
   },
   logo: { width: 78, height: 50 },
   heroTitle: {
+    textAlign: "center",
     color: Brand.navyDark,
     fontFamily: Fonts?.rounded,
     fontSize: 18,
     fontWeight: "900",
   },
   heroSubtitle: {
+    textAlign: "center",
     marginTop: 5,
     color: Brand.tealDark,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700",
   },
   sheet: {
     flex: 1,
-    marginTop: -12,
-    paddingTop: 12,
+    alignSelf: "center",
+    marginBottom: 8,
+    paddingTop: 10,
     overflow: "hidden",
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     backgroundColor: Brand.white,
     shadowColor: Brand.navyDark,
     shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.045,
     shadowRadius: 24,
-    elevation: 12,
+    elevation: 5,
   },
+  sheetWide: { width: "100%", maxWidth: 620, alignSelf: "center" },
   handle: {
     alignSelf: "center",
     width: 42,
@@ -424,7 +480,7 @@ const s = StyleSheet.create({
     backgroundColor: Brand.slate200,
   },
   modeSwitch: {
-    marginHorizontal: 24,
+    marginHorizontal: 18,
     flexDirection: "row",
     padding: 4,
     borderRadius: 16,
@@ -432,18 +488,23 @@ const s = StyleSheet.create({
   },
   modeButton: {
     flex: 1,
-    minHeight: 39,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    minHeight: 48,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
   modeButtonActive: { backgroundColor: Brand.white, elevation: 2 },
-  modeLabel: { color: Brand.slate400, fontSize: 12, fontWeight: "800" },
+  modeLabel: { textAlign: "center", flexShrink: 1, color: Brand.slate400, fontSize: 14, fontWeight: "800" },
   modeLabelActive: { color: Brand.navyDark },
   pager: { flex: 1 },
   page: { flex: 1 },
-  pageContent: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 26 },
+  pageContent: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28 },
   heading: {
+    maxWidth: 560,
+    width: "100%",
+    alignSelf: "center",
     marginBottom: 20,
     flexDirection: "row",
     alignItems: "flex-start",
@@ -465,27 +526,28 @@ const s = StyleSheet.create({
     lineHeight: 28,
     fontWeight: "900",
   },
-  subtitle: { color: Brand.slate500, fontSize: 12.5, lineHeight: 18 },
-  form: { gap: 15 },
+  subtitle: { color: Brand.slate500, fontSize: 14, lineHeight: 20 },
+  form: { width: "100%", maxWidth: 560, alignSelf: "center", gap: 14 },
   fieldGroup: { gap: 7 },
-  fieldLabel: { color: Brand.slate500, fontSize: 11, fontWeight: "800" },
+  fieldLabel: { color: Brand.navyDark, fontSize: 13, fontWeight: "800" },
   field: {
-    minHeight: 52,
+    minHeight: 54,
     paddingHorizontal: 14,
     borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     backgroundColor: Brand.slate50,
-    borderWidth: 1,
-    borderColor: Brand.slate200,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Brand.borderSubtle,
   },
   input: {
     flex: 1,
     minHeight: 50,
-    paddingVertical: 0,
+    paddingVertical: 12,
+    minWidth: 0,
     color: Brand.slate800,
-    fontSize: 14,
+    fontSize: 16,
   },
   error: {
     marginTop: 15,
@@ -498,13 +560,18 @@ const s = StyleSheet.create({
   errorText: {
     flex: 1,
     color: Brand.orangeDark,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: "600",
   },
   submit: {
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
     minHeight: 56,
     marginTop: 19,
+    paddingVertical: 8,
+    gap: 12,
     paddingLeft: 20,
     paddingRight: 8,
     borderRadius: 20,
@@ -513,7 +580,14 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: Brand.navyDark,
   },
-  submitText: { color: Brand.white, fontSize: 14, fontWeight: "800" },
+  submitText: {
+    flex: 1,
+    flexShrink: 1,
+    color: Brand.white,
+    fontFamily: Fonts?.sans,
+    fontSize: 14,
+    fontWeight: "800",
+  },
   submitIcon: {
     width: 40,
     height: 40,
@@ -527,8 +601,8 @@ const s = StyleSheet.create({
     alignSelf: "center",
     marginTop: 14,
     color: Brand.slate400,
-    fontSize: 9.5,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: "center",
   },
   pressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },

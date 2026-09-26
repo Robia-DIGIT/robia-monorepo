@@ -1,18 +1,22 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { router, Stack, usePathname, useRootNavigationState, useSegments } from 'expo-router';
+import { Image } from 'expo-image';
+import { router, Stack, useRootNavigationState, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
+import { CopilotProvider } from 'react-native-copilot';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import { OfflineNotice } from '@/components/offline-notice';
 import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { LOGO_SETTLED_PROGRESS, useLaunchAnimation } from '@/hooks/use-launch-animation';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { RobiaDataProvider } from '@/src/api/data';
 import { SessionProvider, useSession } from '@/src/auth/session';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // The native splash may already be hidden during fast refresh.
@@ -25,25 +29,27 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export const unstable_settings = { anchor: '(tabs)', initialRouteName: 'index' };
 
 export default function RootLayout() {
-  return <SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider>;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SessionProvider><RobiaDataProvider><AppLayout /></RobiaDataProvider></SessionProvider>
+    </GestureHandlerRootView>
+  );
 }
 
 function AppLayout() {
   const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
-  const pathname = usePathname();
-  const { token, isLoading } = useSession();
+  const { token, user, isLoading } = useSession();
   const palette = Colors[colorScheme ?? 'light'];
   const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
-  const [showLaunchAnimation, setShowLaunchAnimation] = useState(true);
-  const launchProgress = useRef(new Animated.Value(0)).current;
+  const { visible: showLaunchAnimation, progress: launchProgress, opacity: overlayOpacity, reveal: revealAnimation } = useLaunchAnimation(reduceMotion);
 
   useEffect(() => {
     if (isLoading || !rootNavigationState?.key) return;
     const section = segments[0];
-    if (!token && section === '(tabs)') router.replace('/auth');
+    if (!token && !['index', 'auth', 'password', 'support', '+not-found'].includes(section ?? 'index')) router.replace('/auth');
     if (token && (section === 'auth' || section === undefined)) router.replace('/(tabs)/dashboard');
   }, [isLoading, rootNavigationState?.key, segments, token]);
 
@@ -61,8 +67,8 @@ function AppLayout() {
   };
 
   const screenOptions = {
-    animation: 'slide_from_right' as const,
-    animationDuration: 260,
+    animation: reduceMotion ? 'none' as const : 'slide_from_right' as const,
+    animationDuration: reduceMotion ? 0 : 260,
     gestureEnabled: true,
     fullScreenGestureEnabled: true,
     animationMatchesGesture: true,
@@ -70,38 +76,9 @@ function AppLayout() {
     headerTintColor: Brand.navyDark,
     headerShadowVisible: false,
     headerTitleStyle: { fontFamily: Fonts?.rounded, fontWeight: '800' as const },
+    headerShown: false,
     contentStyle: { backgroundColor: Brand.slate50 },
   };
-
-  const finishLaunchAnimation = useCallback(() => {
-    setShowLaunchAnimation(false);
-  }, []);
-
-  useEffect(() => {
-    const animation = Animated.timing(launchProgress, {
-      toValue: 1,
-      duration: 3800,
-      easing: Easing.bezier(0.22, 0.72, 0.2, 1),
-      useNativeDriver: true,
-    });
-
-    animation.start(({ finished }) => {
-      if (finished) finishLaunchAnimation();
-    });
-
-    const fallbackTimer = setTimeout(finishLaunchAnimation, 5000);
-
-    return () => {
-      animation.stop();
-      clearTimeout(fallbackTimer);
-    };
-  }, [finishLaunchAnimation, launchProgress]);
-
-  const revealAnimation = useCallback(() => {
-    SplashScreen.hideAsync().catch(() => {
-      // Nothing to do if the native splash is already hidden.
-    });
-  }, []);
 
   function createLayerStyle({
     start,
@@ -211,54 +188,37 @@ function AppLayout() {
     start: 0.26,
     reveal: 0.32,
     land: 0.54,
-    settle: 0.72,
+    settle: LOGO_SETTLED_PROGRESS,
     fromX: 145,
     curveX: 46,
     fromY: 170,
     curveY: -70,
     rotation: '300deg',
   });
-  const overlayOpacity = launchProgress.interpolate({
-    inputRange: [0, 0.88, 1],
-    outputRange: [1, 1, 0],
-  });
-  const showAssistantButton = Boolean(token) && !isLoading && pathname !== '/chat';
-
   return (
     <ThemeProvider value={navigationTheme}>
-      <Stack screenOptions={screenOptions}>
+      <CopilotProvider>
+      <Stack key={user?.id ?? "guest"} screenOptions={screenOptions}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
           name="auth"
           options={{
             headerShown: false,
             presentation: 'fullScreenModal',
-            animation: 'slide_from_bottom',
+            animation: reduceMotion ? 'none' : 'slide_from_bottom',
           }}
         />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: '' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen
           name="audit"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Nouvel audit' }}
+          options={{ presentation: 'modal', animation: reduceMotion ? 'none' : 'slide_from_bottom', headerShown: false }}
         />
-        <Stack.Screen name="history" options={{ title: 'Historique' }} />
-        <Stack.Screen name="reports" options={{ title: 'Rapports' }} />
-        <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+        <Stack.Screen name="history" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
-
-      {showAssistantButton ? (
-        <Pressable
-          accessibilityLabel="Ouvrir l'assistant RobIA"
-          accessibilityRole="button"
-          onPress={() => router.push('/chat')}
-          style={[styles.assistantButton, { bottom: Math.max(insets.bottom, 10) + 86 }]}>
-          <View pointerEvents="none" style={styles.assistantRing} />
-          <MaterialIcons name="android" size={28} color={Brand.white} />
-          <Text style={styles.assistantBadge}>IA</Text>
-        </Pressable>
-      ) : null}
 
       {showLaunchAnimation ? (
         <Animated.View
@@ -266,6 +226,12 @@ function AppLayout() {
           accessibilityRole="progressbar"
           onLayout={revealAnimation}
           style={[styles.launchOverlay, { opacity: overlayOpacity }]}>
+          <Image
+            source={require('@/assets/images/launch-background.svg')}
+            contentFit="cover"
+            style={styles.launchBackground}
+            pointerEvents="none"
+          />
           <View style={styles.logoStage}>
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-tail.png')}
@@ -275,12 +241,12 @@ function AppLayout() {
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-circle.png')}
               resizeMode="contain"
-              style={[styles.logoLayer, circleStyle]}
+              style={[styles.logoLayer, styles.logoLayerWhite, circleStyle]}
             />
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-left.png')}
               resizeMode="contain"
-              style={[styles.logoLayer, leftStyle]}
+              style={[styles.logoLayer, styles.logoLayerWhite, leftStyle]}
             />
             <Animated.Image
               source={require('@/assets/images/logo-parts/robia-ia.png')}
@@ -292,64 +258,34 @@ function AppLayout() {
       ) : null}
 
       <StatusBar style="dark" />
+      <OfflineNotice />
+      </CopilotProvider>
     </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  assistantButton: {
-    position: 'absolute',
-    right: 18,
-    zIndex: 900,
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Brand.navyDark,
-    borderWidth: 3,
-    borderColor: Brand.teal,
-    shadowColor: Brand.navyDark,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 16,
-  },
-  assistantRing: {
-    position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  assistantBadge: {
-    position: 'absolute',
-    right: 5,
-    bottom: 3,
-    color: Brand.navyDark,
-    fontSize: 8,
-    fontWeight: '900',
-    backgroundColor: Brand.teal,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
   launchOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Brand.slate50,
+    backgroundColor: Brand.teal,
+  },
+  launchBackground: {
+    ...StyleSheet.absoluteFillObject,
   },
   logoStage: {
-    width: '62%',
-    maxWidth: 270,
+    width: '58%',
+    maxWidth: 330,
     aspectRatio: 1080 / 662,
   },
   logoLayer: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+  },
+  logoLayerWhite: {
+    tintColor: Brand.white,
   },
 });
