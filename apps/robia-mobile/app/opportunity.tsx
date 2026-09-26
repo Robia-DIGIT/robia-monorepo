@@ -28,6 +28,7 @@ export default function OpportunityScreen() {
   const resource = useResource<Opportunity>(
     id ? "/opportunities/" + encodeURIComponent(id) : null,
   );
+  const documents = useResource<RobiaDocument[]>(id ? "/documents?opportunity_id=" + encodeURIComponent(id) : null);
   const [type, setType] = useState("local_page");
   const [status, setStatus] = useState("open");
   const savedStatus = resource.data?.status;
@@ -87,6 +88,9 @@ export default function OpportunityScreen() {
               await refresh();
             }}
           />
+          <Text style={s.title}>Documents de cette opportunité</Text>
+          <LoadState {...documents} retry={documents.reload} empty={!documents.data?.length} />
+          {documents.data?.map(doc => <AsyncButton key={doc.id} label={doc.title} action={async () => router.push({ pathname: "/document", params: { id: doc.id } })} />)}
         </RobiaCard>
       ) : null}
     </RobiaScreen>

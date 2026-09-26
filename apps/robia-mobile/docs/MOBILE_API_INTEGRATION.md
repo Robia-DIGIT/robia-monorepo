@@ -1,260 +1,334 @@
-# Intégration mobile ROBIA — bilan et contrats
+# Intégration mobile ROBIA
 
-Référence backend : [Robia-DIGIT/Robia-Back, f3c7d5e](https://github.com/Robia-DIGIT/Robia-Back/tree/f3c7d5e2379d3a91b941cff3de3c88ee50666511). Inventaire au 15/09/2026, 18 contrôleurs NestJS et 84 routes déclarées. Le code contient deux routes Intelligence de plus que le premier inventaire de 82 routes.
+Référence auditée : [Robia-Back `90669f2`](https://github.com/Robia-DIGIT/Robia-Back/tree/90669f2c23bcc0d10f584c62864f1579a1105c58). Mise à jour mobile : 25 septembre 2026. **22 contrôleurs NestJS, 129 routes HTTP déclarées.** Cet inventaire porte sur le code du dépôt, pas sur une certification du serveur déployé.
 
-## Parcours disponibles
+## Organisation des parcours
 
-- Compte : inscription (name, company, email, password), connexion, session SecureStore, profil, organisation et réinitialisation de mot de passe.
-- Sites : ajout, sélection, archivage, restauration et historique par site.
-- Diagnostic : audits, suivi de leur statut, scores réellement disponibles, contrôles, recommandations et opportunités des anciens audits.
-- Production : sept types de documents, édition avec protection du brouillon, approbation/rejet et partage du texte.
-- Actions : génération, planification à l’échelle de l’organisation, statuts, échéances, soumission, approbation/rejet, preuves d’exécution et historique ; export PDF natif.
-- Établissements : recherche Google Places, création, horaires et météo lorsque des coordonnées existent.
-- Mesures : propriétés Search Console/Analytics, pages Facebook, audience et vue Intelligence.
-- Facturation : consultation de l’abonnement, Checkout mensuel/annuel et portail sécurisé dans le navigateur.
-- Automatisations : création, nom, activation, lancement manuel, historique, approbation/rejet des exécutions.
-- Contact : formulaire envoyé à /prospects uniquement à la demande de l’utilisateur.
+| Espace | Fonctionnalités |
+| --- | --- |
+| Accueil | Résultats du site choisi, priorités et raccourcis |
+| Visibilité | Diagnostics et historique, concurrence, Search Console, Analytics, Facebook/Instagram, fiches Google, avis, performances locales, établissements, Intelligence |
+| Activité | Opportunités, documents de tous les audits du site, plan d’action incluant les tâches internes, validations, automatisations et envois d’e-mails |
+| Activité > Candidatures | Programmes, formulaire configurable, candidats, dossiers, fichiers, synthèses, propositions de notes, notes finales, décisions, historique et invitations |
+| Profil | Profil, organisation, sites, connexions, abonnement, mot de passe et contact |
 
-Les écrans, types et services existants au début de cette intervention ont été conservés et complétés. Les états manquants ne sont pas remplacés par de fausses données.
+Les listes Opportunités, Documents et Plan d’action restent accessibles aux routes `/opportunities`, `/execution-pack` et `/progress`. Les quatre onglets Accueil, Visibilité, Activité et Profil utilisent le même navigateur avec pages adjacentes visibles pendant le glissement. Les candidatures sont une sous-section d’Activité. Le profil est accessible dans la barre du bas ; les en-têtes conservent leur structure sans raccourci de profil. L’application reste en portrait.
 
-## Limites nécessitant du travail serveur ou une recette réelle
+## Comportements intégrés
 
-1. **OAuth natif Google/Meta** : /authorize pose un cookie HttpOnly dans son client HTTP et /callback exige le même cookie dans le navigateur. Le stockage natif et le Custom Tab ne partagent pas ce cookie de manière portable. Le mobile ouvre donc l’espace web /analyse avec le même compte ; il relit /status au retour. Aucun JWT n’est placé dans une URL. Pour un parcours entièrement natif, prévoir un ticket à usage unique créé avec le Bearer mobile, consommé dans le navigateur pour poser le cookie, puis un retour robiamobile:// validé côté serveur. Les deux /authorize et les deux /callback restent pilotés par le parcours web.
-2. **Automatisations planifiées/événementielles** : le module persiste les déclencheurs et expose emitEvent en interne, mais le module consulté ne branche ni ordonnanceur ni émission depuis Audits/Meta. La configuration est possible ; son exécution automatique est signalée indisponible. Le lancement manuel fonctionne via /:id/run, sauf les étapes exigeant un événement absent. Il faut brancher ces déclenchements serveur pour une automatisation autonome.
-3. **Facturation** : /billing/webhook est appelé par Stripe, jamais par l’APK. Les clés, tarifs, retours et activation sont gérés côté serveur. Le mobile ne considère pas le retour du navigateur comme une preuve de paiement : il relit /billing/subscription. Recette Checkout/portail en mode test à réaliser. Fiscalité : les éventuelles taxes et immatriculations Stripe Tax restent à configurer côté serveur selon les marchés concernés.
-4. **Chat** : aucun endpoint de conversation n’est présent dans les contrôleurs consultés. Le copilote mobile affiche les données du compte et propose les prochaines actions ; il ne simule pas de réponses IA.
-5. **Recette appareil** : aucun appareil Android n’était connecté à adb. Export Metro/Hermes Android vérifié ; ce résultat est un bundle, pas un APK signé. Les parcours authentifiés, OAuth, PDF partagé et paiement doivent être vérifiés sur appareil avec un compte de test. Aucune inscription, mutation métier ni transaction de production n’a été exécutée durant les tests.
-6. **Concurrence d’édition** : le brouillon résiste aux actualisations ; un changement distant observé est signalé. Le backend n’expose pas de version conditionnelle/ETag : une protection atomique contre deux sauvegardes simultanées nécessite son support côté serveur.
+- Les documents sont chargés avec `website_id`, y compris ceux d’audits antérieurs, dans la limite serveur de 100 documents. Les documents d’une opportunité restent accessibles depuis son détail. L’éditeur envoie `expectedRevision` et conserve le brouillon si le serveur répond 409.
+- Le plan d’action propose toute l’entreprise ou un site. Les tâches de revue de candidature et les tâches internes ne disparaissent plus derrière le filtre de site. Le PDF respecte la portée sélectionnée.
+- Les établissements disposent de la recherche Places, du téléphone, de l’indication « principal », de la météo, de la suppression et de l’import CSV avec aperçu. Import : UTF-8, sept colonnes documentées dans le formulaire, 100 lignes au maximum, identifiants conservés pour la déduplication serveur.
+- Les concurrents sont rattachés à un site. Leur audit, score, date et erreur éventuelle sont visibles ; un échec n’est jamais affiché comme une réussite.
+- Les fiches Google peuvent être synchronisées, associées à un établissement ROBIA ou dissociées. Les avis incluent les réponses déjà publiées. Les performances présentent les totaux et le détail quotidien renvoyés par Google. Aucun bouton de publication d’avis n’est inventé.
+- Les programmes permettent de définir questions, critères, coefficients, pièces attendues et formats. Le backend fige critères et types de pièces dès qu’un dossier existe ; l’éditeur respecte cette règle.
+- Les dossiers prennent en charge tous les types de questions, soumission, pièces attendues, transfert/remplacement réel, téléchargement/partage, synthèse, notes proposées et finales, décision motivée, retrait et historique. Une proposition de note saisie par une personne envoie `proposedBy: reviewer`.
+- L’envoi de fichier utilise un sélecteur natif, un multipart contenant uniquement `file` et `documentTypeId`, et une limite de 10 Mo. Le téléchargement authentifié vérifie le type de contenu. Aucun chemin de stockage serveur n’est construit ou transmis par le mobile.
+- Les dossiers acceptés, refusés ou retirés restent en lecture seule. Une décision est possible uniquement depuis les états `in_review` et `waitlisted`. Les consignes de double revue et le seuil restent indicatifs : le serveur consulté ne les impose pas automatiquement.
+- Les invitations sont préparées dans l’ordre choisi, puis envoyées une par une après confirmation explicite. Les envois ne sont jamais déclenchés à l’ouverture d’un écran.
+- Les automatisations couvrent les huit actions autorisées, les déclenchements manuels, planifiés et les six événements effectivement émis. L’éditeur expose fuseau horaire, catégorie, conditions imbriquées, ordre des étapes et approbation préalable. Le backend contient désormais l’ordonnanceur et les écouteurs d’événements.
+- Les boutons de vérification de dossier, résumé de complétude et tâche de revue passent par une automatisation manuelle, chemin exposé par le serveur pour ces trois opérations. Ils réutilisent une configuration compatible, sans conditions ni approbation préalable. Ils ne prennent aucune décision de candidature.
+- Le suivi des e-mails affiche le statut réel, l’adresse masquée, les tentatives et l’erreur. La relance est disponible uniquement en `dead_letter` avec moins de cinq tentatives.
 
-## Vérifications
+## Limites explicites et recette
 
-- `npm run test:api` : tests HTTP isolés (pas de réseau), timeout, annulation, erreurs NestJS, absence de rejeu des mutations, PDF, contrats Meta et audits.
-- `npm run typecheck` : vérification TypeScript.
-- `node node_modules/eslint/bin/eslint.js app components src --max-warnings 0`.
-- `node node_modules/expo/bin/cli export --platform android --output-dir .verification/android`.
-- Base API : `EXPO_PUBLIC_API_URL`, défaut `https://api.robiacopilot.site`. Cette valeur est incluse dans le bundle à sa génération. Aucune clé serveur ne doit y être ajoutée.
-- Les accès protégés portent `Authorization: Bearer <token>`. L’organisation est déduite par le serveur, jamais choisie dans le corps d’une requête mobile.
+- **OAuth Google/Meta/Business Profile** : le serveur lie l’autorisation à un cookie HttpOnly du navigateur. Le mobile ouvre l’espace web ROBIA avec le même compte, puis relit le statut. Aucun JWT n’est placé dans l’URL. Un parcours entièrement natif exige un ticket de connexion à usage unique et un retour mobile gérés côté serveur.
+- **Webhooks et infrastructure** : `/billing/webhook`, `/` et `/health` ne deviennent pas des boutons métier. Les callbacks OAuth restent gérés par le serveur et le navigateur.
+- **Chat et publication** : aucun contrôleur de conversation ni de publication WordPress/Content Studio n’existe dans cette révision. Le mobile ne simule pas ces services. Les approbations de documents enregistrent la validation, sans publication automatique.
+- **Paramètres du programme** : les dates sont indicatives ; ouvrir/fermer utilise les commandes explicites. Le DTO serveur ne permet pas d’effacer une date ou un seuil existant avec une chaîne vide ; l’éditeur doit conserver ou modifier ces valeurs.
+- **Validation sur appareil** : aucun appareil n’était connecté à `adb devices`. Le bundle Android ne remplace pas un APK signé ni une recette native. Vérifier avec un compte de test : session, fichiers PDF/JPEG/PNG/Word, partage, OAuth, calendriers, envois et facturation. Aucune mutation métier, aucun e-mail ni paiement de production n’a été exécuté pendant le développement.
 
-## Inventaire HTTP
+## Vérification reproductible
 
-La colonne « Entrée » indique le DTO serveur (modèle de validation) ou les paramètres d’URL. Les liens pointent vers le code exact consulté. Présence d’une route ne signifie pas validation fonctionnelle contre le serveur déployé.
+- `npm test` : tests HTTP isolés, multipart, téléchargements, conflit de révision, règles de candidature, définition de programme, conditions et événements, import CSV, annulation du sélecteur, transitions et logo.
+- `npm run typecheck` : TypeScript. Après ajout de routes, Expo doit régénérer `.expo/types/router.d.ts`.
+- `node node_modules/eslint/bin/eslint.js app components src hooks tests --max-warnings 0`.
+- `node node_modules/expo/bin/cli export --platform android --output-dir .expo/integration-check --no-minify`.
+- Base API : `EXPO_PUBLIC_API_URL`, sinon `https://api.robiacopilot.site`. L’organisation est déterminée par le serveur via le Bearer. Les ressources sont séparées par session et rechargées au retour sur écran.
 
-### Infrastructure
+## Inventaire des routes
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/app.controller.ts)
+Les équivalents fonctionnels sont précisés : `/auth/me` et `/users/me` exposent l’identité, la restauration de session utilise `/users/me`. La route de métadonnées ODC marque uniquement une pièce attendue ; le transfert réel utilise `/documents/upload`.
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| GET | `/` | — | Infrastructure serveur |
-| GET | `/health` | — | Infrastructure serveur |
+### action-execution
 
-### auth
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/action-items/action-execution.controller.ts)
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/auth/auth.controller.ts)
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/actions/:id/submit` | Travail → Plan d’action → Détail |
+| POST | `/actions/:id/approve` | Travail → Plan d’action → Détail |
+| POST | `/actions/:id/reject` | Travail → Plan d’action → Détail |
+| POST | `/actions/:id/execution-attempts` | Travail → Plan d’action → Détail |
+| GET | `/actions/:id/history` | Travail → Plan d’action → Détail |
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/auth/register` | RegisterDto | auth.tsx / password.tsx / session.tsx |
-| POST | `/auth/login` | LoginDto | auth.tsx / password.tsx / session.tsx |
-| POST | `/auth/forgot-password` | ForgotPasswordDto | auth.tsx / password.tsx / session.tsx |
-| POST | `/auth/reset-password` | ResetPasswordDto | auth.tsx / password.tsx / session.tsx |
-| GET | `/auth/me` | — | auth.tsx / password.tsx / session.tsx |
-| POST | `/auth/logout` | — | auth.tsx / password.tsx / session.tsx |
+### action-items
 
-### users
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/action-items/action-items.controller.ts)
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/users/users.controller.ts)
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/actions/generate` | Travail → Plan d’action / Opportunités |
+| GET | `/actions` | Travail → Plan d’action / Opportunités |
+| GET | `/actions/export` | Travail → Plan d’action / Opportunités |
+| PATCH | `/actions/:id/status` | Travail → Plan d’action / Opportunités |
+| POST | `/actions/plan` | Travail → Plan d’action / Opportunités |
+| PATCH | `/actions/:id/due-date` | Travail → Plan d’action / Opportunités |
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| GET | `/users/me` | — | settings.tsx / session.tsx |
-| PATCH | `/users/me` | UpdateProfileDto | settings.tsx / session.tsx |
+### app
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/app.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/` | Infrastructure serveur |
+| GET | `/health` | Infrastructure serveur |
 
 ### audits
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/audits/audits.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/audits/audits.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/audits/run` | RunAuditDto | audit.tsx / history.tsx / audit-detail.tsx / data.tsx |
-| POST | `/audits/run-site` | RunSiteAuditDto | audit.tsx / history.tsx / audit-detail.tsx / data.tsx |
-| GET | `/audits` | Query : website_id | audit.tsx / history.tsx / audit-detail.tsx / data.tsx |
-| GET | `/audits/latest` | Query : website_id | audit.tsx / history.tsx / audit-detail.tsx / data.tsx |
-| GET | `/audits/:id` | Identifiant dans le chemin | audit.tsx / history.tsx / audit-detail.tsx / data.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/audits/run` | Visibilité → Diagnostics |
+| POST | `/audits/run-site` | Visibilité → Diagnostics |
+| GET | `/audits` | Visibilité → Diagnostics |
+| GET | `/audits/latest` | Visibilité → Diagnostics |
+| GET | `/audits/:id` | Visibilité → Diagnostics |
+
+### auth
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/auth/auth.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/auth/register` | Connexion / Mot de passe / Session |
+| POST | `/auth/login` | Connexion / Mot de passe / Session |
+| POST | `/auth/forgot-password` | Connexion / Mot de passe / Session |
+| POST | `/auth/reset-password` | Connexion / Mot de passe / Session |
+| GET | `/auth/me` | Identité ; équivalent /users/me utilisé par la session |
+| POST | `/auth/logout` | Connexion / Mot de passe / Session |
 
 ### billing
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/billing/billing.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/billing/billing.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| GET | `/billing/subscription` | — | billing.tsx |
-| POST | `/billing/checkout-session` | CreateCheckoutSessionDto | billing.tsx |
-| POST | `/billing/portal-session` | — | billing.tsx |
-| POST | `/billing/webhook` | — | Stripe → serveur uniquement |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/billing/subscription` | Entreprise → Abonnement |
+| POST | `/billing/checkout-session` | Entreprise → Abonnement |
+| POST | `/billing/portal-session` | Entreprise → Abonnement |
+| POST | `/billing/webhook` | Stripe → serveur uniquement |
 
-### websites
+### competitors
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/websites/websites.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/competitors/competitors.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/websites` | CreateWebsiteDto | websites.tsx / data.tsx |
-| GET | `/websites` | Query : include_archived? | websites.tsx / data.tsx |
-| GET | `/websites/:id` | Identifiant dans le chemin | websites.tsx / data.tsx |
-| DELETE | `/websites/:id` | Identifiant dans le chemin | websites.tsx / data.tsx |
-| PATCH | `/websites/:id/restore` | Identifiant dans le chemin | websites.tsx / data.tsx |
-
-### prospects
-
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/prospects/prospects.controller.ts)
-
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/prospects` | CreateProspectDto | support.tsx |
-
-### locations
-
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/locations/locations.controller.ts)
-
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| GET | `/locations/search-places` | Query : query (SearchPlacesDto) | locations.tsx |
-| POST | `/locations` | CreateLocationDto | locations.tsx |
-| GET | `/locations` | — | locations.tsx |
-| GET | `/locations/:id` | Identifiant dans le chemin | locations.tsx |
-| GET | `/locations/:id/weather` | Identifiant dans le chemin | locations.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/competitors` | Visibilité → Concurrents |
+| GET | `/competitors` | Visibilité → Concurrents |
+| POST | `/competitors/:id/run` | Visibilité → Concurrents |
+| DELETE | `/competitors/:id` | Visibilité → Concurrents |
 
 ### documents
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/documents/documents.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/documents/documents.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/documents/generate` | GenerateDocumentDto | opportunity.tsx / document.tsx / data.tsx |
-| GET | `/documents` | Query : opportunity_id | opportunity.tsx / document.tsx / data.tsx |
-| GET | `/documents/:id` | Identifiant dans le chemin | opportunity.tsx / document.tsx / data.tsx |
-| PATCH | `/documents/:id` | UpdateDocumentDto ; Identifiant dans le chemin | opportunity.tsx / document.tsx / data.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/documents/generate` | Travail → Documents / Opportunités |
+| GET | `/documents` | Travail → Documents / Opportunités |
+| GET | `/documents/:id` | Travail → Documents / Opportunités |
+| PATCH | `/documents/:id` | Travail → Documents / Opportunités |
+
+### google-business-profile
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/integrations/google-business-profile.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/integrations/google/business-profile/authorize` | Connexion via le navigateur (voir limite OAuth) |
+| GET | `/integrations/google/business-profile/callback` | Connexion via le navigateur (voir limite OAuth) |
+| GET | `/integrations/google/business-profile/status` | Visibilité → Fiches Google et avis |
+| GET | `/integrations/google/business-profile/locations` | Visibilité → Fiches Google et avis |
+| POST | `/integrations/google/business-profile/sync` | Visibilité → Fiches Google et avis |
+| POST | `/integrations/google/business-profile/locations/:id/link` | Visibilité → Fiches Google et avis |
+| DELETE | `/integrations/google/business-profile/locations/:id/link` | Visibilité → Fiches Google et avis |
+| GET | `/integrations/google/business-profile/locations/:id/reviews` | Visibilité → Fiches Google et avis |
+| POST | `/integrations/google/business-profile/locations/:id/reviews/sync` | Visibilité → Fiches Google et avis |
+| GET | `/integrations/google/business-profile/locations/:id/performance` | Visibilité → Fiches Google et avis |
+| DELETE | `/integrations/google/business-profile` | Visibilité → Fiches Google et avis |
+
+### google-search-console
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/integrations/google-search-console.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/integrations/google/search-console/authorize` | Connexion via le navigateur (voir limite OAuth) |
+| GET | `/integrations/google/search-console/callback` | Connexion via le navigateur (voir limite OAuth) |
+| GET | `/integrations/google/search-console/status` | Entreprise → Connexions / Visibilité → Performances |
+| GET | `/integrations/google/search-console/sites` | Entreprise → Connexions / Visibilité → Performances |
+| POST | `/integrations/google/search-console/site` | Entreprise → Connexions / Visibilité → Performances |
+| GET | `/integrations/google/search-console/performance` | Entreprise → Connexions / Visibilité → Performances |
+| GET | `/integrations/google/search-console/analytics/properties` | Entreprise → Connexions / Visibilité → Performances |
+| POST | `/integrations/google/search-console/analytics/property` | Entreprise → Connexions / Visibilité → Performances |
+| GET | `/integrations/google/search-console/analytics/performance` | Entreprise → Connexions / Visibilité → Performances |
+| DELETE | `/integrations/google/search-console` | Entreprise → Connexions / Visibilité → Performances |
+
+### meta
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/integrations/meta.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/integrations/meta/authorize` | Connexion via le navigateur (voir limite OAuth) |
+| GET | `/integrations/meta/callback` | Connexion via le navigateur (voir limite OAuth) |
+| GET | `/integrations/meta/status` | Entreprise → Connexions / Visibilité → Réseaux sociaux |
+| GET | `/integrations/meta/assets` | Entreprise → Connexions / Visibilité → Réseaux sociaux |
+| POST | `/integrations/meta/assets/select` | Entreprise → Connexions / Visibilité → Réseaux sociaux |
+| GET | `/integrations/meta/performance` | Entreprise → Connexions / Visibilité → Réseaux sociaux |
+| DELETE | `/integrations/meta` | Entreprise → Connexions / Visibilité → Réseaux sociaux |
 
 ### intelligence
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/intelligence/intelligence.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/intelligence/intelligence.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| GET | `/intelligence/status` | — | intelligence.tsx |
-| GET | `/intelligence/findings` | Query : auditId? | intelligence.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/intelligence/status` | Visibilité → Analyse approfondie |
+| GET | `/intelligence/findings` | Visibilité → Analyse approfondie |
+
+### locations
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/locations/locations.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/locations/search-places` | Visibilité → Mes établissements |
+| POST | `/locations` | Visibilité → Mes établissements |
+| POST | `/locations/legacy-import` | Visibilité → Mes établissements |
+| GET | `/locations` | Visibilité → Mes établissements |
+| GET | `/locations/:id` | Visibilité → Mes établissements |
+| DELETE | `/locations/:id` | Visibilité → Mes établissements |
+| GET | `/locations/:id/weather` | Visibilité → Mes établissements |
+
+### notifications
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/notifications/notifications.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/ops/notifications` | Travail → Suivi des envois |
+| GET | `/ops/notifications/:id` | Travail → Suivi des envois |
+| POST | `/ops/notifications/:id/retry` | Travail → Suivi des envois |
+
+### odc
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/odc/odc.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/odc/programs` | Candidatures → Programme / Dossier / Invitations |
+| GET | `/odc/programs` | Candidatures → Programme / Dossier / Invitations |
+| GET | `/odc/programs/:id` | Candidatures → Programme / Dossier / Invitations |
+| GET | `/odc/programs/:id/applications` | Candidatures → Programme / Dossier / Invitations |
+| PATCH | `/odc/programs/:id` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/programs/:id/open` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/programs/:id/close` | Candidatures → Programme / Dossier / Invitations |
+| GET | `/odc/programs/:id/outreach` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/programs/:id/outreach` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/outreach/:id/send` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/outreach/:id/skip` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applicants` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/programs/:id/applications` | Candidatures → Programme / Dossier / Invitations |
+| GET | `/odc/applications/:id` | Candidatures → Programme / Dossier / Invitations |
+| GET | `/odc/applications/:id/history` | Candidatures → Programme / Dossier / Invitations |
+| PATCH | `/odc/applications/:id` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applications/:id/documents` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applications/:id/documents/upload` | Candidatures → Programme / Dossier / Invitations |
+| GET | `/odc/documents/:documentId/file` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applications/:id/submit` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applications/:id/propose-summary` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applications/:id/propose-scores` | Candidatures → Programme / Dossier / Invitations |
+| PATCH | `/odc/applications/:id/scores` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applications/:id/decide` | Candidatures → Programme / Dossier / Invitations |
+| POST | `/odc/applications/:id/withdraw` | Candidatures → Programme / Dossier / Invitations |
 
 ### opportunities
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/opportunities/opportunities.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/opportunities/opportunities.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/opportunities/generate` | GenerateOpportunitiesDto | opportunities.tsx / opportunity.tsx / audit-detail.tsx |
-| POST | `/opportunities/generate-site` | GenerateOpportunitiesDto | opportunities.tsx / opportunity.tsx / audit-detail.tsx |
-| GET | `/opportunities` | Query : audit_id | opportunities.tsx / opportunity.tsx / audit-detail.tsx |
-| GET | `/opportunities/:id` | Identifiant dans le chemin | opportunities.tsx / opportunity.tsx / audit-detail.tsx |
-| PATCH | `/opportunities/:id/status` | UpdateOpportunityStatusDto ; Identifiant dans le chemin | opportunities.tsx / opportunity.tsx / audit-detail.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/opportunities/generate` | Travail → Opportunités / Diagnostics |
+| POST | `/opportunities/generate-site` | Travail → Opportunités / Diagnostics |
+| GET | `/opportunities` | Travail → Opportunités / Diagnostics |
+| GET | `/opportunities/:id` | Travail → Opportunités / Diagnostics |
+| PATCH | `/opportunities/:id/status` | Travail → Opportunités / Diagnostics |
+
+### automations
+
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/ops-automation/automations.controller.ts)
+
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/ops/automations` | Travail → Automatisations / Dossier → Revue |
+| GET | `/ops/automations` | Travail → Automatisations / Dossier → Revue |
+| GET | `/ops/automations/:id` | Travail → Automatisations / Dossier → Revue |
+| PATCH | `/ops/automations/:id` | Travail → Automatisations / Dossier → Revue |
+| PATCH | `/ops/automations/:id/enabled` | Travail → Automatisations / Dossier → Revue |
+| POST | `/ops/automations/:id/run` | Travail → Automatisations / Dossier → Revue |
+| GET | `/ops/automations/:id/runs` | Travail → Automatisations / Dossier → Revue |
+| GET | `/ops/automations/runs/:runId` | Travail → Automatisations / Dossier → Revue |
+| POST | `/ops/automations/runs/:runId/approve` | Travail → Automatisations / Dossier → Revue |
+| POST | `/ops/automations/runs/:runId/reject` | Travail → Automatisations / Dossier → Revue |
 
 ### organizations
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/organizations/organizations.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/organizations/organizations.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/organizations` | CreateOrganizationDto | settings.tsx / session.tsx / audit.tsx |
-| GET | `/organizations/current` | — | settings.tsx / session.tsx / audit.tsx |
-| PATCH | `/organizations/current` | UpdateOrganizationDto | settings.tsx / session.tsx / audit.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/organizations` | Entreprise → Paramètres |
+| GET | `/organizations/current` | Entreprise → Paramètres |
+| PATCH | `/organizations/current` | Entreprise → Paramètres |
 
-### actions
+### prospects
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/action-items/action-execution.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/prospects/prospects.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/actions/:id/submit` | Identifiant dans le chemin | action.tsx |
-| POST | `/actions/:id/approve` | Identifiant dans le chemin | action.tsx |
-| POST | `/actions/:id/reject` | RejectActionDto ; Identifiant dans le chemin | action.tsx |
-| POST | `/actions/:id/execution-attempts` | RecordActionExecutionDto ; Identifiant dans le chemin | action.tsx |
-| GET | `/actions/:id/history` | Identifiant dans le chemin | action.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/prospects` | Entreprise → Nous contacter |
 
-### validations
+### users
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/validation-logs/validation-logs.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/users/users.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/validations` | CreateValidationLogDto | document.tsx / validations.tsx |
-| GET | `/validations` | — | document.tsx / validations.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| GET | `/users/me` | Entreprise → Paramètres / Session |
+| PATCH | `/users/me` | Entreprise → Paramètres / Session |
 
-### integrations/meta
+### validation-logs
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/integrations/meta.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/validation-logs/validation-logs.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| GET | `/integrations/meta/authorize` | — | Parcours navigateur OAuth — limite native décrite ci-dessus |
-| GET | `/integrations/meta/callback` | Query : code, state, error | Parcours navigateur OAuth — limite native décrite ci-dessus |
-| GET | `/integrations/meta/status` | — | integrations.tsx |
-| GET | `/integrations/meta/assets` | — | integrations.tsx |
-| POST | `/integrations/meta/assets/select` | SelectMetaPageDto | integrations.tsx |
-| GET | `/integrations/meta/performance` | — | integrations.tsx |
-| DELETE | `/integrations/meta` | — | integrations.tsx |
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/validations` | Travail → Documents / Validations |
+| GET | `/validations` | Travail → Documents / Validations |
 
-### actions
+### websites
 
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/action-items/action-items.controller.ts)
+[Contrôleur audité](https://github.com/Robia-DIGIT/Robia-Back/blob/90669f2c23bcc0d10f584c62864f1579a1105c58/src/websites/websites.controller.ts)
 
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/actions/generate` | Query : opportunity_id | progress.tsx / action.tsx / export.ts / data.tsx |
-| GET | `/actions` | Query : website_id? | progress.tsx / action.tsx / export.ts / data.tsx |
-| GET | `/actions/export` | Query : website_id? | progress.tsx / action.tsx / export.ts / data.tsx |
-| PATCH | `/actions/:id/status` | UpdateActionStatusDto ; Identifiant dans le chemin | progress.tsx / action.tsx / export.ts / data.tsx |
-| POST | `/actions/plan` | — | progress.tsx / action.tsx / export.ts / data.tsx |
-| PATCH | `/actions/:id/due-date` | UpdateDueDateDto ; Identifiant dans le chemin | progress.tsx / action.tsx / export.ts / data.tsx |
-
-### ops/automations
-
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/ops-automation/automations.controller.ts)
-
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| POST | `/ops/automations` | CreateAutomationDto | automations.tsx |
-| GET | `/ops/automations` | — | automations.tsx |
-| GET | `/ops/automations/:id` | Identifiant dans le chemin | automations.tsx |
-| PATCH | `/ops/automations/:id` | UpdateAutomationDto ; Identifiant dans le chemin | automations.tsx |
-| PATCH | `/ops/automations/:id/enabled` | SetAutomationEnabledDto ; Identifiant dans le chemin | automations.tsx |
-| POST | `/ops/automations/:id/run` | Identifiant dans le chemin | automations.tsx |
-| GET | `/ops/automations/:id/runs` | Identifiant dans le chemin | automations.tsx |
-| GET | `/ops/automations/runs/:runId` | Identifiant dans le chemin | automations.tsx |
-| POST | `/ops/automations/runs/:runId/approve` | ReviewAutomationRunDto ; Identifiant dans le chemin | automations.tsx |
-| POST | `/ops/automations/runs/:runId/reject` | ReviewAutomationRunDto ; Identifiant dans le chemin | automations.tsx |
-
-### integrations/google/search-console
-
-[Contrôleur source](https://github.com/Robia-DIGIT/Robia-Back/blob/f3c7d5e2379d3a91b941cff3de3c88ee50666511/src/integrations/google-search-console.controller.ts)
-
-| Méthode | Route | Entrée | Usage |
-| --- | --- | --- | --- |
-| GET | `/integrations/google/search-console/authorize` | — | Parcours navigateur OAuth — limite native décrite ci-dessus |
-| GET | `/integrations/google/search-console/callback` | Query : code, state, error | Parcours navigateur OAuth — limite native décrite ci-dessus |
-| GET | `/integrations/google/search-console/status` | — | integrations.tsx / reports.tsx |
-| GET | `/integrations/google/search-console/sites` | — | integrations.tsx / reports.tsx |
-| POST | `/integrations/google/search-console/site` | SelectSearchConsoleSiteDto | integrations.tsx / reports.tsx |
-| GET | `/integrations/google/search-console/performance` | — | integrations.tsx / reports.tsx |
-| GET | `/integrations/google/search-console/analytics/properties` | — | integrations.tsx / reports.tsx |
-| POST | `/integrations/google/search-console/analytics/property` | SelectGoogleAnalyticsPropertyDto | integrations.tsx / reports.tsx |
-| GET | `/integrations/google/search-console/analytics/performance` | — | integrations.tsx / reports.tsx |
-| DELETE | `/integrations/google/search-console` | — | integrations.tsx / reports.tsx |
-
-
-## Résultat des contrôles de cette intervention
-
-- 15 tests API : réussis.
-- TypeScript : aucune erreur.
-- ESLint sur app, components et src : aucune erreur ni avertissement ; corrections finales audit/session revérifiées.
-- Export Android Metro/Hermes : réussi (1403 modules). Aucun APK signé produit.
-- GET https://api.robiacopilot.site/health : réponse status=ok, service=robia-backend.
-- Aucun appareil connecté à adb : recette tactile, partage natif et parcours authentifiés non effectués.
+| Méthode | Route | Parcours |
+| --- | --- | --- |
+| POST | `/websites` | Entreprise → Sites internet |
+| GET | `/websites` | Entreprise → Sites internet |
+| GET | `/websites/:id` | Entreprise → Sites internet |
+| DELETE | `/websites/:id` | Entreprise → Sites internet |
+| PATCH | `/websites/:id/restore` | Entreprise → Sites internet |

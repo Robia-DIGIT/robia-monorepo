@@ -28,10 +28,10 @@ function ApplicationBody({ application: a, reload }: { application: Application;
   async function task(actionType: string) {
     // These three server actions only prepare or check this dossier.
     // A manual automation is the backend's supported execution path.
-    type Automation = { id: string; name: string; enabled: boolean; requiresApproval: boolean; trigger: { type: string }; steps: { actionType: string; input: Record<string,unknown> }[] };
+    type Automation = { id: string; name: string; enabled: boolean; requiresApproval: boolean; conditions?: unknown; trigger: { type: string }; steps: { actionType: string; input: Record<string,unknown> }[] };
     const name = "Dossier · " + a.applicant.displayName + " · " + actionType.split('.').at(-1);
     const automations = await request<Automation[]>('/ops/automations');
-    let automation = automations.find(item => item.enabled && !item.requiresApproval && item.trigger.type === 'manual' && item.steps.length === 1 && item.steps[0].actionType === actionType && item.steps[0].input.applicationId === a.id);
+    let automation = automations.find(item => item.enabled && !item.requiresApproval && !item.conditions && item.trigger.type === 'manual' && item.steps.length === 1 && item.steps[0].actionType === actionType && item.steps[0].input?.applicationId === a.id);
     if (!automation) automation = await request<Automation>('/ops/automations', { method: 'POST', body: { name, description: "Action à la demande depuis le dossier de candidature.", enabled: true, requiresApproval: false, trigger: { type: 'manual' }, steps: [{ actionType, input: { applicationId: a.id } }] } });
     const run = await request<{ status: string; errorMessage?: string }>('/ops/automations/' + encodeURIComponent(automation.id) + '/run', { method: 'POST', timeoutMs: 90000 });
     await reload(); if (run.status !== 'succeeded') throw new Error(run.errorMessage || 'Exécution ' + statusLabel(run.status) + '. Consultez les automatisations.');
@@ -54,6 +54,7 @@ function ApplicationBody({ application: a, reload }: { application: Application;
     {section === 'documents' ? <><Text style={s.body}>Chaque pièce peut contenir un fichier de 10 Mo maximum.</Text>{!a.program.docTypes.length ? <Text style={s.body}>Aucune pièce demandée pour ce programme.</Text> : null}
       {a.program.docTypes.map(d => { const file = a.documents.find(item => item.documentTypeId === d.id); return <RobiaCard key={d.id} style={s.stack}><Text style={s.title}>{d.label}{d.required ? " · obligatoire" : ''}</Text><Text style={s.body}>{file?.originalName ?? 'Aucun fichier joint'}</Text>{file ? <><Status value={file.status} /><Text style={s.body}>{(file.sizeBytes / 1024).toFixed(0)} Ko</Text></> : null}
         {file?.status === 'received' ? <AsyncButton label="Ouvrir ou partager le fichier" action={() => downloadApplicationDocument(request, file)} /> : null}
+        {!file && canUpload(a.status) ? <AsyncButton label="Marquer cette pièce comme attendue" action={async () => { await request(path + '/documents', { method: 'POST', body: { documentTypeId: d.id, originalName: d.label, mimeType: d.mimeAllow[0] ?? 'application/pdf', sizeBytes: 0 } }); await reload(); }} /> : null}
         {canUpload(a.status) ? <AsyncButton label={file?.status === 'received' ? 'Remplacer le fichier' : 'Joindre un fichier'} confirm={file?.status === 'received' ? 'Le nouveau fichier remplacera la pièce actuelle après son transfert.' : undefined} action={async () => { if (await uploadApplicationDocument(request, a.id, d)) await reload(); }} /> : null}
       </RobiaCard>; })}
       {a.status === 'incomplete' ? <AsyncButton label="Revérifier les pièces reçues" action={() => task('robia.odc.flag_missing_documents')} /> : null}
