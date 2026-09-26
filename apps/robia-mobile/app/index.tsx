@@ -1,6 +1,6 @@
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { Brand, Fonts } from "@/constants/theme";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon } from '@/components/ui/app-icon';
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -350,8 +350,8 @@ export default function OnboardingScreen() {
           ]}
         >
           <View style={styles.nextCore}>
-            <MaterialIcons
-              name={isLastSlide ? "check" : "chevron-right"}
+            <AppIcon
+              name={isLastSlide ? "check" : "chevron"}
               size={28}
               color={Brand.navyDark}
             />

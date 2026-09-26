@@ -9,7 +9,7 @@ import {
 import { Brand, Fonts } from "@/constants/theme";
 import { useRobiaData } from "@/src/api/data";
 import { useSession } from "@/src/auth/session";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from "expo-router";
 import { useState, type ComponentProps } from "react";
 import {
@@ -72,7 +72,7 @@ export default function AuditScreen() {
         />
         <RobiaCard style={styles.form} accent={Brand.teal}>
           <LabeledInput
-            icon="language"
+            icon="website"
             label="URL du site"
             placeholder="https://entreprise.com"
             value={websiteUrl}
@@ -81,14 +81,14 @@ export default function AuditScreen() {
             keyboardType="url"
           />
           <LabeledInput
-            icon="location-on"
+            icon="location"
             label="Ville"
             placeholder="Paris"
             value={city}
             onChangeText={setCity}
           />
           <LabeledInput
-            icon="storefront"
+            icon="store"
             label="Secteur d’activité"
             placeholder="Conseil, retail, restauration…"
             value={industry}
@@ -104,8 +104,8 @@ export default function AuditScreen() {
           ]}
         />
         <View style={styles.notice}>
-          <MaterialIcons
-            name="verified-user"
+          <AppIcon
+            name="validation"
             size={21}
             color={Brand.tealDark}
           />
@@ -128,7 +128,7 @@ export default function AuditScreen() {
         ) : (
           <PrimaryButton
             label="Lancer l’audit"
-            icon="radar"
+            icon="audit"
             disabled={
               !websiteUrl.trim() ||
               (["pending", "running"].includes(latestAudit?.status ?? "") &&
@@ -148,13 +148,13 @@ function LabeledInput({
   ...inputProps
 }: {
   label: string;
-  icon: ComponentProps<typeof MaterialIcons>["name"];
+  icon: ComponentProps<typeof AppIcon>["name"];
 } & ComponentProps<typeof TextInput>) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputShell}>
-        <MaterialIcons name={icon} size={20} color={Brand.tealDark} />
+        <AppIcon name={icon} size={20} color={Brand.tealDark} />
         <TextInput
           placeholderTextColor={Brand.slate400}
           style={styles.input}

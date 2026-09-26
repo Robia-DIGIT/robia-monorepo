@@ -4,7 +4,7 @@ import { Brand, Fonts } from "@/constants/theme";
 import { ApiError } from "@/src/api/client";
 import { useSession } from "@/src/auth/session";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon } from '@/components/ui/app-icon';
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
@@ -106,7 +106,7 @@ export default function AuthScreen() {
       >
         {!keyboardVisible && !layout.short && layout.fontScale < 1.4 ? <View style={[s.hero, compact && s.heroCompact]}>
           {/* <Pressable accessibilityRole="button" accessibilityLabel="Retour" hitSlop={8} onPress={() => router.back()} style={({ pressed }) => [s.backButton, pressed && s.pressed]}>
-            <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
+            <AppIcon name="arrow-back" size={21} color={Brand.navyDark} />
           </Pressable> */}
           <View style={s.brandMark}>
             <Image
@@ -201,8 +201,8 @@ function AuthPage({
       {sessionNotice}
       <View style={s.heading}>
         <View style={s.headingIcon}>
-          <MaterialIcons
-            name={registration ? "waving-hand" : "waving-hand"}
+          <AppIcon
+            name={registration ? "register" : "login"}
             size={18}
             color={Brand.tealDark}
           />
@@ -221,7 +221,7 @@ function AuthPage({
       <View style={s.form}>
         {registration ? (
           <Field
-            icon="person-outline"
+            icon="user"
             label="Nom complet"
             placeholder="Votre nom"
             value={name}
@@ -230,7 +230,7 @@ function AuthPage({
         ) : null}
         {registration ? (
           <Field
-            icon="business"
+            icon="organization"
             label="Entreprise"
             placeholder="Nom de votre entreprise"
             value={company}
@@ -238,7 +238,7 @@ function AuthPage({
           />
         ) : null}
         <Field
-          icon="mail-outline"
+          icon="email"
           label="Email professionnel"
           placeholder="vous@entreprise.com"
           value={email}
@@ -249,7 +249,7 @@ function AuthPage({
           autoComplete="email"
         />
         <Field
-          icon="lock-outline"
+          icon="password"
           label="Mot de passe"
           placeholder="8 caractères minimum"
           value={password}
@@ -270,8 +270,8 @@ function AuthPage({
               style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => setShowPassword((current) => !current)}
             >
-              <MaterialIcons
-                name={showPassword ? "visibility-off" : "visibility"}
+              <AppIcon
+                name={showPassword ? "hidePassword" : "showPassword"}
                 size={20}
                 color={Brand.slate400}
               />
@@ -281,8 +281,8 @@ function AuthPage({
       </View>
       {error ? (
         <View style={s.error} accessibilityRole="alert">
-          <MaterialIcons
-            name="error-outline"
+          <AppIcon
+            name="error"
             size={18}
             color={Brand.orangeDark}
           />
@@ -309,8 +309,8 @@ function AuthPage({
               {registration ? "Créer mon espace RobIA" : "Continuer avec RobIA"}
             </Text>
             <View style={s.submitIcon}>
-              <MaterialIcons
-                name="arrow-forward"
+              <AppIcon
+                name="forward"
                 size={18}
                 color={Brand.navyDark}
               />
@@ -362,7 +362,7 @@ function Field({
   right,
   ...props
 }: React.ComponentProps<typeof TextInput> & {
-  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  icon: React.ComponentProps<typeof AppIcon>["name"];
   label: string;
   right?: ReactNode;
 }) {
@@ -370,7 +370,7 @@ function Field({
     <View style={s.fieldGroup}>
       <Text style={s.fieldLabel}>{label}</Text>
       <View style={s.field}>
-        <MaterialIcons name={icon} size={20} color={Brand.tealDark} />
+        <AppIcon name={icon} size={20} color={Brand.tealDark} />
         <TextInput
           accessibilityLabel={label}
           placeholderTextColor={Brand.slate400}

@@ -1,6 +1,6 @@
 import { tabLayout } from '@/src/navigation/responsive-layout';
 import { useKeyboardVisible } from '@/hooks/use-keyboard-visible';
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { AppIcon } from "@/components/ui/app-icon";
 import { Brand, Fonts } from "@/constants/theme";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { PlatformPressable } from "@react-navigation/elements";
@@ -35,10 +35,10 @@ const SwipeTabs = withLayoutContext<
 >(SwipeTabNavigator);
 
 const TABS = [
-  { name: "dashboard", title: "Accueil", icon: "house.fill" },
-  { name: "visibility", title: "Visibilité", icon: "chart.bar.fill" },
-  { name: "work", title: "Activité", icon: "doc.text.fill" },
-  { name: "profile", title: "Profil", icon: "person.crop.circle.fill" },
+  { name: "dashboard", title: "Accueil", icon: "home" },
+  { name: "visibility", title: "Visibilité", icon: "visibility" },
+  { name: "work", title: "Activité", icon: "activity" },
+  { name: "profile", title: "Profil", icon: "profile" },
 ] as const;
 
 // Use the navigator's selected route as the only source of selection. The
@@ -116,9 +116,10 @@ export function RobiaTabBar({
                 importantForAccessibility="no-hide-descendants"
                 style={[styles.icon, selected && styles.iconSelected]}
               >
-                <IconSymbol
-                  name={tab?.icon ?? "house.fill"}
-                  size={23}
+                <AppIcon
+                  name={tab?.icon ?? "home"}
+                  size={24}
+                  selected={selected}
                   color={selected ? Brand.tealDark : Brand.slate500}
                 />
               </View>

@@ -1,4 +1,4 @@
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from "expo-router";
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -9,11 +9,11 @@ import { useRobiaData } from "@/src/api/data";
 import { useSession } from "@/src/auth/session";
 
 const LINKS = [
-  { label: "Sites internet", description: "Ajouter, archiver ou restaurer un site", icon: "language", href: "/websites" },
-  { label: "Connexions", description: "Google, Analytics, Meta et fiches locales", icon: "link", href: "/integrations" },
-  { label: "Abonnement", description: "Offre, facturation et moyens de paiement", icon: "credit-card", href: "/billing" },
-  { label: "Nous contacter", description: "Parler de vos besoins à ROBIA", icon: "support-agent", href: "/support" },
-  { label: "Mot de passe", description: "Recevoir un lien de réinitialisation", icon: "lock", href: "/password" },
+  { label: "Sites internet", description: "Ajouter, archiver ou restaurer un site", icon: "website", href: "/websites" },
+  { label: "Connexions", description: "Google, Analytics, Meta et fiches locales", icon: "integrations", href: "/integrations" },
+  { label: "Abonnement", description: "Offre, facturation et moyens de paiement", icon: "billing", href: "/billing" },
+  { label: "Nous contacter", description: "Parler de vos besoins à ROBIA", icon: "support", href: "/support" },
+  { label: "Mot de passe", description: "Recevoir un lien de réinitialisation", icon: "password", href: "/password" },
   { label: "Paramètres du compte", description: "Sécurité et préférences", icon: "settings", href: "/settings" },
 ] as const;
 
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
             <Text style={styles.initials}>{initials}</Text>
           </View>
           <View style={styles.verified}>
-            <MaterialIcons name="verified" size={17} color={Brand.white} />
+            <AppIcon name="user" size={17} color={Brand.white} />
           </View>
         </View>
         <Text style={styles.name}>
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
         <InfoRow
-          icon="business"
+          icon="organization"
           label="Organisation"
           value={organization?.name ?? "Non renseignée"}
         />
@@ -92,7 +92,7 @@ export default function ProfileScreen() {
           value={user?.email ?? "Non renseigné"}
         />
         <InfoRow
-          icon="location-on"
+          icon="location"
           label="Localisation"
           value={
             [organization?.city, organization?.country]
@@ -101,7 +101,7 @@ export default function ProfileScreen() {
           }
         />
         <InfoRow
-          icon="language"
+          icon="website"
           label="Sites connectés"
           value={websites.length + (websites.length > 1 ? " sites" : " site")}
           last
@@ -124,7 +124,7 @@ export default function ProfileScreen() {
             ]}
           >
             <View style={styles.linkIcon}>
-              <MaterialIcons
+              <AppIcon
                 name={item.icon}
                 size={20}
                 color={Brand.tealDark}
@@ -134,8 +134,8 @@ export default function ProfileScreen() {
               <Text style={styles.linkTitle}>{item.label}</Text>
               <Text style={styles.linkDescription}>{item.description}</Text>
             </View>
-            <MaterialIcons
-              name="chevron-right"
+            <AppIcon
+              name="chevron"
               size={21}
               color={Brand.slate400}
             />
@@ -149,7 +149,7 @@ export default function ProfileScreen() {
         onPress={confirmSignOut}
         style={({ pressed }) => [styles.logout, pressed && styles.pressed]}
       >
-        <MaterialIcons name="logout" size={18} color={Brand.orangeDark} />
+        <AppIcon name="logout" size={18} color={Brand.orangeDark} />
         <Text style={styles.logoutText}>Se déconnecter</Text>
       </Pressable>
       <Text style={styles.version}>ROBIA COPILOT · ESPACE SÉCURISÉ</Text>
@@ -163,14 +163,14 @@ function InfoRow({
   value,
   last = false,
 }: {
-  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  icon: React.ComponentProps<typeof AppIcon>["name"];
   label: string;
   value: string;
   last?: boolean;
 }) {
   return (
     <View style={[styles.infoRow, !last && styles.infoBorder]}>
-      <MaterialIcons name={icon} size={19} color={Brand.navyDark} />
+      <AppIcon name={icon} size={19} color={Brand.navyDark} />
       <View style={styles.infoCopy}>
         <Text style={styles.infoLabel}>{label}</Text>
         <Text style={styles.infoValue}>{value}</Text>

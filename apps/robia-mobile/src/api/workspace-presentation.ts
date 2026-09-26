@@ -1,13 +1,13 @@
 import type { ActionItem, RobiaDocument } from './types';
 
 export const DOCUMENT_TYPES = [
-  { id: 'local_page', label: 'Pages locales', icon: 'place' },
-  { id: 'faq', label: 'Questions / réponses', icon: 'question-answer' },
-  { id: 'meta', label: 'SEO', icon: 'travel-explore' },
-  { id: 'gbp_post', label: 'Publications', icon: 'campaign' },
-  { id: 'review_reply', label: 'Réponses aux avis', icon: 'reviews' },
+  { id: 'local_page', label: 'Pages locales', icon: 'location' },
+  { id: 'faq', label: 'Questions / réponses', icon: 'faq' },
+  { id: 'meta', label: 'SEO', icon: 'search' },
+  { id: 'gbp_post', label: 'Publications', icon: 'publication' },
+  { id: 'review_reply', label: 'Réponses aux avis', icon: 'reviewReply' },
   { id: 'dev_brief', label: 'Briefs', icon: 'code' },
-  { id: 'checklist', label: 'Checklists', icon: 'checklist' },
+  { id: 'checklist', label: 'Checklists', icon: 'tasks' },
 ] as const;
 export type DocumentFilter = 'all' | 'review' | 'approved' | 'rejected';
 export const isApproved = (doc: RobiaDocument) => ['approved', 'validated'].includes(doc.status);

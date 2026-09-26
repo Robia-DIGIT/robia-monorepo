@@ -1,4 +1,4 @@
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from "expo-router";
 import { StyleSheet, Text } from "react-native";
 
@@ -14,7 +14,7 @@ export default function ModalScreen() {
   return (
     <RobiaScreen contentStyle={styles.content}>
       <RobiaCard style={styles.card} accent={Brand.teal}>
-        <MaterialIcons name="auto-awesome" size={38} color={Brand.tealDark} />
+        <AppIcon name="automation" size={38} color={Brand.tealDark} />
         <Text style={styles.title}>RobIA est prêt</Text>
         <Text style={robiaStyles.body}>
           Votre copilote peut maintenant vous accompagner dans votre prochaine

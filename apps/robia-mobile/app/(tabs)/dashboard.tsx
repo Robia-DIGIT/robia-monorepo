@@ -3,7 +3,7 @@ import { WorkspaceHeader } from '@/components/workspace-header';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { AsyncButton } from '@/components/api-ui';
 import { auditScore } from '@/src/api/presentation';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
@@ -16,15 +16,15 @@ import * as SecureStore from 'expo-secure-store';
 import { useEffect } from 'react';
 import { CopilotStep, useCopilot, walkthroughable } from 'react-native-copilot';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+type IconName = React.ComponentProps<typeof AppIcon>['name'];
 const CopilotTarget = walkthroughable(View);
 const GUIDE_SEEN_KEY = 'robia.dashboard-guide-seen';
 
 const TOOLS = [
-  { label: 'Mes performances', description: 'Comprendre mes résultats', icon: 'insights', href: '/(tabs)/visibility?section=performance' },
-  { label: 'Mes actions', description: 'Choisir mes prochaines étapes', icon: 'checklist', href: '/(tabs)/work?section=actions' },
-  { label: 'Mes documents', description: 'Retrouver mes contenus', icon: 'description', href: '/(tabs)/work?section=documents' },
-  { label: 'Candidatures', description: 'Programmes et dossiers', icon: 'groups', href: '/(tabs)/work?section=programs' },
+  { label: 'Mes performances', description: 'Comprendre mes résultats', icon: 'analytics', href: '/(tabs)/visibility?section=performance' },
+  { label: 'Mes actions', description: 'Choisir mes prochaines étapes', icon: 'tasks', href: '/(tabs)/work?section=actions' },
+  { label: 'Mes documents', description: 'Retrouver mes contenus', icon: 'document', href: '/(tabs)/work?section=documents' },
+  { label: 'Candidatures', description: 'Programmes et dossiers', icon: 'applications', href: '/(tabs)/work?section=programs' },
 ] as const;
 
 export default function HomeScreen() {
@@ -99,7 +99,7 @@ export default function HomeScreen() {
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={latestAudit ? "Relancer mon audit" : "Lancer mon premier audit"} onPress={() => router.push('/audit')} style={({ pressed }) => [styles.auditButton, pressed && styles.pressed]}>
               <Text style={styles.auditButtonText}>{latestAudit ? 'Relancer mon audit' : 'Lancer mon premier audit'}</Text>
-              <MaterialIcons name="arrow-forward" size={18} color={Brand.white} />
+              <AppIcon name="forward" size={18} color={Brand.white} />
             </Pressable>
           </RobiaCard>
         </CopilotTarget>
@@ -112,9 +112,9 @@ export default function HomeScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir la vue d’ensemble" onPress={() => router.push("/intelligence")} style={styles.sectionLink}><Text style={styles.seeAll}>Vue d’ensemble</Text></Pressable>
           </View>
           <View style={styles.metrics}>
-            <Metric width={metricWidth} icon="lightbulb" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
-            <Metric width={metricWidth} icon="description" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
-            <Metric width={metricWidth} icon="task-alt" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
+            <Metric width={metricWidth} icon="opportunity" value={opportunities.length} label="Opportunités" color={Brand.orange} tint={Brand.orangeLight} />
+            <Metric width={metricWidth} icon="document" value={documents.length} label="Documents" color={Brand.electric} tint={Brand.electricLight} />
+            <Metric width={metricWidth} icon="tasks" value={progress + '%'} label="Plan réalisé" color={Brand.tealDark} tint={Brand.tealLight} />
           </View>
         </CopilotTarget>
       </CopilotStep>
@@ -139,17 +139,17 @@ export default function HomeScreen() {
             onPress={() => router.push({ pathname: "/opportunity", params: { id: item.id } })}
             style={({ pressed }) => [styles.priorityRow, index > 0 && styles.rowBorder, pressed && styles.pressed]}>
             <View style={[styles.priorityIcon, { backgroundColor: index === 0 ? Brand.orangeLight : Brand.tealLight }]}>
-              <MaterialIcons name="lightbulb" size={19} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />
+              <AppIcon name="opportunity" size={19} color={index === 0 ? Brand.orangeDark : Brand.tealDark} />
             </View>
             <View style={styles.priorityCopy}>
               <Text style={styles.priorityTitle}>{item.title}</Text>
               <Text style={styles.priorityMeta}>{item.category ?? 'Recommandation'} · Impact {item.impactScore}/10</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={21} color={Brand.slate400} />
+            <AppIcon name="chevron" size={21} color={Brand.slate400} />
           </Pressable>
         )) : (
           <View style={styles.empty}>
-            <View style={styles.priorityIcon}><MaterialIcons name="radar" size={20} color={Brand.tealDark} /></View>
+            <View style={styles.priorityIcon}><AppIcon name="audit" size={20} color={Brand.tealDark} /></View>
             <View style={styles.priorityCopy}>
               <Text style={styles.priorityTitle}>Vos priorités apparaîtront ici</Text>
               <Text style={styles.priorityMeta}>Lancez un audit pour démarrer.</Text>
@@ -163,7 +163,7 @@ export default function HomeScreen() {
 
 function Metric({ width, icon, value, label, color, tint }: { width: number; icon: IconName; value: string | number; label: string; color: string; tint: string }) {
   return <View accessible accessibilityLabel={`${label} : ${value}`} style={[styles.metric, { width }]}>
-    <View style={[styles.metricIcon, { backgroundColor: tint }]}><MaterialIcons name={icon} size={18} color={color} /></View>
+    <View style={[styles.metricIcon, { backgroundColor: tint }]}><AppIcon name={icon} size={18} color={color} /></View>
     <Text style={styles.metricValue}>{value}</Text>
     <Text style={styles.metricLabel}>{label}</Text>
   </View>;

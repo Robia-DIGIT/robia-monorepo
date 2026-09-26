@@ -33,7 +33,7 @@ function renderBar(index, { prevent = false, fontScale = 1, width = 390, insets 
       StyleSheet: { create: styles => styles },
       useWindowDimensions: () => ({ width, height: 844, fontScale }),
     },
-    '@/components/ui/icon-symbol': { IconSymbol: 'IconSymbol' },
+    '@/components/ui/app-icon': { AppIcon: 'AppIcon' },
     '@/constants/theme': { Brand: { tealDark: '#0F766E', slate500: '#526174' }, Fonts: { sans: 'normal' } },
     '@/hooks/use-reduced-motion': { useReducedMotion: () => true },
     '@react-navigation/elements': { PlatformPressable: 'PlatformPressable' },
@@ -71,7 +71,7 @@ test('exactly the displayed page has a selected icon after each navigation updat
     assert.deepEqual(buttons.map(button => button.props.accessibilityState.selected),
       buttons.map((_, position) => position === index));
     for (const button of buttons) {
-      assert.equal(button.props.children[0].props.children.type, 'IconSymbol');
+      assert.equal(button.props.children[0].props.children.type, 'AppIcon');
       assert.equal(button.props.accessibilityRole, 'tab');
     }
   }
@@ -158,7 +158,7 @@ test('the native filter gesture covers the header and content before vertical sc
       ScrollView: 'ScrollView', View: 'View', Text: 'Text', Pressable: 'Pressable', RefreshControl: 'RefreshControl',
       StyleSheet: { create: styles => styles, hairlineWidth: 1 },
     },
-    '@expo/vector-icons/MaterialIcons': 'MaterialIcons',
+    '@/components/ui/app-icon': { AppIcon: 'AppIcon' },
     'expo-image': { Image: 'Image' },
     'expo-router': { router: {} },
     '@/constants/theme': { Brand: {}, Fonts: {} },

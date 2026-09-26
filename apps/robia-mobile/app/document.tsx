@@ -117,7 +117,7 @@ function DocumentEditor({ id }: { id: string }) {
               <Text selectable style={s.body}>
                 {resource.data.content}
               </Text>
-              <AsyncButton
+              <AsyncButton icon="refresh"
                 label="Reprendre la version enregistrée"
                 confirm="Remplacer votre brouillon par la version enregistrée ?"
                 disabled={busy}
@@ -131,7 +131,7 @@ function DocumentEditor({ id }: { id: string }) {
               />
             </>
           ) : null}
-          <AsyncButton
+          <AsyncButton icon="save"
             label="Enregistrer les modifications"
             disabled={busy || !editor.text.trim() || !dirty || remoteChanged}
             onSuccess="Modifications enregistrées."
@@ -161,7 +161,7 @@ function DocumentEditor({ id }: { id: string }) {
               Enregistrez vos modifications avant de valider ou de partager.
             </Text>
           ) : null}
-          <AsyncButton
+          <AsyncButton icon="approve"
             label="Approuver"
             disabled={busy || dirty}
             confirm="Confirmer que vous avez relu ce contenu et souhaitez l’approuver ?"
@@ -176,7 +176,7 @@ function DocumentEditor({ id }: { id: string }) {
             }
             onSuccess="Approbation enregistrée."
           />
-          <AsyncButton
+          <AsyncButton icon="reject"
             label="Rejeter"
             disabled={busy || dirty}
             confirm="Rejeter ce contenu ?"
@@ -191,7 +191,7 @@ function DocumentEditor({ id }: { id: string }) {
             }
             onSuccess="Rejet enregistré."
           />
-          <AsyncButton
+          <AsyncButton icon="share"
             label="Partager le texte"
             disabled={busy || dirty}
             action={() =>

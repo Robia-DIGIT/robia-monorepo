@@ -1,5 +1,5 @@
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon } from '@/components/ui/app-icon';
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
@@ -36,7 +36,7 @@ import { useTabSwipe } from '@/src/navigation/tab-swipe-context';
 import { Brand, Fonts } from "@/constants/theme";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
-type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
+type IconName = React.ComponentProps<typeof AppIcon>["name"];
 
 export function RobiaScreen({
   children,
@@ -166,7 +166,7 @@ export function RobiaHeader({
               pressed && styles.pressed,
             ]}
           >
-            <MaterialIcons name="arrow-back" size={21} color={Brand.navyDark} />
+            <AppIcon name="back" size={21} color={Brand.navyDark} />
           </Pressable>
         ) : (
           <Image
@@ -316,7 +316,7 @@ export function IconBadge({
 }) {
   return (
     <View style={[styles.iconBadge, { backgroundColor }]}>
-      <MaterialIcons name={name} size={size} color={color} />
+      <AppIcon name={name} size={size} color={color} />
     </View>
   );
 }
@@ -487,7 +487,7 @@ export function StatusPill({
 
 export function PrimaryButton({
   label,
-  icon = "arrow-forward",
+  icon = "forward",
   onPress,
   disabled,
 }: {
@@ -510,7 +510,7 @@ export function PrimaryButton({
       ]}
     >
       <Text style={styles.primaryButtonLabel}>{label}</Text>
-      <MaterialIcons name={icon} size={19} color={Brand.white} />
+      <AppIcon name={icon} size={19} color={Brand.white} />
     </Pressable>
   );
 }

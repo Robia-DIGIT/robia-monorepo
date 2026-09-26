@@ -20,9 +20,9 @@ function RunDetail({ id, reloadParent }: { id: string; reloadParent(): Promise<u
         {step.evidence ? Object.entries(step.evidence).filter(([k, v]) => ['websiteCount', 'openOpportunityCount', 'pendingActionCount', 'opportunityCount', 'globalScore'].includes(k) && typeof v === 'number').map(([k,v]) => <Text key={k} style={s.body}>{{ websiteCount: 'Sites', openOpportunityCount: 'Opportunités ouvertes', pendingActionCount: 'Actions à faire', opportunityCount: 'Opportunités', globalScore: 'Score' }[k]} : {String(v)}</Text>) : null}
       </View>)}
       {r.data.status === 'waiting_approval' ? <><Field label="Commentaire (facultatif)" value={reason} onChangeText={setReason} />
-        <AsyncButton label="Approuver cette exécution" confirm="Exécuter les étapes de cette automatisation ?" action={async () => { await request('/ops/automations/runs/' + id + '/approve', { method: 'POST', body: { reason }, timeoutMs: 180000 }); await r.reload(); await reloadParent(); }} />
-        <AsyncButton label="Rejeter cette exécution" action={async () => { await request('/ops/automations/runs/' + id + '/reject', { method: 'POST', body: { reason } }); await r.reload(); await reloadParent(); }} />
-      </> : null}<AsyncButton label="Actualiser le résultat" action={r.reload} /></> : null}
+        <AsyncButton icon="approve" label="Approuver cette exécution" confirm="Exécuter les étapes de cette automatisation ?" action={async () => { await request('/ops/automations/runs/' + id + '/approve', { method: 'POST', body: { reason }, timeoutMs: 180000 }); await r.reload(); await reloadParent(); }} />
+        <AsyncButton icon="reject" label="Rejeter cette exécution" action={async () => { await request('/ops/automations/runs/' + id + '/reject', { method: 'POST', body: { reason } }); await r.reload(); await reloadParent(); }} />
+      </> : null}<AsyncButton icon="refresh" label="Actualiser le résultat" action={r.reload} /></> : null}
   </RobiaCard>;
 }
 function AutomationDetail({ id, reloadParent }: { id: string; reloadParent(): Promise<unknown> }) {
@@ -37,7 +37,7 @@ function AutomationDetail({ id, reloadParent }: { id: string; reloadParent(): Pr
       <AsyncButton label={editing ? "Fermer la configuration" : "Modifier la configuration"} action={async () => setEditing(!editing)} />
       {editing ? <AutomationEditor automation={r.data} onSaved={async () => { setEditing(false); await reload(); }} /> : null}
       <AsyncButton label={r.data.enabled ? 'Désactiver' : 'Activer'} confirm={r.data.enabled ? undefined : 'Activer cette automatisation selon son déclencheur configuré ?'} action={async () => { await request(path + '/enabled', { method: 'PATCH', body: { enabled: !r.data!.enabled } }); await reload(); }} />
-      <AsyncButton label="Lancer maintenant" disabled={!r.data.enabled || hasEventInput(r.data.steps)} confirm="Lancer une nouvelle exécution de cette automatisation ?" action={async () => {
+      <AsyncButton icon="automation" label="Lancer maintenant" disabled={!r.data.enabled || hasEventInput(r.data.steps)} confirm="Lancer une nouvelle exécution de cette automatisation ?" action={async () => {
         const run = await request<Run>(path + '/run', { method: 'POST', timeoutMs: 180000 }); setRunId(run.id); await reload();
       }} />
     </> : null}

@@ -1,4 +1,4 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -55,7 +55,7 @@ export function TasksWorkspace() {
           <Svg width={64} height={64} viewBox="0 0 76 76"><Circle cx={38} cy={38} r={32} stroke="#CCE4DC" strokeWidth={6} fill="none" />
             <Circle cx={38} cy={38} r={32} stroke={Brand.tealDark} strokeWidth={6} fill="none" strokeDasharray={2 * Math.PI * 32}
               strokeDashoffset={2 * Math.PI * 32 * (1 - summary.percent / 100)} strokeLinecap="round" rotation={-90} origin="38,38" />
-          </Svg><View style={s.ringIcon}><MaterialIcons name="task-alt" size={28} color={Brand.tealDark} /></View>
+          </Svg><View style={s.ringIcon}><AppIcon name="tasks" size={28} color={Brand.tealDark} /></View>
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <Text style={s.percent}>{unknown ? '—' : summary.percent + '%'}</Text>
@@ -76,15 +76,15 @@ export function TasksWorkspace() {
     <View style={s.tools}>
       <Pressable accessibilityRole="button" onPress={() => router.push('/opportunities')} style={c.textButton}><Text style={c.link}>Explorer les opportunités →</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: toolsOpen }} onPress={() => setToolsOpen(!toolsOpen)} style={s.organize}>
-        <MaterialIcons name="tune" size={19} color={Brand.tealDark} /><Text style={c.link}>Organiser</Text>
+        <AppIcon name="organize" size={19} color={Brand.tealDark} /><Text style={c.link}>Organiser</Text>
       </Pressable>
     </View>
     {toolsOpen ? <View style={s.toolsPanel}>
       <Text style={c.body}>La planification concerne toute l’entreprise. Le PDF respecte le périmètre sélectionné.</Text>
-      <AsyncButton label="Planifier les actions de l’entreprise" disabled={!actions.length || missingSite}
+      <AsyncButton icon="calendar" label="Planifier les actions de l’entreprise" disabled={!actions.length || missingSite}
         action={async () => { await generatePlan(); await resource.reload(); }} />
-      <AsyncButton label="Partager le plan PDF" disabled={!actions.length || missingSite} action={() => shareActionPdf(request, scope === 'site' ? selectedWebsiteId : null)} />
-      <AsyncButton label="Actualiser le suivi" disabled={missingSite} action={resource.reload} />
+      <AsyncButton icon="share" label="Partager le plan PDF" disabled={!actions.length || missingSite} action={() => shareActionPdf(request, scope === 'site' ? selectedWebsiteId : null)} />
+      <AsyncButton icon="refresh" label="Actualiser le suivi" disabled={missingSite} action={resource.reload} />
     </View> : null}
     <SearchBox value={query} onChange={setQuery} placeholder="Rechercher une action" />
     <CollectionRail>
@@ -95,16 +95,16 @@ export function TasksWorkspace() {
       <FilterButton label="À valider" selected={filter === 'pending'} onPress={() => setFilter('pending')} />
     </CollectionRail>
     <View style={s.viewSwitch}>
-      {[{ id: 'agenda', label: 'Agenda', icon: 'view-agenda' }, { id: 'board', label: 'Tableau', icon: 'view-column' }].map(item =>
+      {[{ id: 'agenda', label: 'Agenda', icon: 'calendar' }, { id: 'board', label: 'Tableau', icon: 'board' }].map(item =>
         <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: mode === item.id }} onPress={() => setMode(item.id as 'agenda' | 'board')}
           style={[s.viewButton, mode === item.id && s.viewSelected]}>
-          <MaterialIcons name={item.icon as 'view-agenda' | 'view-column'} size={18} color={mode === item.id ? Brand.tealDark : Brand.slate500} />
+          <AppIcon name={item.icon as 'calendar' | 'board'} size={18} color={mode === item.id ? Brand.tealDark : Brand.slate500} />
           <Text style={s.viewLabel}>{item.label}</Text>
         </Pressable>)}
     </View>
     <Text accessibilityLiveRegion="polite" style={c.caption}>{visible.length} action{visible.length === 1 ? '' : 's'} · {scope === 'all' ? 'Toute l’entreprise' : 'Site sélectionné'}</Text>
     {missingSite ? <EmptyCollection title="Choisissez un site" message="Sélectionnez un site ou revenez au périmètre de toute l’entreprise." action="Toute l’entreprise" onPress={() => setScope('all')} /> : null}
-    {!missingSite && !resource.loading && !resource.error && !visible.length ? <EmptyCollection icon="event-available" title={actions.length ? 'Aucune action dans cette vue' : 'Votre prochain pas commence ici'}
+    {!missingSite && !resource.loading && !resource.error && !visible.length ? <EmptyCollection icon="calendar" title={actions.length ? 'Aucune action dans cette vue' : 'Votre prochain pas commence ici'}
       message={actions.length ? 'Changez de filtre ou effacez la recherche pour retrouver vos tâches.' : 'Ajoutez une opportunité à votre plan pour organiser sa réalisation.'}
       action={actions.length ? 'Réinitialiser les filtres' : 'Explorer les opportunités'} onPress={actions.length ? reset : () => router.push('/opportunities')} /> : null}
     {mode === 'agenda' ? AGENDA_GROUPS.map(group => {
@@ -139,9 +139,9 @@ export function TaskCard({ task, now }: { task: ActionItem; now: Date }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={task.title + '. ' + ACTION_STATUS_LABELS[task.status] + '. ' + (late ? 'En retard. ' : '') + dueLabel}
     accessibilityHint="Ouvrir le détail, les validations et les preuves de réalisation"
     onPress={() => router.push({ pathname: '/action', params: { id: task.id } })} style={({ pressed }) => [s.task, pressed && c.pressed]}>
-    <View style={s.taskTop}><Text style={[s.stateLabel, { color: state.color }]}>{state.label}</Text><MaterialIcons name="north-east" size={17} color={Brand.slate500} /></View>
+    <View style={s.taskTop}><Text style={[s.stateLabel, { color: state.color }]}>{state.label}</Text><AppIcon name="chevron" size={17} color={Brand.slate500} /></View>
     <Text style={[s.taskTitle, task.status === 'done' && { color: Brand.slate500 }]}>{task.title}</Text>
-    <View style={s.taskMeta}><MaterialIcons name="schedule" size={15} color={late ? '#A24325' : Brand.slate500} /><Text style={[c.caption, late && { color: '#A24325', fontWeight: '700' }]}>{late ? 'En retard · ' : ''}{dueLabel}</Text></View>
+    <View style={s.taskMeta}><AppIcon name="clock" size={15} color={late ? '#A24325' : Brand.slate500} /><Text style={[c.caption, late && { color: '#A24325', fontWeight: '700' }]}>{late ? 'En retard · ' : ''}{dueLabel}</Text></View>
     {task.approvalStatus === 'pending' ? <StatusPill label="Validation attendue" tone="orange" /> : null}
     {task.approvalStatus === 'rejected' ? <StatusPill label="Approbation refusée" tone="orange" /> : null}
   </Pressable>;

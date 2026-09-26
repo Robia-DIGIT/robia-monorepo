@@ -1,4 +1,4 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -31,7 +31,7 @@ export function DocumentsLibrary() {
   return <View style={c.stack}>
     <SiteSelector />
     <View style={s.hero}>
-      <View style={s.heroRow}><Text style={s.heroTitle}>Bibliothèque</Text><MaterialIcons name="auto-stories" size={30} color="#8ADBC5" /></View>
+      <View style={s.heroRow}><Text style={s.heroTitle}>Bibliothèque</Text><AppIcon name="library" size={30} color="#8ADBC5" /></View>
       <View style={s.stats}>
         {[{ label: 'Documents', count: documents.length, filter: 'all' }, { label: 'À revoir', count: review, filter: 'review' }, { label: 'Validés', count: approved, filter: 'approved' }].map(item =>
           <Pressable key={item.filter} accessibilityRole="button" accessibilityLabel={item.label + ' : ' + (unknownCount ? 'chargement' : item.count)}
@@ -43,7 +43,7 @@ export function DocumentsLibrary() {
     {isLoading || error ? <LoadState loading={isLoading} error={error} retry={refresh} /> : null}
     <View style={s.shortcuts}>
       <Pressable accessibilityRole="button" onPress={() => router.push('/opportunities')} style={s.create}>
-        <MaterialIcons name="add" size={20} color={Brand.white} /><Text style={s.createText}>Créer un contenu</Text>
+        <AppIcon name="add" size={20} color={Brand.white} /><Text style={s.createText}>Créer un contenu</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Historique des validations" onPress={() => router.push('/validations')} style={c.textButton}>
         <Text style={c.link}>Validations</Text>
@@ -51,7 +51,7 @@ export function DocumentsLibrary() {
     </View>
     <SearchBox value={query} onChange={setQuery} placeholder="Rechercher dans mes documents" />
     <CollectionRail>
-      <CollectionType label="Tout" icon="folder-open" count={documents.length} selected={type === 'all'} onPress={() => setType('all')} />
+      <CollectionType label="Tout" icon="folder" count={documents.length} selected={type === 'all'} onPress={() => setType('all')} />
       {DOCUMENT_TYPES.filter(item => documents.some(doc => doc.type === item.id)).map(item => <CollectionType key={item.id} label={item.label} icon={item.icon}
         count={documents.filter(doc => doc.type === item.id).length} selected={type === item.id} onPress={() => setType(item.id)} />)}
     </CollectionRail>
@@ -63,24 +63,24 @@ export function DocumentsLibrary() {
       <Text accessibilityLiveRegion="polite" style={[c.caption, { flex: 1 }]}>{visible.length} résultat{visible.length === 1 ? '' : 's'}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={sort === 'recent' ? 'Tri : récents. Trier par titre' : 'Tri : titre. Trier par date'}
         onPress={() => setSort(sort === 'recent' ? 'title' : 'recent')} style={s.sort}>
-        <MaterialIcons name="sort" size={18} color={Brand.slate500} /><Text style={c.caption}>{sort === 'recent' ? 'Récents' : 'A–Z'}</Text>
+        <AppIcon name="sort" size={18} color={Brand.slate500} /><Text style={c.caption}>{sort === 'recent' ? 'Récents' : 'A–Z'}</Text>
       </Pressable>
       {canGrid ? <Pressable accessibilityRole="button" accessibilityLabel={grid ? 'Afficher en liste' : 'Afficher en grille'} onPress={() => setView(grid ? 'list' : 'grid')} style={c.iconButton}>
-        <MaterialIcons name={grid ? 'view-list' : 'grid-view'} size={22} color={Brand.tealDark} />
+        <AppIcon name={grid ? 'list' : 'grid'} size={22} color={Brand.tealDark} />
       </Pressable> : null}
     </View>
-    {!isLoading && !error && !visible.length ? <EmptyCollection icon="folder-open" title={documents.length ? 'Aucun document correspondant' : 'Votre bibliothèque commence ici'}
+    {!isLoading && !error && !visible.length ? <EmptyCollection icon="folder" title={documents.length ? 'Aucun document correspondant' : 'Votre bibliothèque commence ici'}
       message={documents.length ? 'Essayez un autre mot, une collection ou un statut.' : selectedWebsiteId ? 'Créez un livrable à partir d’une opportunité détectée pour ce site.' : 'Ajoutez ou sélectionnez un site pour retrouver ses contenus.'}
       action={documents.length ? 'Réinitialiser les filtres' : selectedWebsiteId ? 'Explorer les opportunités' : 'Gérer mes sites'}
       onPress={documents.length ? reset : () => router.push(selectedWebsiteId ? '/opportunities' : '/websites')} /> : null}
     <View style={s.documents}>{visible.map(doc => <DocumentTile key={doc.id} document={doc} compact={!grid} width={grid ? (contentWidth - 12) / 2 : contentWidth} />)}</View>
   </View>;
 }
-function CollectionType({ label, icon, count, selected, onPress }: { label: string; icon: React.ComponentProps<typeof MaterialIcons>['name']; count: number; selected: boolean; onPress(): void }) {
+function CollectionType({ label, icon, count, selected, onPress }: { label: string; icon: React.ComponentProps<typeof AppIcon>['name']; count: number; selected: boolean; onPress(): void }) {
   const { fontScale } = useResponsiveLayout();
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={label + ', ' + count + ' documents'} onPress={onPress}
     style={[s.collection, { width: 126 * Math.min(fontScale, 1.6) }, selected && s.collectionActive]}>
-    <View style={s.collectionTop}><MaterialIcons name={icon} size={24} color={Brand.tealDark} /><Text style={s.collectionCount}>{count}</Text></View>
+    <View style={s.collectionTop}><AppIcon name={icon} size={24} color={Brand.tealDark} /><Text style={s.collectionCount}>{count}</Text></View>
     <Text style={s.collectionLabel}>{label}</Text>
   </Pressable>;
 }
@@ -94,7 +94,7 @@ export function DocumentTile({ document: doc, compact, width }: { document: Robi
     onPress={() => router.push({ pathname: '/document', params: { id: doc.id } })}
     style={({ pressed }) => [s.document, { width }, pressed && c.pressed]}>
     <View style={[s.preview, compact && s.previewCompact]}>
-      <View style={s.previewHeading}><View style={s.fileIcon}><MaterialIcons name={type?.icon ?? 'description'} size={22} color={Brand.tealDark} /></View>
+      <View style={s.previewHeading}><View style={s.fileIcon}><AppIcon name={type?.icon ?? 'document'} size={22} color={Brand.tealDark} /></View>
         <Text style={[c.caption, { flex: 1 }]}>{type?.label ?? doc.type}</Text>
       </View>
       {!compact ? <Text numberOfLines={3} style={s.excerpt}>{excerpt || 'Ouvrir pour consulter le contenu.'}</Text> : null}
@@ -103,7 +103,7 @@ export function DocumentTile({ document: doc, compact, width }: { document: Robi
       <Text style={s.documentTitle}>{doc.title}</Text>
       {compact ? <Text numberOfLines={2} style={c.caption}>{excerpt || 'Ouvrir pour consulter le contenu.'}</Text> : null}
       <StatusPill label={DOCUMENT_STATUS_LABELS[doc.status] ?? doc.status} tone={isApproved(doc) ? 'teal' : doc.status === 'rejected' ? 'orange' : 'neutral'} />
-      <View style={s.documentFooter}><Text style={c.caption}>{date}</Text><MaterialIcons name="arrow-forward" size={18} color={Brand.tealDark} /></View>
+      <View style={s.documentFooter}><Text style={c.caption}>{date}</Text><AppIcon name="forward" size={18} color={Brand.tealDark} /></View>
     </View>
   </Pressable>;
 }

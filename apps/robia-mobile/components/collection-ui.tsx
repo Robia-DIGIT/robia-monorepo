@@ -1,4 +1,4 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { AppIcon } from '@/components/ui/app-icon';
 import { router, type Href } from 'expo-router';
 import { useMemo, type PropsWithChildren, type ComponentProps } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -7,7 +7,7 @@ import { Brand } from '@/constants/theme';
 import { useSectionGesture } from '@/src/navigation/section-gesture-context';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
-type Icon = ComponentProps<typeof MaterialIcons>['name'];
+type Icon = ComponentProps<typeof AppIcon>['name'];
 export function CollectionRail({ children, snap }: PropsWithChildren<{ snap?: number }>) {
   const parent = useSectionGesture();
   const gesture = useMemo(() => {
@@ -21,11 +21,11 @@ export function CollectionRail({ children, snap }: PropsWithChildren<{ snap?: nu
 }
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange(text: string): void; placeholder: string }) {
   return <View style={c.search}>
-    <MaterialIcons name="search" size={22} color={Brand.slate500} />
+    <AppIcon name="search" size={22} color={Brand.slate500} />
     <TextInput accessibilityLabel={placeholder} placeholder={placeholder} value={value} onChangeText={onChange}
       autoCorrect={false} returnKeyType="search" placeholderTextColor={Brand.slate500} style={c.input} />
     {value ? <Pressable accessibilityRole="button" accessibilityLabel="Effacer la recherche" onPress={() => onChange('')} style={c.iconButton}>
-      <MaterialIcons name="close" size={20} color={Brand.slate500} />
+      <AppIcon name="close" size={20} color={Brand.slate500} />
     </Pressable> : null}
   </View>;
 }
@@ -40,8 +40,8 @@ export function CollectionHeading({ title, detail, action, onPress }: { title: s
     <Text accessibilityRole="header" style={c.title}>{title}</Text>{detail ? <Text style={c.caption}>{detail}</Text> : null}
   </View>{action && onPress ? <Pressable accessibilityRole="button" onPress={onPress} style={c.textButton}><Text style={c.link}>{action}</Text></Pressable> : null}</View>;
 }
-export function EmptyCollection({ title, message, action, onPress, icon = 'search-off' }: { title: string; message: string; action?: string; onPress?: () => void; icon?: Icon }) {
-  return <View style={c.empty}><View style={c.emptyIcon}><MaterialIcons name={icon} size={30} color={Brand.tealDark} /></View>
+export function EmptyCollection({ title, message, action, onPress, icon = 'emptySearch' }: { title: string; message: string; action?: string; onPress?: () => void; icon?: Icon }) {
+  return <View style={c.empty}><View style={c.emptyIcon}><AppIcon name={icon} size={30} color={Brand.tealDark} /></View>
     <Text style={[c.title, { textAlign: 'center' }]}>{title}</Text><Text style={[c.body, { textAlign: 'center' }]}>{message}</Text>
     {action && onPress ? <Pressable accessibilityRole="button" onPress={onPress} style={c.textButton}><Text style={c.link}>{action}</Text></Pressable> : null}
   </View>;
@@ -52,7 +52,7 @@ export function QuickActions({ items }: { items: readonly { label: string; icon:
   const width = (contentWidth - (columns - 1) * 12) / columns;
   return <View style={c.grid}>{items.map(item => <Pressable key={item.label} accessibilityRole="button" accessibilityLabel={item.label}
     onPress={() => router.navigate(item.href)} style={({ pressed }) => [c.quick, { width }, pressed && c.pressed]}>
-    <View style={c.quickIcon}><MaterialIcons name={item.icon} size={25} color={Brand.tealDark} /></View><Text style={c.quickLabel}>{item.label}</Text>
+    <View style={c.quickIcon}><AppIcon name={item.icon} size={25} color={Brand.tealDark} /></View><Text style={c.quickLabel}>{item.label}</Text>
   </Pressable>)}</View>;
 }
 export const c = StyleSheet.create({

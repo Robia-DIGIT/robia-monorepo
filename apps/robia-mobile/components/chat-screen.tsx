@@ -1,19 +1,19 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { RobiaHeader, RobiaScreen, robiaStyles } from '@/components/robia-ui';
 import { Brand } from '@/constants/theme';
 
 const EXAMPLES = [
-  { icon: 'question-answer', text: 'Comment améliorer ma visibilité en ligne ?' },
-  { icon: 'radar', text: 'Analyse mon site et explique-moi les priorités.' },
-  { icon: 'edit-note', text: 'Prépare un contenu et organise mes prochaines actions.' },
+  { icon: 'faq', text: 'Comment améliorer ma visibilité en ligne ?' },
+  { icon: 'audit', text: 'Analyse mon site et explique-moi les priorités.' },
+  { icon: 'edit', text: 'Prépare un contenu et organise mes prochaines actions.' },
 ] as const;
 
 const SHORTCUTS = [
-  { icon: 'insights', label: 'Consulter mes opportunités', href: '/opportunities' },
-  { icon: 'travel-explore', label: 'Lancer un audit', href: '/audit' },
-  { icon: 'support-agent', label: 'Contacter l’équipe RobIA', href: '/support' },
+  { icon: 'opportunity', label: 'Consulter mes opportunités', href: '/opportunities' },
+  { icon: 'audit', label: 'Lancer un audit', href: '/audit' },
+  { icon: 'support', label: 'Contacter l’équipe RobIA', href: '/support' },
 ] as const;
 
 export default function ChatScreen() {
@@ -23,7 +23,7 @@ export default function ChatScreen() {
 
       <View style={s.welcome}>
         <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={s.avatar}>
-          <MaterialIcons name="smart-toy" size={38} color={Brand.tealDark} />
+          <AppIcon name="assistant" size={38} color={Brand.tealDark} />
         </View>
         <View style={s.badge}><Text style={s.badgeText}>Bientôt disponible</Text></View>
         <Text accessibilityRole="header" style={s.title}>Votre copilote, à votre écoute</Text>
@@ -36,7 +36,7 @@ export default function ChatScreen() {
         <Text accessibilityRole="header" style={robiaStyles.cardTitle}>Ce que vous pourrez lui demander</Text>
         {EXAMPLES.map(example => (
           <View key={example.text} style={s.example}>
-            <MaterialIcons accessible={false} name={example.icon} size={22} color={Brand.tealDark} />
+            <AppIcon accessible={false} name={example.icon} size={22} color={Brand.tealDark} />
             <Text style={s.exampleText}>« {example.text} »</Text>
           </View>
         ))}
@@ -63,7 +63,7 @@ export default function ChatScreen() {
             accessibilityLabel="Envoyer un message — bientôt disponible"
             accessibilityState={{ disabled: true }}
             style={s.send}>
-            <MaterialIcons accessible={false} name="arrow-upward" size={22} color={Brand.slate500} />
+            <AppIcon accessible={false} name="send" size={22} color={Brand.slate500} />
           </Pressable>
         </View>
       </View>
@@ -78,9 +78,9 @@ export default function ChatScreen() {
             accessibilityLabel={shortcut.label}
             onPress={() => router.navigate(shortcut.href)}
             style={({ pressed }) => [s.shortcut, pressed && s.pressed]}>
-            <MaterialIcons accessible={false} name={shortcut.icon} size={22} color={Brand.tealDark} />
+            <AppIcon accessible={false} name={shortcut.icon} size={22} color={Brand.tealDark} />
             <Text style={s.shortcutLabel}>{shortcut.label}</Text>
-            <MaterialIcons accessible={false} name="chevron-right" size={22} color={Brand.slate500} />
+            <AppIcon accessible={false} name="chevron" size={22} color={Brand.slate500} />
           </Pressable>
         ))}
       </View>

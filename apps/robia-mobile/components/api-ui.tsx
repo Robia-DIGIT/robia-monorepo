@@ -1,3 +1,4 @@
+import { AppIcon, type AppIconName } from '@/components/ui/app-icon';
 import { robiaStyles } from '@/components/robia-ui';
 import { Brand } from '@/constants/theme';
 import { useRef, useState, type ComponentProps } from 'react';
@@ -5,7 +6,7 @@ import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextIn
 export function Field({ label, ...props }: ComponentProps<typeof TextInput> & { label: string }) {
   return <View style={{ gap: 6, minWidth: 0, maxWidth: '100%' }}><Text style={robiaStyles.body}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor={Brand.slate400} {...props} style={[s.input, props.multiline && { minHeight: 120, textAlignVertical: 'top' }, props.style]} /></View>;
 }
-export function AsyncButton({ label, action, disabled = false, confirm, onSuccess }: { label: string; action(): Promise<unknown>; disabled?: boolean; confirm?: string; onSuccess?: string }) {
+export function AsyncButton({ label, action, disabled = false, confirm, onSuccess, icon }: { label: string; icon?: AppIconName; action(): Promise<unknown>; disabled?: boolean; confirm?: string; onSuccess?: string }) {
   const lock = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export function AsyncButton({ label, action, disabled = false, confirm, onSucces
       }}
       accessibilityLabel={label}
       style={({ pressed }) => [s.button, (pressed || disabled || busy) && { opacity: 0.5 }]}>
-      {busy ? <ActivityIndicator color="white" /> : <Text style={s.buttonText}>{label}</Text>}
+      {busy ? <ActivityIndicator color="white" /> : <>{icon ? <AppIcon name={icon} size={20} color={Brand.white} /> : null}<Text style={s.buttonText}>{label}</Text></>}
     </Pressable>
     {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
     {message ? <Text accessibilityLiveRegion="polite" style={robiaStyles.body}>{message}</Text> : null}
@@ -34,7 +35,7 @@ export function AsyncButton({ label, action, disabled = false, confirm, onSucces
 }
 export function LoadState({ loading, error, retry, empty }: { loading: boolean; error: string | null; retry(): Promise<unknown>; empty?: boolean }) {
   return <View style={{ gap: 8 }}>{loading ? <ActivityIndicator accessibilityLabel="Chargement" color={Brand.teal} /> : null}
-    {error ? <><Text accessibilityRole="alert" style={s.error}>{error}</Text><AsyncButton label="Réessayer" action={retry} /></> : null}
+    {error ? <><Text accessibilityRole="alert" style={s.error}>{error}</Text><AsyncButton icon="refresh" label="Réessayer" action={retry} /></> : null}
     {!loading && !error && empty ? <Text style={robiaStyles.body}>Aucun élément pour le moment.</Text> : null}</View>;
 }
 export function Choices<T extends string>({ value, options, onChange }: { value: T; options: readonly { value: T; label: string }[]; onChange(value: T): void }) {
@@ -43,7 +44,7 @@ export function Choices<T extends string>({ value, options, onChange }: { value:
 export const apiStyles = StyleSheet.create({ stack: { gap: 14 }, title: robiaStyles.cardTitle, body: robiaStyles.body });
 const s = StyleSheet.create({
   input: { width: '100%', minWidth: 0, minHeight: 52, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: Brand.borderSubtle, borderRadius: 8, backgroundColor: Brand.slate50, color: Brand.navyDark, fontSize: 16 },
-  button: { minHeight: 52, padding: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealDark },
+  button: { flexDirection: 'row', gap: 8, minHeight: 52, padding: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.tealDark },
   buttonText: { textAlign: 'center', flexShrink: 1, color: 'white', fontWeight: '700', fontSize: 15 }, error: { color: '#9F2D20', lineHeight: 21 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { maxWidth: '100%', flexShrink: 1, minHeight: 48, padding: 12, borderRadius: 8, backgroundColor: Brand.slate100, justifyContent: 'center' }, selected: { backgroundColor: Brand.tealLight },
 });

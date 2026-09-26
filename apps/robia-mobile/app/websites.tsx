@@ -28,7 +28,7 @@ export default function WebsitesScreen() {
     <RobiaScreen fixedHeader>
       <RobiaHeader compact back title="Mes sites" />
       {!organization ? (
-        <AsyncButton
+        <AsyncButton icon="organization"
           label="Créer mon organisation"
           action={async () => router.push("/settings")}
         />
@@ -43,7 +43,7 @@ export default function WebsitesScreen() {
               autoCapitalize="none"
               placeholder="https://entreprise.com"
             />
-            <AsyncButton
+            <AsyncButton icon="integrations"
               label="Connecter ce site"
               disabled={!url.trim()}
               action={async () => {
@@ -74,7 +74,7 @@ export default function WebsitesScreen() {
               </Text>
               {!site.archivedAt ? (
                 <>
-                  <AsyncButton
+                  <AsyncButton icon="website"
                     label="Utiliser ce site"
                     action={async () => {
                       const current = await request<Site>(
@@ -85,7 +85,7 @@ export default function WebsitesScreen() {
                       else router.replace("/(tabs)/dashboard");
                     }}
                   />
-                  <AsyncButton
+                  <AsyncButton icon="archive"
                     label="Archiver"
                     confirm="Ce site sera masqué de vos sites actifs. Vous pourrez le restaurer."
                     action={async () => {
@@ -98,7 +98,7 @@ export default function WebsitesScreen() {
                   />
                 </>
               ) : (
-                <AsyncButton
+                <AsyncButton icon="refresh"
                   label="Restaurer"
                   action={async () => {
                     await request(

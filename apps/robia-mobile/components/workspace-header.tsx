@@ -1,4 +1,4 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/constants/theme';
@@ -7,17 +7,17 @@ export function WorkspaceHeader({ title, back = false }: { title: string; back?:
   return <View style={s.header}>
     {back ? <Pressable accessibilityRole="button" accessibilityLabel="Revenir à l’écran précédent"
       onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard')} style={s.button}>
-      <MaterialIcons name="arrow-back" size={23} color={Brand.navyDark} />
+      <AppIcon name="back" size={23} color={Brand.navyDark} />
     </Pressable> : null}
     <Text accessibilityRole="header" style={s.title}>{title}</Text>
     <Pressable accessibilityRole="button" accessibilityLabel="Aide et support"
       onPress={() => router.push('/support')} style={({ pressed }) => [s.button, pressed && s.pressed]}>
-      <MaterialIcons name="help-outline" size={23} color={Brand.navyDark} />
+      <AppIcon name="help" size={23} color={Brand.navyDark} />
     </Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel="Assistant RobIA"
       accessibilityHint="Découvrir l’assistant, bientôt disponible"
       onPress={() => router.push('/chat')} style={({ pressed }) => [s.button, pressed && s.pressed]}>
-      <MaterialIcons name="chat-bubble-outline" size={23} color={Brand.navyDark} />
+      <AppIcon name="assistant" size={23} color={Brand.navyDark} />
     </Pressable>
   </View>;
 }

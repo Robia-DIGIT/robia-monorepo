@@ -19,7 +19,7 @@ import { useFilterMotion } from '@/hooks/use-filter-motion';
 import { useFilterSwipe } from '@/hooks/use-filter-swipe';
 import { useRobiaData } from "@/src/api/data";
 import type { Opportunity } from "@/src/api/types";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { AppIcon } from '@/components/ui/app-icon';
 import { router } from 'expo-router';
 import { useState } from "react";
 import {
@@ -189,8 +189,8 @@ function OpportunityCard({
           onPress={() => void onAction(item.id, "actions")}
           style={styles.secondaryButton}
         >
-          <MaterialIcons
-            name="playlist-add-check"
+          <AppIcon
+            name="addTask"
             size={18}
             color={Brand.tealDark}
           />
@@ -208,7 +208,7 @@ function OpportunityCard({
             <ActivityIndicator size="small" color={Brand.white} />
           ) : (
             <>
-              <MaterialIcons name="description" size={17} color={Brand.white} />
+              <AppIcon name="document" size={17} color={Brand.white} />
               <Text style={styles.primaryLabel}>Créer</Text>
             </>
           )}
@@ -220,14 +220,14 @@ function OpportunityCard({
 
 function opportunityIcon(
   category: string | null,
-): React.ComponentProps<typeof MaterialIcons>["name"] {
+): React.ComponentProps<typeof AppIcon>["name"] {
   const value = category?.toLowerCase() ?? "";
-  if (value.includes("local") || value.includes("établissement")) return "location-on";
-  if (value.includes("contenu") || value.includes("rédaction")) return "edit-note";
-  if (value.includes("tech") || value.includes("performance")) return "speed";
+  if (value.includes("local") || value.includes("établissement")) return "location";
+  if (value.includes("contenu") || value.includes("rédaction")) return "edit";
+  if (value.includes("tech") || value.includes("performance")) return "performance";
   if (value.includes("seo") || value.includes("référencement")) return "search";
   if (value.includes("visibilité")) return "visibility";
-  return "lightbulb";
+  return "opportunity";
 }
 
 function Meta({ label, value }: { label: string; value: string }) {

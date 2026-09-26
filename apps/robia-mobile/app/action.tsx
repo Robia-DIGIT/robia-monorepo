@@ -29,7 +29,6 @@ export default function ActionScreen() {
   const [reason, setReason] = useState("");
   const [evidence, setEvidence] = useState("");
   const [outcome, setOutcome] = useState("succeeded");
-  // Retain the same key after an uncertain network outcome; do not duplicate execution evidence.
   const [key, setKey] = useState(
     () => "mobile-" + Date.now() + "-" + Math.random().toString(36).slice(2),
   );
@@ -67,7 +66,7 @@ export default function ActionScreen() {
                 { value: "ignored", label: "Ignorée" },
               ]}
             />
-            <AsyncButton
+            <AsyncButton icon="save"
               label="Enregistrer le statut"
               disabled={status === item.status}
               action={() => mutate("/status", { status }, "PATCH")}
@@ -84,7 +83,7 @@ export default function ActionScreen() {
               onChangeText={setDate}
               placeholder="2026-10-30"
             />
-            <AsyncButton
+            <AsyncButton icon="calendar"
               label="Enregistrer l’échéance"
               disabled={!/^\d{4}-\d{2}-\d{2}$/.test(date)}
               action={async () => {
@@ -104,7 +103,7 @@ export default function ActionScreen() {
           </RobiaCard>
           <RobiaCard style={s.stack}>
             <Text style={s.title}>Validation et exécution</Text>
-            <AsyncButton
+            <AsyncButton icon="send"
               label="Soumettre pour validation"
               disabled={
                 item.approvalStatus === "approved" ||
@@ -112,7 +111,7 @@ export default function ActionScreen() {
               }
               action={() => mutate("/submit")}
             />
-            <AsyncButton
+            <AsyncButton icon="approve"
               label="Approuver l’action"
               disabled={item.approvalStatus !== "pending"}
               confirm="Approuver cette action après vérification ?"
@@ -124,7 +123,7 @@ export default function ActionScreen() {
               onChangeText={setReason}
               maxLength={500}
             />
-            <AsyncButton
+            <AsyncButton icon="reject"
               label="Rejeter l’action"
               disabled={
                 reason.trim().length < 3 || item.approvalStatus !== "pending"
@@ -149,7 +148,7 @@ export default function ActionScreen() {
               onChangeText={setEvidence}
               multiline
             />
-            <AsyncButton
+            <AsyncButton icon="save"
               label="Enregistrer le résultat"
               disabled={
                 !evidence.trim() ||

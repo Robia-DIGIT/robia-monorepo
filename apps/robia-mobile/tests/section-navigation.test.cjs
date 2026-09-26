@@ -48,7 +48,7 @@ test('subsection presses and swipes update the route and share the same page mot
 test('shared headers retain support and assistant without a profile shortcut', () => {
   const visits = [];
   const { WorkspaceHeader } = load('../components/workspace-header.tsx', {
-    '@expo/vector-icons/MaterialIcons': 'Icon',
+    '@/components/ui/app-icon': { AppIcon: 'Icon' },
     'expo-router': { router: { push: href => visits.push(href), canGoBack: () => true, back: () => visits.push('back') } },
     'react-native': { Pressable: 'Button', Text: 'Text', View: 'View', StyleSheet: { create: s => s } },
     '@/constants/theme': { Brand: {} },

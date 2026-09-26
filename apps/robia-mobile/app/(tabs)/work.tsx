@@ -14,13 +14,13 @@ export default function WorkScreen() {
     </> : <>
       <CollectionHeading title="Gagner du temps" detail="Organisez les tâches récurrentes et gardez la main sur les décisions." />
       <QuickActions items={[
-        { label: 'Automatisations', href: '/automations', icon: 'auto-awesome' },
-        { label: 'Envois', href: '/notifications', icon: 'outgoing-mail' },
-        { label: 'Validations', href: '/validations', icon: 'fact-check' },
-        { label: 'Connexions', href: '/integrations', icon: 'hub' },
+        { label: 'Automatisations', href: '/automations', icon: 'automation' },
+        { label: 'Envois', href: '/notifications', icon: 'deliveries' },
+        { label: 'Validations', href: '/validations', icon: 'validation' },
+        { label: 'Connexions', href: '/integrations', icon: 'integrations' },
       ]} />
-      <NavCard title="Mes automatisations" description="Déclencheurs, actions, historique et validations." href="/automations" icon="auto-awesome" />
-      <NavCard title="Suivi des envois" description="Vérifier les e-mails et relancer les échecs." href="/notifications" icon="outgoing-mail" />
+      <NavCard title="Mes automatisations" description="Déclencheurs, actions, historique et validations." href="/automations" icon="automation" />
+      <NavCard title="Suivi des envois" description="Vérifier les e-mails et relancer les échecs." href="/notifications" icon="deliveries" />
     </>}
   </SectionPager>;
 }
