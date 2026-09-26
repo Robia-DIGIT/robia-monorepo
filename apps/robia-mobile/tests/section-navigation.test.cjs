@@ -45,17 +45,22 @@ test('subsection presses and swipes update the route and share the same page mot
   requested = 'programs'; screen = render();
   assert.equal(screen.props.children[1].props.filterKey, 'programs');
 });
-test('profile, support and assistant are accessible from the shared header', () => {
+test('shared headers retain support and assistant without a profile shortcut', () => {
   const visits = [];
   const { WorkspaceHeader } = load('../components/workspace-header.tsx', {
     '@expo/vector-icons/MaterialIcons': 'Icon',
-    'expo-router': { router: { push: href => visits.push(href), navigate: href => visits.push(href) } },
+    'expo-router': { router: { push: href => visits.push(href), canGoBack: () => true, back: () => visits.push('back') } },
     'react-native': { Pressable: 'Button', Text: 'Text', View: 'View', StyleSheet: { create: s => s } },
     '@/constants/theme': { Brand: {} },
   });
   const header = WorkspaceHeader({ title: 'Accueil' });
   const buttons = header.props.children.filter(child => child?.type === 'Button');
-  assert.equal(buttons.length, 3);
+  assert.equal(buttons.length, 2);
   buttons.forEach(button => { assert.ok(button.props.accessibilityLabel); button.props.onPress(); });
-  assert.deepEqual(visits, ['/profile', '/support', '/chat']);
+  assert.deepEqual(visits, ['/support', '/chat']);
+  const secondary = WorkspaceHeader({ title: 'Documents', back: true });
+  const secondaryButtons = secondary.props.children.filter(child => child?.type === 'Button');
+  assert.equal(secondaryButtons.length, 3);
+  secondaryButtons.forEach(button => button.props.onPress());
+  assert.deepEqual(visits, ['/support', '/chat', 'back', '/support', '/chat']);
 });

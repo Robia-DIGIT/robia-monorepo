@@ -51,7 +51,7 @@ function renderBar(index, { prevent = false, fontScale = 1, width = 390, insets 
   new Function('require', 'module', 'exports', compiled)(
     name => mocks[name] ?? require(name), module, module.exports,
   );
-  const names = ['dashboard', 'visibility', 'work'];
+  const names = ['dashboard', 'visibility', 'work', 'profile'];
   const routes = names.map(name => ({ name, key: name + '-key' }));
   const tree = module.exports.RobiaTabBar({
     state: { index, routes },
@@ -66,7 +66,7 @@ function renderBar(index, { prevent = false, fontScale = 1, width = 390, insets 
 }
 
 test('exactly the displayed page has a selected icon after each navigation update', () => {
-  for (const index of [0, 2, 1, 2, 0]) {
+  for (const index of [0, 2, 3, 1, 2, 0]) {
     const { buttons } = renderBar(index);
     assert.deepEqual(buttons.map(button => button.props.accessibilityState.selected),
       buttons.map((_, position) => position === index));
@@ -83,6 +83,9 @@ test('pressing another tab navigates to its route and handles unavailable haptic
   await Promise.resolve();
   assert.deepEqual(visits, [['work', undefined]]);
   assert.deepEqual(events, [{ type: 'tabPress', target: 'work-key', canPreventDefault: true }]);
+  buttons[3].props.onPress();
+  await Promise.resolve();
+  assert.deepEqual(visits.at(-1), ['profile', undefined]);
 });
 
 test('pressing the active tab or a prevented tab does not navigate again', () => {
@@ -136,7 +139,7 @@ test('all navbar routes use the common swipe navigator', () => {
   const layout = renderBar(0).layout();
   assert.equal(layout.props.backBehavior, 'history');
   assert.deepEqual(layout.props.children.map(screen => screen.props.name),
-    ['dashboard', 'visibility', 'work']);
+    ['dashboard', 'visibility', 'work', 'profile']);
   assert.ok(layout.props.children.every(screen => screen.props.options.swipeEnabled !== false));
 });
 
@@ -144,7 +147,6 @@ test('the native filter gesture covers the header and content before vertical sc
   let chipLayouts = {};
   let responsive = { gutter: 12, containerWidth: 744, headerMaxHeight: 240, short: false, fontScale: 1 };
   const { RobiaScreen, FilterChips, FilterTransition } = loadTypeScript('../components/robia-ui.tsx', {
-    '@/components/workspace-header': { ProfileShortcut: 'ProfileShortcut' },
     '@/hooks/use-responsive-layout': { useResponsiveLayout: () => responsive },
     react: {
       ...React, useMemo: callback => callback(), useCallback: callback => callback,
@@ -630,5 +632,5 @@ test('navbar stays inside safe bounds on small phones and large displays', () =>
 });
 test('keyboard releases navbar space for form fields', () => {
   assert.equal(renderBar(0, { keyboard: true }).hidden, true);
-  assert.equal(renderBar(0, { keyboard: false }).buttons.length, 3);
+  assert.equal(renderBar(0, { keyboard: false }).buttons.length, 4);
 });

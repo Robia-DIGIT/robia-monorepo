@@ -38,6 +38,7 @@ const TABS = [
   { name: "dashboard", title: "Accueil", icon: "house.fill" },
   { name: "visibility", title: "Visibilité", icon: "chart.bar.fill" },
   { name: "work", title: "Activité", icon: "doc.text.fill" },
+  { name: "profile", title: "Profil", icon: "person.crop.circle.fill" },
 ] as const;
 
 // Use the navigator's selected route as the only source of selection. The

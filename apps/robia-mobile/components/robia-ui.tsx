@@ -1,4 +1,3 @@
-import { ProfileShortcut } from '@/components/workspace-header';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
@@ -185,7 +184,6 @@ export function RobiaHeader({
           </View>
         ) : null}
         <View style={styles.headerActions}>
-          {back ? <ProfileShortcut /> : null}
           {action}
         </View>
       </View>
