@@ -10,11 +10,11 @@ import { CopilotProvider } from 'react-native-copilot';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { Brand, Colors, Fonts } from '@/constants/theme';
 import { OfflineNotice } from '@/components/offline-notice';
+import { Brand, Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { LOGO_SETTLED_PROGRESS, useLaunchAnimation } from '@/hooks/use-launch-animation';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { RobiaDataProvider } from '@/src/api/data';
 import { SessionProvider, useSession } from '@/src/auth/session';
 
