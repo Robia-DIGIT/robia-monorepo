@@ -1,13 +1,29 @@
-import NetInfo, { useNetInfo } from '@react-native-community/netinfo';
+import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import * as IntentLauncher from 'expo-intent-launcher';
+import { useEffect, useState } from 'react';
 import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/app-icon';
 import { Brand, Fonts } from '@/constants/theme';
 
 export function OfflineNotice() {
-  const { isConnected, isInternetReachable } = useNetInfo();
-  const visible = isConnected === false || isInternetReachable === false;
+  const [networkState, setNetworkState] = useState<NetInfoState | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (mounted) setNetworkState(state);
+    });
+    void NetInfo.fetch().then((state) => {
+      if (mounted) setNetworkState(state);
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const visible = networkState?.isConnected === false || networkState?.isInternetReachable === false;
 
   async function openNetworkSettings() {
     try {
